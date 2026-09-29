@@ -140,11 +140,8 @@ export class InscripcionGrupoComponent implements OnInit {
       },
       error: (err) => {
         this.inscribiendo = false;
-        if (err.status === 409) {
-          this.snackBar.open('Ya estás inscrito en este grupo.', 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
-        } else {
-          this.snackBar.open('Error al inscribirse. Intenta de nuevo.', 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
-        }
+        const msg = err.error?.mensaje ?? 'Error al inscribirse. Intenta de nuevo.';
+        this.snackBar.open(msg, 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
       },
     });
   }

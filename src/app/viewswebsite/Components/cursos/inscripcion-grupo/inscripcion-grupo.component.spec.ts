@@ -147,13 +147,13 @@ describe('InscripcionGrupoComponent', () => {
     );
   });
 
-  it('inscribirse(): error 409 → snackbar "Ya estás inscrito"', () => {
+  it('inscribirse(): error 409 sin cuerpo de error → snackbar genérico de error', () => {
     sessionStorage.setItem('dpt_perfil_id', '12345');
     inscripcionSpy.postInscripcion.and.returnValue(throwError(() => ({ status: 409 })));
     component.inscribirse();
     expect(component.yaInscrito).toBeFalse();
     expect(snackOpen).toHaveBeenCalledWith(
-      jasmine.stringContaining('Ya estás inscrito'), 'Cerrar', jasmine.any(Object)
+      jasmine.stringContaining('Error al inscribirse'), 'Cerrar', jasmine.any(Object)
     );
   });
 
@@ -163,6 +163,44 @@ describe('InscripcionGrupoComponent', () => {
     component.inscribirse();
     expect(snackOpen).toHaveBeenCalledWith(
       jasmine.stringContaining('Error al inscribirse'), 'Cerrar', jasmine.any(Object)
+    );
+  });
+
+  // ── mensajes reales del backend ────────────────────────────────────────────
+
+  it('inscribirse(): error 422 (inscripciones cerradas) → muestra el mensaje real del backend', () => {
+    sessionStorage.setItem('dpt_perfil_id', '12345');
+    inscripcionSpy.postInscripcion.and.returnValue(
+      throwError(() => ({ status: 422, error: { mensaje: 'Las inscripciones para el curso Natacion están cerradas' } }))
+    );
+    component.inscribirse();
+    expect(snackOpen).toHaveBeenCalledWith(
+      'Las inscripciones para el curso Natacion están cerradas', 'Cerrar', jasmine.any(Object)
+    );
+  });
+
+  it('inscribirse(): error 409 con mensaje de cupos agotados → muestra ese mensaje (no texto de "ya inscrito")', () => {
+    sessionStorage.setItem('dpt_perfil_id', '12345');
+    inscripcionSpy.postInscripcion.and.returnValue(
+      throwError(() => ({ status: 409, error: { mensaje: 'Los cupos para este grupo están agotados' } }))
+    );
+    component.inscribirse();
+    expect(snackOpen).toHaveBeenCalledWith(
+      'Los cupos para este grupo están agotados', 'Cerrar', jasmine.any(Object)
+    );
+    expect(snackOpen).not.toHaveBeenCalledWith(
+      jasmine.stringContaining('Ya estás inscrito'), jasmine.any(String), jasmine.any(Object)
+    );
+  });
+
+  it('inscribirse(): error 409 con mensaje de ya inscrito → muestra el mensaje real del backend', () => {
+    sessionStorage.setItem('dpt_perfil_id', '12345');
+    inscripcionSpy.postInscripcion.and.returnValue(
+      throwError(() => ({ status: 409, error: { mensaje: 'Ya estás inscrito en este grupo.' } }))
+    );
+    component.inscribirse();
+    expect(snackOpen).toHaveBeenCalledWith(
+      'Ya estás inscrito en este grupo.', 'Cerrar', jasmine.any(Object)
     );
   });
 });
