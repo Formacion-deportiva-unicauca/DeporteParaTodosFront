@@ -128,8 +128,9 @@ export class FormGruposComponent implements OnInit {
   onSubmit(form: NgForm): void {
     if (this.isEditing) {
       this.updateGrupo();
+    } else {
+      this.crearGrupo();
     }
-    this.crearGrupo();
   }
 
   private crearGrupo(): void {
@@ -180,11 +181,38 @@ export class FormGruposComponent implements OnInit {
   }
 
   private updateGrupo(): void {
+    const payload: GrupoDTO = {
+      categoria: this.categoriaGrupo!,
+      curso: this.cursoGrupo!,
+      anio: this.grupo.anio,
+      iterable: this.grupo.iterable,
+      idInstructor: this.grupo.idInstructor ?? null,
+      cupos: this.grupo.cupos,
+      fechaCreacion: this.grupo.fechaCreacion,
+      fechaFinalizacion: this.grupo.fechaFinalizacion ?? null,
+    };
+
     if (this.selectedFile) {
       this.imagenService.postImagen(this.selectedFile).subscribe(
         (imagenResponse) => {
-          const idImagen = imagenResponse.id;
+          this.grupoService.updateGrupo(
+            this.categoriaGrupo!, this.cursoGrupo!,
+            this.grupo.anio!, this.grupo.iterable!,
+            { ...payload, imagenGrupo: imagenResponse.id }
+          ).subscribe(
+            () => { this.dialogRef.close(true); },
+            (error) => { console.error('Error al actualizar el grupo', error); }
+          );
         }
+      );
+    } else {
+      this.grupoService.updateGrupo(
+        this.categoriaGrupo!, this.cursoGrupo!,
+        this.grupo.anio!, this.grupo.iterable!,
+        payload
+      ).subscribe(
+        () => { this.dialogRef.close(true); },
+        (error) => { console.error('Error al actualizar el grupo', error); }
       );
     }
   }

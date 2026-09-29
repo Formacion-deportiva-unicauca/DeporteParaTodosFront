@@ -128,13 +128,13 @@ describe('GrupoService', () => {
 
   // ── updateGrupo ───────────────────────────────────────────────────────────
 
-  it('updateGrupo: PUT /grupo con params encodeados y body correcto', () => {
+  it('updateGrupo: PUT /grupo con los 4 params de query y body correcto', () => {
     const actualizado: GrupoDTO = { ...grupoDummy, cupos: 30 };
-    service.updateGrupo('Acuáticos', 'Natación', actualizado).subscribe(resp => {
+    service.updateGrupo('Acuáticos', 'Natación', 2026, 1, actualizado).subscribe(resp => {
       expect(resp.cupos).toBe(30);
     });
     const req = httpMock.expectOne(
-      `${API}/grupo?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n`
+      `${API}/grupo?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&anio=2026&iterable=1`
     );
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(actualizado);
@@ -143,12 +143,12 @@ describe('GrupoService', () => {
 
   it('updateGrupo: propaga error HTTP 404 (grupo no existe)', () => {
     let errorCapturado: any;
-    service.updateGrupo('Acuáticos', 'Natación', grupoDummy).subscribe({
+    service.updateGrupo('Acuáticos', 'Natación', 2026, 1, grupoDummy).subscribe({
       next: () => fail('debería haber fallado'),
       error: err => (errorCapturado = err),
     });
     const req = httpMock.expectOne(
-      `${API}/grupo?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n`
+      `${API}/grupo?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&anio=2026&iterable=1`
     );
     req.flush('No encontrado', { status: 404, statusText: 'Not Found' });
     expect(errorCapturado).toBeTruthy();

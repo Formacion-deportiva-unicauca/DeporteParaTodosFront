@@ -36,8 +36,11 @@ export class GrupoService {
       );
   }
 
-  updateGrupo(prmNombreCategoria: string, prmNombreCurso: string, grupo: GrupoDTO): Observable<GrupoDTO> {
-    return this.http.put<GrupoDTO>(`${this.apiUrl}/grupo?prmCategoria=${encodeURIComponent(prmNombreCategoria)}&prmCurso=${encodeURIComponent(prmNombreCurso)}`, grupo).pipe(
+  updateGrupo(prmNombreCategoria: string, prmNombreCurso: string, anio: number, iterable: number, grupo: GrupoDTO): Observable<GrupoDTO> {
+    return this.http.put<GrupoDTO>(
+      `${this.apiUrl}/grupo?prmCategoria=${encodeURIComponent(prmNombreCategoria)}&prmCurso=${encodeURIComponent(prmNombreCurso)}&anio=${anio}&iterable=${iterable}`,
+      grupo
+    ).pipe(
       catchError((error) => {
         return throwError(error);
       })
