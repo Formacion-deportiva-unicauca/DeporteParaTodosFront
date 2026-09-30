@@ -6,6 +6,7 @@ import { DialogComponent } from './dialog.component';
 import { CategoriaService } from 'src/app/services/categoria.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
+import { AsistenciaService } from 'src/app/services/asistencia.service';
 
 describe('DialogComponent', () => {
   let component: DialogComponent;
@@ -13,6 +14,7 @@ describe('DialogComponent', () => {
   let mockCategoriaService: jasmine.SpyObj<CategoriaService>;
   let mockCursoService: jasmine.SpyObj<CursodeportivoService>;
   let mockInscripcionService: jasmine.SpyObj<InscripcionesService>;
+  let mockAsistenciaService: jasmine.SpyObj<AsistenciaService>;
   let mockDialogRef: jasmine.SpyObj<MatDialogRef<DialogComponent>>;
 
   const dialogData = {
@@ -29,6 +31,7 @@ describe('DialogComponent', () => {
     mockCategoriaService = jasmine.createSpyObj('CategoriaService', ['deleteCategoria']);
     mockCursoService = jasmine.createSpyObj('CursodeportivoService', ['deleteCurso']);
     mockInscripcionService = jasmine.createSpyObj('InscripcionesService', ['eliminarInscripcion']);
+    mockAsistenciaService = jasmine.createSpyObj('AsistenciaService', ['eliminarAsistencia']);
     mockDialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
 
     await TestBed.configureTestingModule({
@@ -37,6 +40,7 @@ describe('DialogComponent', () => {
         { provide: CategoriaService, useValue: mockCategoriaService },
         { provide: CursodeportivoService, useValue: mockCursoService },
         { provide: InscripcionesService, useValue: mockInscripcionService },
+        { provide: AsistenciaService, useValue: mockAsistenciaService },
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: { ...dialogData } },
       ],
@@ -120,6 +124,31 @@ describe('DialogComponent', () => {
       component.confirmarEliminar();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: false, errorStatus: 500 });
+    });
+  });
+
+  describe('tipoElemento = "asistencia"', () => {
+    beforeEach(() => {
+      component.data.tipoElemento = 'asistencia';
+      (component.data as any).prmPerfId = 'PERF-01';
+      (component.data as any).prmClsCodigo = 7;
+    });
+
+    it('llama a eliminarAsistencia y cierra el dialog con confirmado: true', () => {
+      mockAsistenciaService.eliminarAsistencia.and.returnValue(of({} as any));
+
+      component.confirmarEliminar();
+
+      expect(mockAsistenciaService.eliminarAsistencia).toHaveBeenCalledWith('PERF-01', 7);
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: true });
+    });
+
+    it('cierra el dialog con confirmado: false cuando eliminarAsistencia falla', () => {
+      mockAsistenciaService.eliminarAsistencia.and.returnValue(throwError(() => ({ status: 404 })));
+
+      component.confirmarEliminar();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: false, errorStatus: 404 });
     });
   });
 });

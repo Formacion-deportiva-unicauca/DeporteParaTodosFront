@@ -16,4 +16,18 @@ export class AsistenciaService {
       catchError((error) => throwError(error))
     );
   }
+
+  getAtencionesClase(claseid: number): Observable<AtencionDTO[]> {
+    return this.http.get<AtencionDTO[]>(`${this.apiUrl}/atencionesporclase?claseid=${claseid}`).pipe(
+      catchError((error) => throwError(error))
+    );
+  }
+
+  eliminarAsistencia(prmPerfId: string, prmClsCodigo: number): Observable<AtencionDTO> {
+    return this.http.delete<AtencionDTO>(
+      `${this.apiUrl}/asistencia?prmPerfId=${encodeURIComponent(prmPerfId)}&prmClsCodigo=${prmClsCodigo}`
+    ).pipe(
+      catchError((error) => throwError(error))
+    );
+  }
 }

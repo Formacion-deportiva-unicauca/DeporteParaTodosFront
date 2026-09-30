@@ -73,13 +73,13 @@ describe('ClaseService', () => {
 
   it('getClase: GET /clasesGrupo con categoria/curso encodeados y anio/iterable numérico', () => {
     service.getClase('Acuáticos', 'Natación', 2026, 1).subscribe(resp => {
-      expect(resp.idGrupoCurso).toBe('Natación');
+      expect(resp[0].idGrupoCurso).toBe('Natación');
     });
     const req = httpMock.expectOne(
       `${API}/clasesGrupo?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1`
     );
     expect(req.request.method).toBe('GET');
-    req.flush(claseDummy);
+    req.flush([claseDummy]);
   });
 
   it('getClase: propaga error HTTP sin transformar (sin catchError — ver hallazgo al inicio del archivo)', () => {

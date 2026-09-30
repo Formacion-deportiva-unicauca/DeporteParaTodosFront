@@ -152,4 +152,55 @@
       </table>
     </div>
   </div>
+
+  <!-- ── Historial de clases ──────────────────────────────────────────────── -->
+  <div class="datos" *ngIf="rol === 'Coordinador' || rol === 'Instructor'">
+    <div class="headerTabla">
+      <h2>Historial de clases</h2>
+      <button mat-raised-button class="btn-primary" (click)="cargarHistorial()">
+        <mat-icon>history</mat-icon> Ver historial
+      </button>
+    </div>
+
+    <div *ngIf="historialVisible">
+      <p *ngIf="clases.length === 0" class="text-muted">No hay clases registradas para este grupo.</p>
+
+      <div *ngFor="let clase of clases" class="clase-item">
+        <div class="clase-header" (click)="toggleClase(clase)" style="cursor:pointer;">
+          <span><strong>Fecha:</strong> {{ clase.fecha }}</span>
+          <span class="ms-3"><strong>Duración:</strong> {{ clase.horas }}h {{ clase.minutos }}min</span>
+          <mat-icon>{{ clasesExpandidas.has(clase.codigo) ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </div>
+
+        <div *ngIf="clasesExpandidas.has(clase.codigo)" class="clase-detalle">
+          <p *ngIf="!clasesAtenciones[clase.codigo]">Cargando asistencias...</p>
+          <ng-container *ngIf="clasesAtenciones[clase.codigo] as atenciones">
+            <p *ngIf="atenciones.length === 0" class="text-muted">Sin asistentes registrados.</p>
+            <table *ngIf="atenciones.length > 0" class="tabla-atenciones">
+              <thead>
+                <tr>
+                  <th>Deportista</th>
+                  <th>Asistió</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let atencion of atenciones">
+                  <td>{{ getNombreAlumno(atencion.idPerfil) }}</td>
+                  <td>{{ atencion.estaAtendido ? 'Sí' : 'No' }}</td>
+                  <td>
+                    <button mat-icon-button color="warn" (click)="eliminarAtencion(atencion, clase)"
+                            title="Eliminar asistencia">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </app-sidenav>

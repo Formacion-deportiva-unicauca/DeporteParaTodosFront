@@ -13,6 +13,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CategoriaService } from 'src/app/services/categoria.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
+import { AsistenciaService } from 'src/app/services/asistencia.service';
 
 @Component({
   selector: 'app-dialog',
@@ -37,6 +38,7 @@ export class DialogComponent {
     private categoriaservice: CategoriaService,
     private cursoService: CursodeportivoService,
     private inscripcionService: InscripcionesService,
+    private asistenciaService: AsistenciaService,
     private dialogRef: MatDialogRef<DialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: {
       elemento: string,
@@ -46,6 +48,8 @@ export class DialogComponent {
       alumnoId?: number,
       anio?: number,
       iterable?: number,
+      prmPerfId?: string,
+      prmClsCodigo?: number,
     }
   ) { }
 
@@ -72,6 +76,13 @@ export class DialogComponent {
         anio: this.data.anio!,
         iterable: this.data.iterable!,
       } as any).subscribe({
+        next: () => this.dialogRef.close({ confirmado: true }),
+        error: (err) => this.dialogRef.close({ confirmado: false, errorStatus: err?.status }),
+      });
+    }
+
+    if (this.data.tipoElemento == 'asistencia') {
+      this.asistenciaService.eliminarAsistencia(this.data.prmPerfId!, this.data.prmClsCodigo!).subscribe({
         next: () => this.dialogRef.close({ confirmado: true }),
         error: (err) => this.dialogRef.close({ confirmado: false, errorStatus: err?.status }),
       });

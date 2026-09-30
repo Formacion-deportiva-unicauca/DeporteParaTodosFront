@@ -15,7 +15,7 @@ export class ClaseService {
     return this.http.post<ClaseDTO>(`${this.apiUrl}/claseGrupo`, datosClase).pipe();    
   }
 
-  getClase(categoria:string, curso:string, anio: number, iterable:number):Observable<ClaseDTO>{
-    return this.http.get<ClaseDTO>(`${this.apiUrl}/clasesGrupo?categoria=${encodeURIComponent(categoria)}&curso=${encodeURIComponent(curso)}&anio=${anio}&iterable=${iterable}`).pipe();
+  getClase(categoria:string, curso:string, anio: number, iterable:number):Observable<ClaseDTO[]>{
+    return this.http.get<ClaseDTO[]>(`${this.apiUrl}/clasesGrupo?categoria=${encodeURIComponent(categoria)}&curso=${encodeURIComponent(curso)}&anio=${anio}&iterable=${iterable}`).pipe();
   }
 }

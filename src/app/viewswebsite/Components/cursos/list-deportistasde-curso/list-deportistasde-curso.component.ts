@@ -58,6 +58,10 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   listaEspera: InscripcionEnEsperaDto[] = [];
   seleccionados: any[] = [];
   rol: string = '';
+  clases: ClaseDTO[] = [];
+  clasesAtenciones: Record<number, AtencionDTO[]> = {};
+  clasesExpandidas = new Set<number>();
+  historialVisible = false;
   displayedColumns: string[] = ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia', 'Acciones'];
   displayedColumnsEspera: string[] = ['Posicion', 'Nombre', 'Correo', 'FechaInscripcion', 'Acciones'];
   fechaActual: Date = new Date();
@@ -239,6 +243,68 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       error: (err) => {
         const msg = err?.status === 409 ? 'El alumno ya está inscrito en el grupo' : 'Error al promover, intente de nuevo';
         this.snackBar.open(msg, 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
+      }
+    });
+  }
+
+  cargarHistorial(): void {
+    this.claseService.getClase(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
+      next: (clases) => {
+        this.clases = clases;
+        this.historialVisible = true;
+      },
+      error: () => {
+        this.snackBar.open('Error al cargar el historial de clases', 'Cerrar', {
+          duration: 3000, panelClass: ['snack-error'],
+        });
+      },
+    });
+  }
+
+  toggleClase(clase: ClaseDTO): void {
+    if (this.clasesExpandidas.has(clase.codigo)) {
+      this.clasesExpandidas.delete(clase.codigo);
+      return;
+    }
+    this.clasesExpandidas.add(clase.codigo);
+    this.asistenciaService.getAtencionesClase(clase.codigo).subscribe({
+      next: (atenciones) => { this.clasesAtenciones[clase.codigo] = atenciones; },
+      error: () => {
+        this.snackBar.open('Error al cargar las atenciones', 'Cerrar', {
+          duration: 3000, panelClass: ['snack-error'],
+        });
+      },
+    });
+  }
+
+  getNombreAlumno(perfId: string): string {
+    const alumno = this.alumnos.data.find(a => String(a.id) === perfId);
+    return alumno?.nombre ?? perfId;
+  }
+
+  eliminarAtencion(atencion: AtencionDTO, clase: ClaseDTO): void {
+    const dialogRef = this.dialog.open(DialogComponent, {
+      data: {
+        elemento: 'la asistencia de',
+        nombreElemento: this.getNombreAlumno(atencion.idPerfil),
+        tipoElemento: 'asistencia',
+        prmPerfId: atencion.idPerfil,
+        prmClsCodigo: clase.codigo,
+      },
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.confirmado) {
+        this.asistenciaService.getAtencionesClase(clase.codigo).subscribe({
+          next: (atenciones) => { this.clasesAtenciones[clase.codigo] = atenciones; },
+          error: () => {},
+        });
+        this.snackBar.open('Asistencia eliminada correctamente', 'Cerrar', {
+          duration: 3000, panelClass: ['snack-success'],
+        });
+      } else if (result?.errorStatus !== undefined) {
+        this.snackBar.open('Error al eliminar la asistencia, intente de nuevo', 'Cerrar', {
+          duration: 3000, panelClass: ['snack-error'],
+        });
       }
     });
   }
