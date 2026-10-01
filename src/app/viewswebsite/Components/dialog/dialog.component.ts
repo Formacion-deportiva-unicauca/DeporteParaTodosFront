@@ -14,6 +14,7 @@ import { CategoriaService } from 'src/app/services/categoria.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { AsistenciaService } from 'src/app/services/asistencia.service';
+import { GrupoService } from 'src/app/services/grupo.service';
 
 @Component({
   selector: 'app-dialog',
@@ -39,12 +40,14 @@ export class DialogComponent {
     private cursoService: CursodeportivoService,
     private inscripcionService: InscripcionesService,
     private asistenciaService: AsistenciaService,
+    private grupoService: GrupoService,
     private dialogRef: MatDialogRef<DialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: {
       elemento: string,
       nombreElemento: any,
       tipoElemento: string,
       categoria?: string,
+      curso?: string,
       alumnoId?: number,
       anio?: number,
       iterable?: number,
@@ -83,6 +86,13 @@ export class DialogComponent {
 
     if (this.data.tipoElemento == 'asistencia') {
       this.asistenciaService.eliminarAsistencia(this.data.prmPerfId!, this.data.prmClsCodigo!).subscribe({
+        next: () => this.dialogRef.close({ confirmado: true }),
+        error: (err) => this.dialogRef.close({ confirmado: false, errorStatus: err?.status }),
+      });
+    }
+
+    if (this.data.tipoElemento == 'grupo') {
+      this.grupoService.deleteGrupo(this.data.categoria!, this.data.curso!, this.data.anio!, this.data.iterable!).subscribe({
         next: () => this.dialogRef.close({ confirmado: true }),
         error: (err) => this.dialogRef.close({ confirmado: false, errorStatus: err?.status }),
       });

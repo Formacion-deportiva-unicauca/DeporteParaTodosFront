@@ -25,7 +25,10 @@ import { HorarioService } from 'src/app/services/horario.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
+import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
+import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
+import { DialogComponent } from '../../dialog/dialog.component';
 
 describe('ListGruposComponent › letraDeIterable', () => {
   let comp: ListGruposComponent;
@@ -104,6 +107,117 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     component.curso = null;
     component['loadGrupos']('Recreativo', 'Natacion');
     expect(component.curso).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onDelete() — flujo completo de eliminación de grupo
+// ─────────────────────────────────────────────────────────────────────────────
+describe('ListGruposComponent › onDelete', () => {
+  let component: ListGruposComponent;
+  let fixture: ComponentFixture<ListGruposComponent>;
+  let mockDialogRef: { afterClosed: jasmine.Spy };
+  let dialogOpenSpy: jasmine.Spy;
+  let snackBarOpenSpy: jasmine.Spy;
+
+  const mockItem: GrupoDTO = {
+    categoria: 'Acuáticos',
+    curso: 'Natación',
+    anio: 2026,
+    iterable: 1,
+    cupos: 20,
+    fechaCreacion: '2026-01-01',
+    idInstructor: 'INS01',
+    nombreInstructor: 'Carlos',
+    imagenGrupo: 0,
+    fechaFinalizacion: '',
+    fechaInscripcionApertura: '',
+    fechaIncripcionCierre: '',
+  };
+
+  const mockCursoDto: CursoDTO = {
+    nombre: 'Natación',
+    deporte: 'Natación',
+    categoriaCurso: 'Acuáticos',
+    descripcion: 'Curso de prueba',
+    estadoCurso: 'ACTIVO',
+    estadoInscripciones: 'ABIERTO',
+  };
+
+  beforeEach(async () => {
+    mockDialogRef = { afterClosed: jasmine.createSpy().and.returnValue(of(null)) };
+
+    await TestBed.configureTestingModule({
+      imports: [ListGruposComponent, HttpClientTestingModule, NoopAnimationsModule],
+      providers: [
+        { provide: Router, useValue: jasmine.createSpyObj('Router', ['navigate']) },
+        { provide: PerfilService, useValue: { perfil$: new BehaviorSubject<string>('Coordinador').asObservable() } },
+        { provide: AuthService, useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'isAuthenticated', 'getProfile']) },
+        { provide: TokenInterchangeService, useValue: {} },
+        { provide: OAuthService, useValue: { configure: () => {}, setupAutomaticSilentRefresh: () => {}, events: of(), loadDiscoveryDocumentAndTryLogin: () => Promise.resolve(), getIdentityClaims: () => null, hasValidAccessToken: () => false, hasValidIdToken: () => false } },
+        { provide: GrupoService, useValue: { getGrupos: jasmine.createSpy().and.returnValue(of([])), deleteGrupo: jasmine.createSpy().and.returnValue(of({})) } },
+        { provide: CursodeportivoService, useValue: { getCurso: jasmine.createSpy().and.returnValue(of(mockCursoDto)) } },
+        { provide: ImagenService, useValue: { getimagen: jasmine.createSpy().and.returnValue(of({})) } },
+        { provide: InstructorServisce, useValue: { getInstructor: jasmine.createSpy().and.returnValue(of({})) } },
+        { provide: HorarioService, useValue: { getHorarios: jasmine.createSpy().and.returnValue(of([])) } },
+        { provide: InscripcionesService, useValue: { getDisponibilidad: jasmine.createSpy().and.returnValue(of({})) } },
+        { provide: BreakpointObserver, useValue: { observe: jasmine.createSpy().and.returnValue(of({ matches: false })) } },
+        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ categoria: 'Acuáticos', curso: 'Natación' })) } },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    }).compileComponents();
+
+    fixture   = TestBed.createComponent(ListGruposComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // Spy on the component's actual injected dialog and snackbar instances
+    // (needed because MatDialogModule in standalone imports creates its own injector,
+    //  so the TestBed-level MatDialog provider is shadowed by the component's own one)
+    dialogOpenSpy   = spyOn(component['dialog'], 'open').and.returnValue(mockDialogRef as any);
+    snackBarOpenSpy = spyOn(component['snackBar'], 'open');
+  });
+
+  it('abre el dialog con tipoElemento="grupo" y los parámetros del item', () => {
+    component.onDelete(mockItem);
+    expect(dialogOpenSpy).toHaveBeenCalledWith(DialogComponent, jasmine.objectContaining({
+      data: jasmine.objectContaining({
+        tipoElemento: 'grupo',
+        categoria: 'Acuáticos',
+        anio: mockItem.anio,
+        iterable: mockItem.iterable,
+      }),
+    }));
+  });
+
+  it('confirmado=true → recarga grupos y muestra snackbar de éxito', () => {
+    mockDialogRef.afterClosed.and.returnValue(of({ confirmado: true }));
+    spyOn<any>(component, 'loadGrupos');
+    component.onDelete(mockItem);
+    expect(component['loadGrupos']).toHaveBeenCalled();
+    expect(snackBarOpenSpy).toHaveBeenCalledWith(
+      'Grupo eliminado correctamente', 'Cerrar',
+      jasmine.objectContaining({ panelClass: ['snack-success'] })
+    );
+  });
+
+  it('errorStatus definido → muestra snackbar de error sin recargar', () => {
+    mockDialogRef.afterClosed.and.returnValue(of({ confirmado: false, errorStatus: 409 }));
+    spyOn<any>(component, 'loadGrupos');
+    component.onDelete(mockItem);
+    expect(component['loadGrupos']).not.toHaveBeenCalled();
+    expect(snackBarOpenSpy).toHaveBeenCalledWith(
+      jasmine.stringContaining('Error'), 'Cerrar',
+      jasmine.objectContaining({ panelClass: ['snack-error'] })
+    );
+  });
+
+  it('afterClosed null → no recarga ni muestra snackbar', () => {
+    mockDialogRef.afterClosed.and.returnValue(of(null));
+    spyOn<any>(component, 'loadGrupos');
+    component.onDelete(mockItem);
+    expect(component['loadGrupos']).not.toHaveBeenCalled();
+    expect(snackBarOpenSpy).not.toHaveBeenCalled();
   });
 });
 

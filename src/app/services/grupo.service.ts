@@ -47,8 +47,10 @@ export class GrupoService {
     );
   }
 
-  deleteGrupo(prmNombreCategoria: string, prmNombreCurso: string): Observable<number> {
-    return this.http.delete<number>(`${this.apiUrl}/grupo`).pipe(
+  deleteGrupo(categoria: string, curso: string, anio: number, iterable: number): Observable<GrupoDTO> {
+    return this.http.delete<GrupoDTO>(
+      `${this.apiUrl}/grupo?categoria=${encodeURIComponent(categoria)}&curso=${encodeURIComponent(curso)}&anio=${anio}&iterable=${iterable}`
+    ).pipe(
       catchError((error) => {
         return throwError(error);
       })

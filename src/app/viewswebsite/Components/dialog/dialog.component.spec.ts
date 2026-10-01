@@ -7,6 +7,7 @@ import { CategoriaService } from 'src/app/services/categoria.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { AsistenciaService } from 'src/app/services/asistencia.service';
+import { GrupoService } from 'src/app/services/grupo.service';
 
 describe('DialogComponent', () => {
   let component: DialogComponent;
@@ -15,6 +16,7 @@ describe('DialogComponent', () => {
   let mockCursoService: jasmine.SpyObj<CursodeportivoService>;
   let mockInscripcionService: jasmine.SpyObj<InscripcionesService>;
   let mockAsistenciaService: jasmine.SpyObj<AsistenciaService>;
+  let mockGrupoService: jasmine.SpyObj<GrupoService>;
   let mockDialogRef: jasmine.SpyObj<MatDialogRef<DialogComponent>>;
 
   const dialogData = {
@@ -32,6 +34,7 @@ describe('DialogComponent', () => {
     mockCursoService = jasmine.createSpyObj('CursodeportivoService', ['deleteCurso']);
     mockInscripcionService = jasmine.createSpyObj('InscripcionesService', ['eliminarInscripcion']);
     mockAsistenciaService = jasmine.createSpyObj('AsistenciaService', ['eliminarAsistencia']);
+    mockGrupoService = jasmine.createSpyObj('GrupoService', ['deleteGrupo']);
     mockDialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
 
     await TestBed.configureTestingModule({
@@ -41,6 +44,7 @@ describe('DialogComponent', () => {
         { provide: CursodeportivoService, useValue: mockCursoService },
         { provide: InscripcionesService, useValue: mockInscripcionService },
         { provide: AsistenciaService, useValue: mockAsistenciaService },
+        { provide: GrupoService, useValue: mockGrupoService },
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: { ...dialogData } },
       ],
@@ -149,6 +153,33 @@ describe('DialogComponent', () => {
       component.confirmarEliminar();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: false, errorStatus: 404 });
+    });
+  });
+
+  describe('tipoElemento = "grupo"', () => {
+    beforeEach(() => {
+      component.data.tipoElemento = 'grupo';
+      component.data.categoria = 'Acuáticos';
+      (component.data as any).curso = 'Natación';
+      component.data.anio = 2026;
+      component.data.iterable = 1;
+    });
+
+    it('llama a deleteGrupo con los 4 params y cierra con confirmado: true', () => {
+      mockGrupoService.deleteGrupo.and.returnValue(of({} as any));
+
+      component.confirmarEliminar();
+
+      expect(mockGrupoService.deleteGrupo).toHaveBeenCalledWith('Acuáticos', 'Natación', 2026, 1);
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: true });
+    });
+
+    it('cierra con confirmado: false cuando deleteGrupo falla (ej. 409)', () => {
+      mockGrupoService.deleteGrupo.and.returnValue(throwError(() => ({ status: 409 })));
+
+      component.confirmarEliminar();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: false, errorStatus: 409 });
     });
   });
 });

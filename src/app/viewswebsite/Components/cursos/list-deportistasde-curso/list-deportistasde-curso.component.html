@@ -167,7 +167,7 @@
 
       <div *ngFor="let clase of clases" class="clase-item">
         <div class="clase-header" (click)="toggleClase(clase)" style="cursor:pointer;">
-          <span><strong>Fecha:</strong> {{ clase.fecha }}</span>
+          <span><strong>Fecha:</strong> {{ clase.fecha | date:'d \'de\' MMMM \'de\' y' }}</span>
           <span class="ms-3"><strong>Duración:</strong> {{ clase.horas }}h {{ clase.minutos }}min</span>
           <mat-icon>{{ clasesExpandidas.has(clase.codigo) ? 'expand_less' : 'expand_more' }}</mat-icon>
         </div>

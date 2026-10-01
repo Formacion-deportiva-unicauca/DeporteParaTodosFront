@@ -155,24 +155,29 @@ describe('GrupoService', () => {
   });
 
   // ── deleteGrupo ───────────────────────────────────────────────────────────
+  // Backend: DELETE /api/v2/grupo?categoria=X&curso=Y&anio=N&iterable=N
+  // (nombres exactos de @RequestParam en GrupoRest.java — sin prefijo "prm")
 
-  it('deleteGrupo: DELETE /grupo (sin query params — comportamiento actual del servicio)', () => {
-    service.deleteGrupo('Acuáticos', 'Natación').subscribe(resp => {
-      expect(resp).toBeDefined();
+  it('deleteGrupo: DELETE /grupo con los 4 params exactos del backend', () => {
+    service.deleteGrupo('Acuáticos', 'Natación', 2026, 1).subscribe(resp => {
+      expect(resp.anio).toBe(2026);
     });
-    // El servicio actual ignora los parámetros y siempre llama a /grupo sin query string
-    const req = httpMock.expectOne(`${API}/grupo`);
+    const req = httpMock.expectOne(
+      `${API}/grupo?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1`
+    );
     expect(req.request.method).toBe('DELETE');
-    req.flush(1);
+    req.flush(grupoDummy);
   });
 
-  it('deleteGrupo: propaga error HTTP 409', () => {
+  it('deleteGrupo: propaga error HTTP 409 (grupo ya eliminado)', () => {
     let errorCapturado: any;
-    service.deleteGrupo('Acuáticos', 'Natación').subscribe({
+    service.deleteGrupo('Acuáticos', 'Natación', 2026, 1).subscribe({
       next: () => fail('debería haber fallado'),
       error: err => (errorCapturado = err),
     });
-    const req = httpMock.expectOne(`${API}/grupo`);
+    const req = httpMock.expectOne(
+      `${API}/grupo?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1`
+    );
     req.flush('Conflicto', { status: 409, statusText: 'Conflict' });
     expect(errorCapturado).toBeTruthy();
   });

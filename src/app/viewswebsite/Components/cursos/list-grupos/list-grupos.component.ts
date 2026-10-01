@@ -164,8 +164,25 @@ export class ListGruposComponent implements OnInit {
       data: { categoria: this.categoria, curso: this.titulo, anio: anio, iterable }
     });
   }
-  onDelete(): void {
+  onDelete(item: GrupoDTO): void {
     const dialogRef = this.dialog.open(DialogComponent, {
+      data: {
+        elemento: 'el grupo',
+        nombreElemento: `${item.anio}-${this.letraDeIterable(item.iterable)}`,
+        tipoElemento: 'grupo',
+        categoria: this.categoria!,
+        curso: this.titulo!,
+        anio: item.anio!,
+        iterable: item.iterable!,
+      },
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.confirmado) {
+        this.loadGrupos(this.categoria, this.titulo);
+        this.snackBar.open('Grupo eliminado correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+      } else if (result?.errorStatus !== undefined) {
+        this.snackBar.open('Error al eliminar el grupo, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+      }
     });
   }
   nuevoGrupo(): void {
