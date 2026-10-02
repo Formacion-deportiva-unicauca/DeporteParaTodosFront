@@ -8,10 +8,13 @@ import { GrupoService } from 'src/app/services/grupo.service';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { HorarioService } from 'src/app/services/horario.service';
 import { InstructorServisce } from 'src/app/services/instructor.service';
+import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
 import { HorarioDTO } from 'src/app/Models/DTOs/horario-dto';
 import { InscripcionDTO } from 'src/app/Models/DTOs/inscripcion-dto';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
+import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
+import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-inscribirse';
 
 @Component({
   selector: 'app-inscripcion-grupo',
@@ -28,6 +31,7 @@ export class InscripcionGrupoComponent implements OnInit {
   iterable: number = 0;
 
   grupo: GrupoDTO | null = null;
+  cursoInfo: CursoDTO | null = null;
   horarios: HorarioDTO[] = [];
   disponibilidad: DisponibilidadDTO | null = null;
   cargando = true;
@@ -43,6 +47,7 @@ export class InscripcionGrupoComponent implements OnInit {
     private inscripcionesService: InscripcionesService,
     private horarioService: HorarioService,
     private instructorService: InstructorServisce,
+    private cursodeportivoService: CursodeportivoService,
     private snackBar: MatSnackBar,
     private datePipe: DatePipe,
   ) {}
@@ -59,6 +64,12 @@ export class InscripcionGrupoComponent implements OnInit {
 
   private cargarGrupo(): void {
     this.cargando = true;
+
+    this.cursodeportivoService.getCurso(this.categoria, this.curso).subscribe({
+      next: (curso) => { this.cursoInfo = curso; },
+      error: () => {},
+    });
+
     this.grupoService.getGrupo(this.categoria, this.curso, this.anio, this.iterable).subscribe({
       next: (grupo) => {
         this.grupo = grupo;
@@ -97,6 +108,10 @@ export class InscripcionGrupoComponent implements OnInit {
   letraDeIterable(n: number | null): string {
     if (!n || n < 1) return '?';
     return String.fromCharCode(64 + n);
+  }
+
+  puedeInscribirse(): boolean {
+    return puedeInscribirseUtil(this.cursoInfo, this.categoria);
   }
 
   inscribirse(): void {

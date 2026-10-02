@@ -38,6 +38,8 @@ export class FormInscripcionesComponent implements OnInit {
   isInscribirMode = false;
   tipoDocumento: string[] = ['CC', 'TI', 'CE', 'PP', 'PEP', 'DIE'];
   sexo: string[] = ['M', 'F'];
+  // TODO (SCRUM-160): lista temporal — cuando TIC responda, el tipo se autocompleta desde su servicio
+  tiposAlumno: string[] = ['Estudiante', 'Docente', 'Administrativo'];
 
   estado: EstadoBusqueda = 'busqueda';
   correoBusqueda = '';
@@ -51,7 +53,7 @@ export class FormInscripcionesComponent implements OnInit {
     tipoId: '',
     sexo: '',
     facultad: '',
-    tipoAlumno: '',
+    tipoAlumno: 'Estudiante',
     role: '',
     alumnoCodigo: '',
   }
@@ -80,6 +82,10 @@ export class FormInscripcionesComponent implements OnInit {
       this.isInscribirMode = true;
       this.estado = 'busqueda';
     }
+  }
+
+  get esInstructor(): boolean {
+    return this.dialogData?.rol === 'Instructor';
   }
 
   get showRegisterForm(): boolean {
@@ -128,8 +134,6 @@ export class FormInscripcionesComponent implements OnInit {
       return;
     }
 
-    const esInstructor = this.dialogData?.rol === 'Instructor';
-
     const perfil: PerfilDTO = {
       id: this.perfil.id,
       nombre: this.perfil.nombre,
@@ -137,12 +141,15 @@ export class FormInscripcionesComponent implements OnInit {
       tipoId: this.perfil.tipoId,
       sexo: this.perfil.sexo,
       facultad: '',
-      tipoAlumno: esInstructor ? 'Docente' : 'Estudiante',
-      role: esInstructor ? 'Instructor' : '',
+      // TODO (SCRUM-160): tipoAlumno es temporal — el select lo elige el Coordinador hasta que
+      // la integración con el servicio de identidad de la División de TIC esté disponible.
+      // Cuando ese servicio responda, este campo debería autocompletarse con el dato real de TIC.
+      tipoAlumno: this.esInstructor ? 'Docente' : this.perfil.tipoAlumno,
+      role: this.esInstructor ? 'Instructor' : '',
       alumnoCodigo: this.perfil.alumnoCodigo,
     };
 
-    const peticion$ = esInstructor
+    const peticion$ = this.esInstructor
       ? this.perfilService.registrarInstructor(perfil)
       : this.perfilService.registrarPerfil(perfil);
 

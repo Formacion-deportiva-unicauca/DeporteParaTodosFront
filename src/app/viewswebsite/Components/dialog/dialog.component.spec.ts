@@ -8,6 +8,7 @@ import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { AsistenciaService } from 'src/app/services/asistencia.service';
 import { GrupoService } from 'src/app/services/grupo.service';
+import { InstructorServisce } from 'src/app/services/instructor.service';
 
 describe('DialogComponent', () => {
   let component: DialogComponent;
@@ -17,6 +18,7 @@ describe('DialogComponent', () => {
   let mockInscripcionService: jasmine.SpyObj<InscripcionesService>;
   let mockAsistenciaService: jasmine.SpyObj<AsistenciaService>;
   let mockGrupoService: jasmine.SpyObj<GrupoService>;
+  let mockInstructorService: jasmine.SpyObj<InstructorServisce>;
   let mockDialogRef: jasmine.SpyObj<MatDialogRef<DialogComponent>>;
 
   const dialogData = {
@@ -35,6 +37,7 @@ describe('DialogComponent', () => {
     mockInscripcionService = jasmine.createSpyObj('InscripcionesService', ['eliminarInscripcion']);
     mockAsistenciaService = jasmine.createSpyObj('AsistenciaService', ['eliminarAsistencia']);
     mockGrupoService = jasmine.createSpyObj('GrupoService', ['deleteGrupo']);
+    mockInstructorService = jasmine.createSpyObj('InstructorServisce', ['deleteInstructor']);
     mockDialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
 
     await TestBed.configureTestingModule({
@@ -45,6 +48,7 @@ describe('DialogComponent', () => {
         { provide: InscripcionesService, useValue: mockInscripcionService },
         { provide: AsistenciaService, useValue: mockAsistenciaService },
         { provide: GrupoService, useValue: mockGrupoService },
+        { provide: InstructorServisce, useValue: mockInstructorService },
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: { ...dialogData } },
       ],
@@ -176,6 +180,30 @@ describe('DialogComponent', () => {
 
     it('cierra con confirmado: false cuando deleteGrupo falla (ej. 409)', () => {
       mockGrupoService.deleteGrupo.and.returnValue(throwError(() => ({ status: 409 })));
+
+      component.confirmarEliminar();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: false, errorStatus: 409 });
+    });
+  });
+
+  describe('tipoElemento = "instructor"', () => {
+    beforeEach(() => {
+      component.data.tipoElemento = 'instructor';
+      (component.data as any).instructorId = 'INS01';
+    });
+
+    it('llama a deleteInstructor con instructorId y cierra con confirmado: true', () => {
+      mockInstructorService.deleteInstructor.and.returnValue(of(undefined as any));
+
+      component.confirmarEliminar();
+
+      expect(mockInstructorService.deleteInstructor).toHaveBeenCalledWith('INS01');
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: true });
+    });
+
+    it('cierra con confirmado: false cuando deleteInstructor falla (ej. 409)', () => {
+      mockInstructorService.deleteInstructor.and.returnValue(throwError(() => ({ status: 409 })));
 
       component.confirmarEliminar();
 

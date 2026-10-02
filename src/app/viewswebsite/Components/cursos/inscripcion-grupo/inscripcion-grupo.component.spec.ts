@@ -14,6 +14,8 @@ import { InstructorServisce } from 'src/app/services/instructor.service';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
+import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
+import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
 
 const mockGrupo = {
   categoria: 'Recreativo', curso: 'Natacion', anio: 2026, iterable: 1,
@@ -25,6 +27,14 @@ const mockHorarios = [
   { dia: 'LUNES', horaInicio: '08:00', horaFin: '10:00', escenario: 'Coliseo' },
 ];
 const mockInstructor = { nombre: 'Juan Perez', id: 'INS-01' };
+const mockCursoActivo: CursoDTO = {
+  nombre: 'Natacion',
+  deporte: 'Natacion',
+  categoriaCurso: 'Recreativo',
+  descripcion: 'Curso de prueba',
+  estadoCurso: 'ACTIVO',
+  estadoInscripciones: 'ABIERTO',
+};
 
 describe('InscripcionGrupoComponent', () => {
   let component: InscripcionGrupoComponent;
@@ -53,15 +63,16 @@ describe('InscripcionGrupoComponent', () => {
       imports: [InscripcionGrupoComponent, HttpClientTestingModule, NoopAnimationsModule],
       providers: [
         DatePipe,
-        { provide: GrupoService,       useValue: grupoSpy },
-        { provide: InscripcionesService, useValue: inscripcionSpy },
-        { provide: HorarioService,     useValue: horarioSpy },
-        { provide: InstructorServisce, useValue: instructorSpy },
-        { provide: Router,             useValue: routerSpy },
-        { provide: PerfilService,      useValue: { perfil$: of('') } },
-        { provide: AuthService,        useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'isAuthenticated', 'getProfile']) },
+        { provide: GrupoService,          useValue: grupoSpy },
+        { provide: InscripcionesService,  useValue: inscripcionSpy },
+        { provide: HorarioService,        useValue: horarioSpy },
+        { provide: InstructorServisce,    useValue: instructorSpy },
+        { provide: CursodeportivoService, useValue: { getCurso: jasmine.createSpy().and.returnValue(of(mockCursoActivo)) } },
+        { provide: Router,                useValue: routerSpy },
+        { provide: PerfilService,         useValue: { perfil$: of('') } },
+        { provide: AuthService,           useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'isAuthenticated', 'getProfile']) },
         { provide: TokenInterchangeService, useValue: {} },
-        { provide: OAuthService,       useValue: { configure: () => {}, setupAutomaticSilentRefresh: () => {}, events: of(), loadDiscoveryDocumentAndTryLogin: () => Promise.resolve(), getIdentityClaims: () => null, hasValidAccessToken: () => false, hasValidIdToken: () => false } },
+        { provide: OAuthService,          useValue: { configure: () => {}, setupAutomaticSilentRefresh: () => {}, events: of(), loadDiscoveryDocumentAndTryLogin: () => Promise.resolve(), getIdentityClaims: () => null, hasValidAccessToken: () => false, hasValidIdToken: () => false } },
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({
@@ -202,5 +213,73 @@ describe('InscripcionGrupoComponent', () => {
     expect(snackOpen).toHaveBeenCalledWith(
       'Ya estás inscrito en este grupo.', 'Cerrar', jasmine.any(Object)
     );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCRUM-179: puedeInscribirse() + getCurso en paralelo
+// ─────────────────────────────────────────────────────────────────────────────
+describe('InscripcionGrupoComponent › puedeInscribirse + getCurso', () => {
+  let component: InscripcionGrupoComponent;
+  let fixture: ComponentFixture<InscripcionGrupoComponent>;
+  let cursodeportivoSpy: jasmine.SpyObj<CursodeportivoService>;
+
+  beforeEach(async () => {
+    cursodeportivoSpy = jasmine.createSpyObj('CursodeportivoService', ['getCurso']);
+    cursodeportivoSpy.getCurso.and.returnValue(of(mockCursoActivo));
+
+    await TestBed.configureTestingModule({
+      imports: [InscripcionGrupoComponent, HttpClientTestingModule, NoopAnimationsModule],
+      providers: [
+        DatePipe,
+        { provide: GrupoService,         useValue: { getGrupo: jasmine.createSpy().and.returnValue(of({ ...mockGrupo } as any)) } },
+        { provide: InscripcionesService, useValue: { postInscripcion: jasmine.createSpy(), getDisponibilidad: jasmine.createSpy().and.returnValue(of({ cuposTotales: 15, cuposDisponibles: 5, tamanoListaEspera: 0 } as any)), validarInscripcion: jasmine.createSpy().and.returnValue(of(false)), eliminarInscripcion: jasmine.createSpy() } },
+        { provide: HorarioService,       useValue: { getHorarios: jasmine.createSpy().and.returnValue(of([])) } },
+        { provide: InstructorServisce,   useValue: { getInstructor: jasmine.createSpy().and.returnValue(of(mockInstructor as any)) } },
+        { provide: CursodeportivoService, useValue: cursodeportivoSpy },
+        { provide: Router,               useValue: jasmine.createSpyObj('Router', ['navigate']) },
+        { provide: PerfilService,        useValue: { perfil$: of('') } },
+        { provide: AuthService,          useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'isAuthenticated', 'getProfile']) },
+        { provide: TokenInterchangeService, useValue: {} },
+        { provide: OAuthService,         useValue: { configure: () => {}, setupAutomaticSilentRefresh: () => {}, events: of(), loadDiscoveryDocumentAndTryLogin: () => Promise.resolve(), getIdentityClaims: () => null, hasValidAccessToken: () => false, hasValidIdToken: () => false } },
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: of(convertToParamMap({ categoria: 'Recreativo', curso: 'Natacion', anio: '2026', iterable: '1' })) },
+        },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    }).compileComponents();
+
+    fixture   = TestBed.createComponent(InscripcionGrupoComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('cargarGrupo(): llama a getCurso(categoria, curso) en paralelo con getGrupo', () => {
+    expect(cursodeportivoSpy.getCurso).toHaveBeenCalledWith('Recreativo', 'Natacion');
+  });
+
+  it('cursoInfo queda asignado tras cargar', () => {
+    expect(component.cursoInfo).toEqual(mockCursoActivo);
+  });
+
+  it('puedeInscribirse(): false cuando cursoInfo es null (todavía cargando)', () => {
+    component.cursoInfo = null;
+    expect(component.puedeInscribirse()).toBeFalse();
+  });
+
+  it('puedeInscribirse(): true cuando ACTIVO + ABIERTO', () => {
+    component.cursoInfo = { ...mockCursoActivo };
+    expect(component.puedeInscribirse()).toBeTrue();
+  });
+
+  it('puedeInscribirse(): false cuando INACTIVO', () => {
+    component.cursoInfo = { ...mockCursoActivo, estadoCurso: 'INACTIVO' };
+    expect(component.puedeInscribirse()).toBeFalse();
+  });
+
+  it('puedeInscribirse(): false cuando inscripciones CERRADO', () => {
+    component.cursoInfo = { ...mockCursoActivo, estadoInscripciones: 'CERRADO' };
+    expect(component.puedeInscribirse()).toBeFalse();
   });
 });

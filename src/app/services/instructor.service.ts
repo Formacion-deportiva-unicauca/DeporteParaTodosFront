@@ -28,4 +28,12 @@ export class InstructorServisce {
             })
         );
     }
+
+    deleteInstructor(instructorId: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/instructor?instructorId=${encodeURIComponent(instructorId)}`).pipe(
+            catchError((error) => {
+                return throwError(error);
+            })
+        );
+    }
 }

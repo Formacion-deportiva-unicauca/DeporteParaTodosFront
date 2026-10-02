@@ -25,6 +25,7 @@ import { FormHorarioComponent } from '../form-horario/form-horario.component';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
+import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-inscribirse';
 
 @Component({
   selector: 'app-list-grupos',
@@ -198,8 +199,7 @@ export class ListGruposComponent implements OnInit {
   }
 
   puedeInscribirse(): boolean {
-    if (this.categoria?.toLowerCase() === 'seleccionado') return false;
-    return this.curso?.estadoCurso === 'ACTIVO' && this.curso?.estadoInscripciones === 'ABIERTO';
+    return puedeInscribirseUtil(this.curso, this.categoria);
   }
 
   letraDeIterable(n: number | null): string {

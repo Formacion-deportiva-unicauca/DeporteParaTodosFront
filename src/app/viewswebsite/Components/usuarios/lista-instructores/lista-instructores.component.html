@@ -43,11 +43,11 @@
 
         <ng-container matColumnDef="Acciones">
           <th mat-header-cell *matHeaderCellDef>Acciones</th>
-          <td mat-cell *matCellDef="let alumno">
-            <button mat-icon-button color="primary">
+          <td mat-cell *matCellDef="let instructor">
+            <button mat-icon-button color="primary" *ngIf="perfil === 'Coordinador'">
               <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button color="warn">
+            <button mat-icon-button color="warn" *ngIf="perfil === 'Coordinador'" (click)="onDelete(instructor)">
               <mat-icon>delete</mat-icon>
             </button>
           </td>

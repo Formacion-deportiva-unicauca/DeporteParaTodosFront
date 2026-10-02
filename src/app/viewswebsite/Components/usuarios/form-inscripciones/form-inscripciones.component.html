@@ -3,7 +3,7 @@
 </button>
 
 <mat-dialog-content class="dialog-content">
-  <header class="title-two">{{ isEditing ? 'Editar usuario' : isInscribirMode ? 'Inscribir deportista' : 'Registro de usuario' }}</header>
+  <header class="title-two">{{ isEditing ? 'Editar usuario' : esInstructor ? 'Registrar instructor' : isInscribirMode ? 'Inscribir deportista' : 'Registro de usuario' }}</header>
 
   <!-- ── Sección de búsqueda (solo modo inscribir) ── -->
   <div *ngIf="isInscribirMode" class="busqueda-section">
@@ -84,6 +84,20 @@
       <input matInput placeholder="Código institucional" [(ngModel)]="perfil.alumnoCodigo" name="codigo" required />
     </mat-form-field>
 
+
+    <!-- Tipo de usuario: select temporal (SCRUM-160) — cuando TIC responda se autocompletará.
+         Para instructores el tipo viene fijo como Docente; el select solo aplica a deportistas. -->
+    <mat-form-field *ngIf="!isEditing && !esInstructor" appearance="outline" class="form-field">
+      <mat-label>Tipo de usuario</mat-label>
+      <mat-select [(ngModel)]="perfil.tipoAlumno" name="tipoAlumno" required>
+        <mat-option *ngFor="let tipo of tiposAlumno" [value]="tipo">{{ tipo }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Instructor: rol fijo, sin select -->
+    <div *ngIf="!isEditing && esInstructor" class="tipo-fijo">
+      <span class="badge bg-primary">Rol: Instructor · Tipo: Docente</span>
+    </div>
 
     <div class="form-buttons">
       <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>

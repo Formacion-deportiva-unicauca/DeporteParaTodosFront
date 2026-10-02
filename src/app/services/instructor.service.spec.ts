@@ -87,4 +87,31 @@ describe('InstructorServisce', () => {
     req.flush('No encontrado', { status: 404, statusText: 'Not Found' });
     expect(errorCapturado).toBeTruthy();
   });
+
+  // ── deleteInstructor ──────────────────────────────────────────────────────
+
+  it('deleteInstructor: DELETE /instructor?instructorId=x', () => {
+    service.deleteInstructor('INS01').subscribe();
+    const req = httpMock.expectOne(`${API}/instructor?instructorId=INS01`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
+
+  it('deleteInstructor: encodeURIComponent cuando el id tiene caracteres especiales', () => {
+    service.deleteInstructor('A B').subscribe();
+    const req = httpMock.expectOne(`${API}/instructor?instructorId=A%20B`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
+
+  it('deleteInstructor: propaga error HTTP 409', () => {
+    let errorCapturado: any;
+    service.deleteInstructor('INS01').subscribe({
+      next: () => fail('debería haber fallado'),
+      error: err => (errorCapturado = err),
+    });
+    const req = httpMock.expectOne(`${API}/instructor?instructorId=INS01`);
+    req.flush('Conflicto', { status: 409, statusText: 'Conflict' });
+    expect(errorCapturado).toBeTruthy();
+  });
 });
