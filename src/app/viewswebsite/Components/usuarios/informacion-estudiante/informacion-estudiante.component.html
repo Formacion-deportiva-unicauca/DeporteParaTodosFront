@@ -1,51 +1,91 @@
 <app-sidenav>
   <div class="container">
-    <div class="personal-info">
+
+    <!-- Sección de información personal (solo rol disponible de fuente real) -->
+    <div class="personal-info" *ngIf="perfil === 'Alumno'">
       <div class="info-text">
         <h3>Tu información personal</h3>
         <table>
           <tr>
-            <td>Nombres:</td>
-            <td>Camilo Hernán Anacona</td>
-          </tr>
-          <tr>
-            <td>Identificación:</td>
-            <td>12341123</td>
-          </tr>
-          <tr>
-            <td>Tipo de identificación:</td>
-            <td>Cédula</td>
-          </tr>
-          <tr>
-            <td>Rol:</td>
-            <td>Estudiante</td>
+            <th scope="row">Rol:</th>
+            <td>{{ perfil }}</td>
           </tr>
         </table>
       </div>
       <div class="profile-pic">
-        <img src="./assets/imagesSystem/Silueta.jpeg" alt="Profile Picture" />
+        <img src="./assets/imagesSystem/Silueta.jpeg" alt="Foto de perfil" />
       </div>
     </div>
 
-    <div class="course-info">
-      <h3>Tus cursos matriculados</h3>
-      <table mat-table [dataSource]="courses" class="mat-elevation-z8">
-        <!-- Nombre del curso Column -->
-        <ng-container matColumnDef="nombre">
-          <th mat-header-cell *matHeaderCellDef> Nombre de deporte </th>
-          <td mat-cell *matCellDef="let course"> {{course.nombre}} </td>
+    <!-- Mensaje para roles sin acceso a esta pantalla -->
+    <div *ngIf="perfil && perfil !== 'Alumno'" class="msg-rol">
+      <p>Esta sección es exclusiva para el rol Alumno.</p>
+    </div>
+
+    <!-- Tabla de cursos -->
+    <div class="course-info" *ngIf="perfil === 'Alumno'">
+      <h3>Mis cursos matriculados</h3>
+
+      <div *ngIf="cargando" class="cargando-wrapper" aria-live="polite">
+        <mat-spinner diameter="40"></mat-spinner>
+        <span>Cargando cursos...</span>
+      </div>
+
+      <p *ngIf="!cargando && courses.data.length === 0" class="empty-msg">
+        No estás inscrito en ningún curso todavía.
+      </p>
+
+      <table mat-table [dataSource]="courses" class="mat-elevation-z8"
+             *ngIf="!cargando && courses.data.length > 0"
+             aria-label="Cursos matriculados">
+
+        <!-- Curso -->
+        <ng-container matColumnDef="curso">
+          <th mat-header-cell *matHeaderCellDef scope="col">Curso</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.curso }}
+            <span *ngIf="!c.grupoActivo" class="aviso-inactivo" role="alert">
+              Este grupo ya no está disponible
+            </span>
+          </td>
         </ng-container>
 
-        <!-- Tipo de curso Column -->
-        <ng-container matColumnDef="tipo">
-          <th mat-header-cell *matHeaderCellDef> Tipo de curso </th>
-          <td mat-cell *matCellDef="let course"> {{course.tipo}} </td>
+        <!-- Categoría -->
+        <ng-container matColumnDef="categoria">
+          <th mat-header-cell *matHeaderCellDef scope="col">Categoría</th>
+          <td mat-cell *matCellDef="let c">{{ c.categoria }}</td>
         </ng-container>
 
-        <!-- Horario Column -->
+        <!-- Grupo -->
+        <ng-container matColumnDef="grupo">
+          <th mat-header-cell *matHeaderCellDef scope="col">Grupo</th>
+          <td mat-cell *matCellDef="let c">{{ formatGrupo(c) }}</td>
+        </ng-container>
+
+        <!-- Instructor -->
+        <ng-container matColumnDef="instructor">
+          <th mat-header-cell *matHeaderCellDef scope="col">Instructor</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.nombreInstructor ?? 'Sin instructor asignado' }}
+          </td>
+        </ng-container>
+
+        <!-- Horario -->
         <ng-container matColumnDef="horario">
-          <th mat-header-cell *matHeaderCellDef> Horario </th>
-          <td mat-cell *matCellDef="let course"> {{course.horario}} </td>
+          <th mat-header-cell *matHeaderCellDef scope="col">Horario</th>
+          <td mat-cell *matCellDef="let c">{{ formatHorario(c) }}</td>
+        </ng-container>
+
+        <!-- Estado -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef scope="col">Estado</th>
+          <td mat-cell *matCellDef="let c">
+            <span class="badge"
+                  [class.badge-inscrito]="c.estado === 'INSCRITO'"
+                  [class.badge-espera]="c.estado === 'EN_ESPERA'">
+              {{ formatEstado(c.estado) }}
+            </span>
+          </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

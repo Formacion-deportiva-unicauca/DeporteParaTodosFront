@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { GrupoDTO } from '../Models/DTOs/grupo-dto';
+import { MiGrupoInstructorDTO } from '../Models/DTOs/mis-cursos-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -51,6 +52,14 @@ export class GrupoService {
     return this.http.delete<GrupoDTO>(
       `${this.apiUrl}/grupo?categoria=${encodeURIComponent(categoria)}&curso=${encodeURIComponent(curso)}&anio=${anio}&iterable=${iterable}`
     ).pipe(
+      catchError((error) => {
+        return throwError(error);
+      })
+    );
+  }
+
+  getMisGrupos(): Observable<MiGrupoInstructorDTO[]> {
+    return this.http.get<MiGrupoInstructorDTO[]>(`${this.apiUrl}/grupo/misGrupos`).pipe(
       catchError((error) => {
         return throwError(error);
       })

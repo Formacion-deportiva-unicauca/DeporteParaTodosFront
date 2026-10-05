@@ -1,38 +1,93 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
-
+import { PerfilService } from 'src/app/services/perfil.service';
+import { GrupoService } from 'src/app/services/grupo.service';
+import { MiGrupoInstructorDTO, MisCursosHorarioDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
+import { letraDeIterable } from 'src/app/shared/iterable-letra.util';
 
 @Component({
   selector: 'app-informacin-instructor',
   standalone: true,
-  imports: [CommonModule, MatTableModule, SidenavComponent],
+  imports: [
+    CommonModule,
+    MatTableModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    SidenavComponent,
+  ],
   templateUrl: './informacion-instructor.component.html',
-  styleUrls: ['./informacion-instructor.component.css']
+  styleUrls: ['./informacion-instructor.component.css'],
 })
-export class InformacinInstructorComponent {
+export class InformacinInstructorComponent implements OnInit, OnDestroy {
+  perfil: string = '';
+  cargando = false;
+  displayedColumns: string[] = ['curso', 'categoria', 'grupo', 'horario', 'cupos', 'estadoCurso', 'inscripciones', 'acciones'];
+  grupos = new MatTableDataSource<MiGrupoInstructorDTO>([]);
+  private perfilSub: Subscription = Subscription.EMPTY;
 
-  constructor(){
-    this.ngOnInit();
+  constructor(
+    private snackBar: MatSnackBar,
+    private perfilService: PerfilService,
+    private grupoService: GrupoService,
+    private router: Router,
+  ) {}
+
+  ngOnInit(): void {
+    this.perfilSub = this.perfilService.perfil$.subscribe(p => {
+      this.perfil = p;
+      if (p === 'Instructor') {
+        this.cargarGrupos();
+      }
+    });
   }
-  displayedColumns: string[] = ['nombre', 'tipo', 'horario'];
-  courses = new MatTableDataSource([
-    { nombre: 'Sala masculino', tipo: 'Semillero', horario: '8:00 - 10:00' },
-    { nombre: 'Futbol 11 masculino', tipo: 'Semillero', horario: '14:00 - 16:00' },
-    { nombre: 'Futbol sala masculino', tipo: 'Recreativo', horario: '11:00 - 13:00' },
-    { nombre: 'Futbol sala femenino', tipo: 'Seleccionado', horario: '18:00 - 20:00' }
-  ]);
 
-  ngOnInit() {
-    const courseData = [
-      { nombre: 'Sala masculino ', tipo: 'Semillero - Grupo A', horario: 'Lunes 09:00 - 11:00, Viernes 09:00 - 11:00 Cancha 1' },
-      { nombre: 'Natación nivel 1 ', tipo: 'Seleccionado - Grupo A', horario: 'Lunes 14:00 - 16:00 Piscina' },
-    ];
-    this.courses.data = courseData;
+  ngOnDestroy(): void {
+    this.perfilSub.unsubscribe();
   }
 
+  cargarGrupos(): void {
+    this.cargando = true;
+    this.grupoService.getMisGrupos().subscribe({
+      next: (grupos) => {
+        this.grupos.data = Array.isArray(grupos) ? grupos : [];
+        this.cargando = false;
+      },
+      error: () => {
+        this.cargando = false;
+        this.snackBar.open('Error al cargar los grupos. Intenta de nuevo.', '', {
+          duration: 4000,
+          panelClass: 'snack-error',
+        });
+      },
+    });
+  }
 
+  formatGrupo(g: MiGrupoInstructorDTO): string {
+    return `${g.anio}-${g.periodo} · Grupo ${letraDeIterable(g.iterable)}`;
+  }
 
+  formatHorario(horarios: MisCursosHorarioDTO[]): string {
+    if (!horarios || horarios.length === 0) return 'Horario por definir';
+    return horarios
+      .map(h => {
+        const esc = h.escenario ? ` ${h.escenario}` : '';
+        return `${h.dia} ${h.horaInicio} - ${h.horaFin}${esc}`;
+      })
+      .join(', ');
+  }
 
+  formatCupos(g: MiGrupoInstructorDTO): string {
+    const base = g.cupos == null ? 'Sin cupos definidos' : `${g.inscritos} / ${g.cupos}`;
+    return g.enEspera > 0 ? `${base} · ${g.enEspera} en espera` : base;
+  }
+
+  verDeportistas(g: MiGrupoInstructorDTO): void {
+    this.router.navigate(['/listaDeportistasCurso', g.categoria, g.curso, g.anio, g.iterable]);
+  }
 }

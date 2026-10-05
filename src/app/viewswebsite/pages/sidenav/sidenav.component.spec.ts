@@ -70,4 +70,44 @@ describe('SidenavComponent — cerrarSesion', () => {
     component.cerrarSesion();
     expect(callOrder).toEqual(['logout', 'navigate']);
   });
+
+  describe('enlace "Mis cursos" para rol Alumno', () => {
+    it('muestra el enlace cuando perfil es "Alumno"', () => {
+      perfilSubject.next('Alumno');
+      fixture.detectChanges();
+      const textos = Array.from(
+        fixture.nativeElement.querySelectorAll('.nav-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(textos.some(t => t.includes('Mis cursos'))).toBeTrue();
+    });
+
+    it('no muestra el enlace cuando perfil es "Estudiante" (valor de rol inválido)', () => {
+      perfilSubject.next('Estudiante');
+      fixture.detectChanges();
+      const textos = Array.from(
+        fixture.nativeElement.querySelectorAll('.nav-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(textos.some(t => t.includes('Mis cursos'))).toBeFalse();
+    });
+  });
+
+  describe('enlace "Mis cursos" para rol Instructor', () => {
+    it('muestra el enlace con texto "Mis cursos" cuando perfil es "Instructor"', () => {
+      perfilSubject.next('Instructor');
+      fixture.detectChanges();
+      const textos = Array.from(
+        fixture.nativeElement.querySelectorAll('.nav-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(textos.some(t => t === 'Mis cursos')).toBeTrue();
+    });
+
+    it('no dice "Mi información" para rol Instructor', () => {
+      perfilSubject.next('Instructor');
+      fixture.detectChanges();
+      const textos = Array.from(
+        fixture.nativeElement.querySelectorAll('.nav-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(textos.some(t => t.includes('Mi información'))).toBeFalse();
+    });
+  });
 });

@@ -23,11 +23,11 @@
         </a>
         <a mat-list-item (click)="redirectionTo('info-instructor')" class="nav-item" *ngIf="perfil === 'Instructor'">
           <mat-icon>person</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Mi información</span>
+          <span class="text-body-small-r opcion-espaciado-p">Mis cursos</span>
         </a>
-        <a mat-list-item (click)="redirectionTo('info-estudiante')" class="nav-item" *ngIf="perfil === 'Estudiante'" >
+        <a mat-list-item (click)="redirectionTo('info-estudiante')" class="nav-item" *ngIf="perfil === 'Alumno'" >
           <mat-icon>person</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Mi información</span>
+          <span class="text-body-small-r opcion-espaciado-p">Mis cursos</span>
         </a>
         
       </mat-nav-list>

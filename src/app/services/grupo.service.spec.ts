@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { GrupoService } from './grupo.service';
 import { GrupoDTO } from '../Models/DTOs/grupo-dto';
+import { MiGrupoInstructorDTO } from '../Models/DTOs/mis-cursos-dto';
 
 describe('GrupoService', () => {
   let service: GrupoService;
@@ -179,6 +180,35 @@ describe('GrupoService', () => {
       `${API}/grupo?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1`
     );
     req.flush('Conflicto', { status: 409, statusText: 'Conflict' });
+    expect(errorCapturado).toBeTruthy();
+  });
+
+  // ── getMisGrupos ──────────────────────────────────────────────────────────
+
+  it('getMisGrupos: GET /grupo/misGrupos sin parámetros, retorna lista', () => {
+    const mockGrupos: MiGrupoInstructorDTO[] = [{
+      categoria: 'Futbol', curso: 'Avanzado', anio: 2026, iterable: 1, periodo: 1,
+      cupos: 20, estadoCurso: 'ACTIVO', estadoInscripciones: 'ABIERTO',
+      inscritos: 10, enEspera: 0, horarios: [],
+    }];
+    service.getMisGrupos().subscribe(grupos => {
+      expect(grupos.length).toBe(1);
+      expect(grupos[0].estadoCurso).toBe('ACTIVO');
+    });
+    const req = httpMock.expectOne(`${API}/grupo/misGrupos`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys().length).toBe(0);
+    req.flush(mockGrupos);
+  });
+
+  it('getMisGrupos: propaga error HTTP 401 (sin sesión)', () => {
+    let errorCapturado: any;
+    service.getMisGrupos().subscribe({
+      next: () => fail('debería haber fallado'),
+      error: err => (errorCapturado = err),
+    });
+    const req = httpMock.expectOne(`${API}/grupo/misGrupos`);
+    req.flush(null, { status: 401, statusText: 'Unauthorized' });
     expect(errorCapturado).toBeTruthy();
   });
 });

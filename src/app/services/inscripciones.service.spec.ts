@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { InscripcionesService } from './inscripciones.service';
 import { InscripcionEnEsperaDto } from '../Models/DTOs/inscripcion-en-espera-dto';
+import { MiCursoDTO } from '../Models/DTOs/mis-cursos-dto';
 
 describe('InscripcionesService', () => {
   let service: InscripcionesService;
@@ -82,6 +83,52 @@ describe('InscripcionesService', () => {
       req.flush('Error del servidor', { status: 500, statusText: 'Internal Server Error' });
 
       expect(errorCapturado).toBeTrue();
+    });
+  });
+
+  describe('getMisCursos()', () => {
+    it('hace GET a /inscripcion/misCursos sin parámetros', () => {
+      service.getMisCursos().subscribe();
+      const req = httpMock.expectOne(`${base}/inscripcion/misCursos`);
+      expect(req.request.method).toBe('GET');
+      expect(req.request.params.keys().length).toBe(0);
+      req.flush([]);
+    });
+
+    it('retorna el array de cursos cuando el backend responde 200', () => {
+      const mockData: MiCursoDTO[] = [
+        {
+          categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1,
+          periodo: 1, estado: 'INSCRITO', nombreInstructor: 'Carlos', grupoActivo: true, horarios: [],
+        },
+      ];
+      let result: MiCursoDTO[] | undefined;
+      service.getMisCursos().subscribe(data => { result = data; });
+      httpMock.expectOne(`${base}/inscripcion/misCursos`).flush(mockData);
+      expect(result).toEqual(mockData);
+    });
+
+    it('retorna array vacío cuando el backend responde []', () => {
+      let result: MiCursoDTO[] | undefined;
+      service.getMisCursos().subscribe(data => { result = data; });
+      httpMock.expectOne(`${base}/inscripcion/misCursos`).flush([]);
+      expect(result).toEqual([]);
+    });
+
+    it('propaga el error 401 sin cuerpo JSON', () => {
+      let errorStatus: number | undefined;
+      service.getMisCursos().subscribe({ error: err => { errorStatus = err?.status; } });
+      httpMock.expectOne(`${base}/inscripcion/misCursos`)
+        .flush('', { status: 401, statusText: 'Unauthorized' });
+      expect(errorStatus).toBe(401);
+    });
+
+    it('propaga el error 403 sin cuerpo JSON', () => {
+      let errorStatus: number | undefined;
+      service.getMisCursos().subscribe({ error: err => { errorStatus = err?.status; } });
+      httpMock.expectOne(`${base}/inscripcion/misCursos`)
+        .flush('', { status: 403, statusText: 'Forbidden' });
+      expect(errorStatus).toBe(403);
     });
   });
 });

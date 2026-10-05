@@ -69,8 +69,8 @@ describe('TokenInterchangeService', () => {
 
   it('respuesta 200: guarda dpt_role en sessionStorage con el rol del backend', () => {
     service.exchangeGoogleToken('id-tok').subscribe();
-    httpMock.expectOne(`${API}/auth/token`).flush(mockResp('Estudiante'));
-    expect(sessionStorage.getItem('dpt_role')).toBe('Estudiante');
+    httpMock.expectOne(`${API}/auth/token`).flush(mockResp('Alumno'));
+    expect(sessionStorage.getItem('dpt_role')).toBe('Alumno');
   });
 
   it('respuesta 200: llama a perfilService.setPerfil() con el rol del backend', () => {

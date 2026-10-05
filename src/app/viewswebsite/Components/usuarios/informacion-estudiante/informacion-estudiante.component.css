@@ -82,5 +82,47 @@ tr.mat-header-row {
 }
 
 .btnGuardar button:hover {
-  background-color: #000099 !important; 
+  background-color: #000099 !important;
+}
+
+.cargando-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.empty-msg {
+  padding: 16px 0;
+  color: #555;
+}
+
+.msg-rol {
+  padding: 16px;
+  color: #555;
+}
+
+.aviso-inactivo {
+  display: block;
+  font-size: 0.75rem;
+  color: #b00;
+  margin-top: 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-inscrito {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.badge-espera {
+  background-color: #fff3cd;
+  color: #856404;
 }

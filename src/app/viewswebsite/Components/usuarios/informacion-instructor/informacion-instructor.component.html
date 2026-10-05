@@ -1,56 +1,106 @@
 <app-sidenav>
   <div class="container">
-    <div class="personal-info">
-      <div class="info-text">
-        <h3>Tu información personal</h3>
-        <table>
-          <tr>
-            <td>Nombres:</td>
-            <td>edynson muñoz jimenez</td>
-          </tr>
-           <tr>
-            <td>Tipo de identificación:</td>
-            <td>Cédula</td>
-          </tr>
-          <tr>
-            <td>Identificación:</td>
-            <td>12341123</td>
-          </tr>
-          <tr>
-            <td>Rol:</td>
-            <td>Instructor</td>
-          </tr>
-        </table>
-      </div>
-      <div class="profile-pic">
-        <img src="./assets/imagesSystem/Silueta.jpeg" alt="Profile Picture" />
-      </div>
+
+    <div *ngIf="perfil && perfil !== 'Instructor'" class="msg-rol">
+      <p>Esta sección es exclusiva para el rol Instructor.</p>
     </div>
 
-    <div class="course-info">
-      <h3>Tus cursos encargados</h3>
-      <table mat-table [dataSource]="courses" class="mat-elevation-z8">
-        <!-- Nombre del curso Column -->
-        <ng-container matColumnDef="nombre">
-          <th mat-header-cell *matHeaderCellDef> Nombre de deporte </th>
-          <td mat-cell *matCellDef="let course"> {{course.nombre}} </td>
-        </ng-container>
+    <ng-container *ngIf="perfil === 'Instructor'">
 
-        <!-- Tipo de curso Column -->
-        <ng-container matColumnDef="tipo">
-          <th mat-header-cell *matHeaderCellDef> Tipo de curso </th>
-          <td mat-cell *matCellDef="let course"> {{course.tipo}} </td>
-        </ng-container>
+      <div class="personal-info">
+        <div class="info-text">
+          <h3>Tu información</h3>
+          <table>
+            <tr>
+              <th scope="row">Rol:</th>
+              <td>{{ perfil }}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="profile-pic">
+          <img src="./assets/imagesSystem/Silueta.jpeg" alt="Foto de perfil" />
+        </div>
+      </div>
 
-        <!-- Horario Column -->
-        <ng-container matColumnDef="horario">
-          <th mat-header-cell *matHeaderCellDef> Horario </th>
-          <td mat-cell *matCellDef="let course"> {{course.horario}} </td>
-        </ng-container>
+      <div class="course-info">
+        <h3>Mis cursos a cargo</h3>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      </table>
-    </div>
+        <div *ngIf="cargando" class="cargando-wrapper" aria-live="polite">
+          <mat-spinner diameter="40"></mat-spinner>
+          <span>Cargando grupos...</span>
+        </div>
+
+        <p *ngIf="!cargando && grupos.data.length === 0" class="empty-msg">
+          No tienes grupos a cargo todavía.
+        </p>
+
+        <div class="tabla-container" *ngIf="!cargando && grupos.data.length > 0">
+          <table mat-table [dataSource]="grupos" class="mat-elevation-z8"
+                 aria-label="Grupos a cargo del instructor">
+
+            <ng-container matColumnDef="curso">
+              <th mat-header-cell *matHeaderCellDef scope="col">Curso</th>
+              <td mat-cell *matCellDef="let g">{{ g.curso }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="categoria">
+              <th mat-header-cell *matHeaderCellDef scope="col">Categoría</th>
+              <td mat-cell *matCellDef="let g">{{ g.categoria }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="grupo">
+              <th mat-header-cell *matHeaderCellDef scope="col">Grupo</th>
+              <td mat-cell *matCellDef="let g">{{ formatGrupo(g) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="horario">
+              <th mat-header-cell *matHeaderCellDef scope="col">Horario</th>
+              <td mat-cell *matCellDef="let g">{{ formatHorario(g.horarios) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="cupos">
+              <th mat-header-cell *matHeaderCellDef scope="col">Cupos</th>
+              <td mat-cell *matCellDef="let g">{{ formatCupos(g) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="estadoCurso">
+              <th mat-header-cell *matHeaderCellDef scope="col">Estado curso</th>
+              <td mat-cell *matCellDef="let g">
+                <span class="badge"
+                      [class.badge-activo]="g.estadoCurso === 'ACTIVO'"
+                      [class.badge-inactivo]="g.estadoCurso === 'INACTIVO'">
+                  {{ g.estadoCurso === 'ACTIVO' ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="inscripciones">
+              <th mat-header-cell *matHeaderCellDef scope="col">Inscripciones</th>
+              <td mat-cell *matCellDef="let g">
+                <span class="badge"
+                      [class.badge-abiertas]="g.estadoInscripciones === 'ABIERTO'"
+                      [class.badge-cerradas]="g.estadoInscripciones === 'CERRADO'">
+                  {{ g.estadoInscripciones === 'ABIERTO' ? 'Abiertas' : 'Cerradas' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef scope="col">Acciones</th>
+              <td mat-cell *matCellDef="let g">
+                <button class="btn-ver" (click)="verDeportistas(g)">
+                  Ver deportistas
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+      </div>
+
+    </ng-container>
+
   </div>
 </app-sidenav>
