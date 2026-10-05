@@ -97,7 +97,12 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.perfilService.perfil$.subscribe(p => { this.rol = p; });
+    this.perfilService.perfil$.subscribe(p => {
+      this.rol = p;
+      this.displayedColumns = p === 'Coordinador'
+        ? ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia', 'Acciones']
+        : ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia'];
+    });
     this.route.paramMap.subscribe(
       (params) => {
         this.categoria = params.get('categoria');
@@ -135,10 +140,12 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       }
     );
 
-    this.inscripcionService.getListaEspera(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
-      next: (data) => { this.listaEspera = Array.isArray(data) ? data : []; },
-      error: () => { this.listaEspera = []; }
-    });
+    if (this.rol === 'Coordinador') {
+      this.inscripcionService.getListaEspera(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
+        next: (data) => { this.listaEspera = Array.isArray(data) ? data : []; },
+        error: () => { this.listaEspera = []; }
+      });
+    }
   }
 
   consultarInstructor(id: string): void {

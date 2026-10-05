@@ -44,7 +44,7 @@
   <div class="datos">
     <div class="headerTabla">
       <h2>Estudiantes de grupo </h2>
-      <button class="btnAgregar" (click)="inscribirAlumno()">Agregar deportista +</button>
+      <button class="btnAgregar" (click)="inscribirAlumno()" *ngIf="rol === 'Coordinador'">Agregar deportista +</button>
     </div>
 
     <div class="tabla-container">
@@ -84,10 +84,10 @@
         <ng-container matColumnDef="Acciones">
           <th mat-header-cell *matHeaderCellDef> Acciones </th>
           <td mat-cell *matCellDef="let alumno">
-            <button mat-icon-button color="primary" (click)="editarAlumno(alumno)">
+            <button mat-icon-button color="primary" (click)="editarAlumno(alumno)" *ngIf="rol === 'Coordinador'">
               <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button color="warn" (click)="eliminarAlumno(alumno)">
+            <button mat-icon-button color="warn" (click)="eliminarAlumno(alumno)" *ngIf="rol === 'Coordinador'">
               <mat-icon>delete</mat-icon>
             </button>
           </td>
@@ -108,7 +108,7 @@
     </button>
   </div>
 
-  <div class="datos" *ngIf="(rol === 'Coordinador' || rol === 'Instructor') && listaEspera.length > 0">
+  <div class="datos" *ngIf="rol === 'Coordinador' && listaEspera.length > 0">
     <div class="headerTabla">
       <h2>Lista de espera <span class="badge-espera">{{ listaEspera.length }}</span></h2>
     </div>

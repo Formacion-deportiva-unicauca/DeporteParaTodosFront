@@ -158,6 +158,20 @@ describe('ListDeportistasdeCursoComponent', () => {
     });
   });
 
+  describe('rol Coordinador — confirmaciones', () => {
+    it('displayedColumns contiene "Acciones"', () => {
+      expect(component.displayedColumns).toContain('Acciones');
+    });
+
+    it('getListaEspera es llamado en cargarDatos()', () => {
+      expect(component['inscripcionService'].getListaEspera).toHaveBeenCalled();
+    });
+
+    it('muestra el boton "Agregar deportista +"', () => {
+      expect(fixture.nativeElement.querySelector('.btnAgregar')).not.toBeNull();
+    });
+  });
+
   describe('historial de clases', () => {
 
     it('cargarHistorial(): carga clases y activa historialVisible', () => {
@@ -238,5 +252,77 @@ describe('ListDeportistasdeCursoComponent', () => {
         jasmine.stringContaining('Error'), 'Cerrar', jasmine.any(Object)
       );
     });
+  });
+});
+
+// ── Tests para rol Instructor ────────────────────────────────────────────────
+describe('ListDeportistasdeCursoComponent — rol Instructor', () => {
+  let component: ListDeportistasdeCursoComponent;
+  let fixture: ComponentFixture<ListDeportistasdeCursoComponent>;
+
+  const mockGrupoInst: GrupoDTO = {
+    categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1,
+    imagenGrupo: 0, idInstructor: 'inst-1', nombreInstructor: '',
+    cupos: 10, fechaCreacion: '',
+  };
+
+  const mockEsperaItem: InscripcionEnEsperaDto = {
+    alumnoId: '1', nombre: 'Ana', correo: 'ana@test.com', fechaInscripcion: '2024-01-01',
+  };
+
+  beforeEach(async () => {
+    const perfilSubject = new BehaviorSubject<string>('Instructor');
+
+    await TestBed.configureTestingModule({
+      imports: [ListDeportistasdeCursoComponent, NoopAnimationsModule, HttpClientTestingModule],
+      providers: [
+        DatePipe,
+        { provide: PerfilService, useValue: { perfil$: perfilSubject } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of(convertToParamMap({
+              categoria: 'Futbol', curso: 'Avanzado', anio: '2024', iterable: '1',
+            })),
+          },
+        },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    })
+    .overrideComponent(ListDeportistasdeCursoComponent, {
+      remove: { imports: [SidenavComponent] },
+      add: { schemas: [NO_ERRORS_SCHEMA] },
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(ListDeportistasdeCursoComponent);
+    component = fixture.componentInstance;
+
+    spyOn(component['grupoService'], 'getGrupo').and.returnValue(of(mockGrupoInst));
+    spyOn(component['alumnoService'], 'getAlumnosGrupo').and.returnValue(of([]));
+    spyOn(component['inscripcionService'], 'getListaEspera').and.returnValue(of([]));
+    spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
+    spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
+    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+
+    fixture.detectChanges();
+  });
+
+  it('getListaEspera NO se llama en cargarDatos()', () => {
+    expect(component['inscripcionService'].getListaEspera).not.toHaveBeenCalled();
+  });
+
+  it('displayedColumns no contiene "Acciones"', () => {
+    expect(component.displayedColumns).not.toContain('Acciones');
+  });
+
+  it('no muestra el boton "Agregar deportista +"', () => {
+    expect(fixture.nativeElement.querySelector('.btnAgregar')).toBeNull();
+  });
+
+  it('no muestra la seccion "Lista de espera" aunque haya items', () => {
+    component.listaEspera = [mockEsperaItem];
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Lista de espera');
   });
 });
