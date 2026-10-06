@@ -33,6 +33,7 @@ export class TokenInterchangeService {
         sessionStorage.setItem('dpt_token', resp.token);
         sessionStorage.setItem('dpt_role', resp.perfil.role);
         sessionStorage.setItem('dpt_perfil_id', String(resp.perfil.id));
+        sessionStorage.setItem('dpt_perfil', JSON.stringify(resp.perfil));
         this.perfilService.setPerfil(resp.perfil.role);
         this.tokenSavedSource.next();
       }),

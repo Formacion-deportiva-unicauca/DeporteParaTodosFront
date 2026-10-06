@@ -74,7 +74,7 @@
 
 
                         <div class="horarios">
-                            <p> Instructor: {{item.nombreInstructor}}</p>
+                            <p> Instructor: {{item.nombreInstructor ?? 'Sin instructor asignado'}}</p>
                             <ng-container *ngIf="item.horarios as horarios; else sinHorarios">
                                 <ng-container *ngIf="horarios.length > 0; else sinHorarios">
                                     <p *ngFor="let h of horarios">

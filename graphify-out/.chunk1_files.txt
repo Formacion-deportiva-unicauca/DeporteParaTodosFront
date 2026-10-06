@@ -1,0 +1,13 @@
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\app.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\config-tipo-curso\config-tipo-curso.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\cursos-deportivos\cursos-deportivos.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\form-curso-deportivo\form-curso-deportivi.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\form-grupos\form-grupos.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\form-horario\form-horario.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\gestion-inscripciones\gestion-inscripciones.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\informacion-curso\informacion-curso.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\inscripcion-grupo\inscripcion-grupo.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\list-deportistasde-curso\list-deportistasde-curso.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\list-grupos\list-grupos.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\cursos\nuevo-curso-categoria\nuevo-curso-categoria.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\dialog\dialog.component.html

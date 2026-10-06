@@ -70,6 +70,7 @@ export class AuthService {
     sessionStorage.removeItem('dpt_token');
     sessionStorage.removeItem('dpt_role');
     sessionStorage.removeItem('dpt_perfil_id');
+    sessionStorage.removeItem('dpt_perfil');
   }
 
   getProfile() {

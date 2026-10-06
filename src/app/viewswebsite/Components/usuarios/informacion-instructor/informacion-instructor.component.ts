@@ -8,6 +8,7 @@ import { Subscription } from 'rxjs';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { GrupoService } from 'src/app/services/grupo.service';
+import { InstructorServisce } from 'src/app/services/instructor.service';
 import { MiGrupoInstructorDTO, MisCursosHorarioDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 import { letraDeIterable } from 'src/app/shared/iterable-letra.util';
 
@@ -29,12 +30,16 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
   cargando = false;
   displayedColumns: string[] = ['curso', 'categoria', 'grupo', 'horario', 'cupos', 'estadoCurso', 'inscripciones', 'acciones'];
   grupos = new MatTableDataSource<MiGrupoInstructorDTO>([]);
+  cargandoPerfil = false;
+  nombreInstructor: string | null = null;
+  codigoInstructor: string | null = null;
   private perfilSub: Subscription = Subscription.EMPTY;
 
   constructor(
     private snackBar: MatSnackBar,
     private perfilService: PerfilService,
     private grupoService: GrupoService,
+    private instructorService: InstructorServisce,
     private router: Router,
   ) {}
 
@@ -43,12 +48,36 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
       this.perfil = p;
       if (p === 'Instructor') {
         this.cargarGrupos();
+        this.cargarInfoInstructor();
       }
     });
   }
 
   ngOnDestroy(): void {
     this.perfilSub.unsubscribe();
+  }
+
+  cargarInfoInstructor(): void {
+    const id = sessionStorage.getItem('dpt_perfil_id');
+    this.nombreInstructor = null;
+    this.codigoInstructor = null;
+    if (!id) return;
+
+    this.cargandoPerfil = true;
+    this.instructorService.getInstructor(id).subscribe({
+      next: instructor => {
+        this.nombreInstructor = instructor?.nombre ?? null;
+        this.codigoInstructor = instructor?.id ? instructor.id : id;
+        this.cargandoPerfil = false;
+      },
+      error: () => {
+        this.cargandoPerfil = false;
+        this.snackBar.open('No se pudo cargar tu información de instructor.', '', {
+          duration: 4000,
+          panelClass: 'snack-error',
+        });
+      },
+    });
   }
 
   cargarGrupos(): void {

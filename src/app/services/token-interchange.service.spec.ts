@@ -38,11 +38,13 @@ describe('TokenInterchangeService', () => {
     httpMock = TestBed.inject(HttpTestingController);
     sessionStorage.removeItem('dpt_token');
     sessionStorage.removeItem('dpt_role');
+    sessionStorage.removeItem('dpt_perfil');
   });
 
   afterEach(() => {
     sessionStorage.removeItem('dpt_token');
     sessionStorage.removeItem('dpt_role');
+    sessionStorage.removeItem('dpt_perfil');
     httpMock.verify();
   });
 
@@ -77,6 +79,14 @@ describe('TokenInterchangeService', () => {
     service.exchangeGoogleToken('id-tok').subscribe();
     httpMock.expectOne(`${API}/auth/token`).flush(mockResp('Instructor'));
     expect(perfilSpy.setPerfil).toHaveBeenCalledOnceWith('Instructor');
+  });
+
+  it('respuesta 200: guarda dpt_perfil en sessionStorage con el perfil completo', () => {
+    service.exchangeGoogleToken('id-tok').subscribe();
+    httpMock.expectOne(`${API}/auth/token`).flush(mockResp('Alumno'));
+    expect(JSON.parse(sessionStorage.getItem('dpt_perfil')!)).toEqual({
+      ...mockPerfilAdmin, role: 'Alumno',
+    });
   });
 
   it('respuesta 404: navega a /completar-perfil y retorna EMPTY (sin error)', () => {

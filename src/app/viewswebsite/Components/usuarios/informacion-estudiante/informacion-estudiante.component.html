@@ -4,8 +4,16 @@
     <!-- Sección de información personal (solo rol disponible de fuente real) -->
     <div class="personal-info" *ngIf="perfil === 'Alumno'">
       <div class="info-text">
-        <h3>Tu información personal</h3>
+        <h3>Tu información</h3>
         <table>
+          <tr>
+            <th scope="row">Nombre:</th>
+            <td>{{ nombreAlumno ?? 'No disponible' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Código:</th>
+            <td>{{ codigoAlumno ?? 'No disponible' }}</td>
+          </tr>
           <tr>
             <th scope="row">Rol:</th>
             <td>{{ perfil }}</td>
@@ -66,7 +74,13 @@
         <ng-container matColumnDef="instructor">
           <th mat-header-cell *matHeaderCellDef scope="col">Instructor</th>
           <td mat-cell *matCellDef="let c">
-            {{ c.nombreInstructor ?? 'Sin instructor asignado' }}
+            <ng-container *ngIf="c.instructorNombre as nombre; else sinInstructor">
+              <span class="instructor-nombre">{{ nombre }}</span>
+              <span class="instructor-codigo" *ngIf="c.instructorCodigo">
+                C&oacute;d. {{ c.instructorCodigo }}
+              </span>
+            </ng-container>
+            <ng-template #sinInstructor>Sin instructor asignado</ng-template>
           </td>
         </ng-container>
 

@@ -1,0 +1,830 @@
+{
+  ".vscode/extensions.json": {
+    "mtime": 1776404796.2431996,
+    "seen": 1790099224.8370767,
+    "ast_hash": "66fd9e60d4633b6099fe02e06a7075ea",
+    "semantic_hash": "66fd9e60d4633b6099fe02e06a7075ea"
+  },
+  ".vscode/launch.json": {
+    "mtime": 1776404796.2431996,
+    "seen": 1790099224.8370767,
+    "ast_hash": "0e8a9617a2d5a6a3e8a42e8b32972543",
+    "semantic_hash": "0e8a9617a2d5a6a3e8a42e8b32972543"
+  },
+  ".vscode/tasks.json": {
+    "mtime": 1776404796.2445743,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d2fc2624d783980be281b4cf0acc2455",
+    "semantic_hash": "d2fc2624d783980be281b4cf0acc2455"
+  },
+  "angular.json": {
+    "mtime": 1787207395.266785,
+    "seen": 1790099224.8370767,
+    "ast_hash": "29f319dd3731cd49969c37fe5c937480",
+    "semantic_hash": "29f319dd3731cd49969c37fe5c937480"
+  },
+  "e2e/support/auth-setup.ts": {
+    "mtime": 1787291089.7764385,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b7c8ea9b5c6c9e86c88873d988d67655",
+    "semantic_hash": "b7c8ea9b5c6c9e86c88873d988d67655"
+  },
+  "e2e/support/test-data.ts": {
+    "mtime": 1787291707.823708,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f350dacb144943273b71c42a0000c02a",
+    "semantic_hash": "f350dacb144943273b71c42a0000c02a"
+  },
+  "e2e/tests/01-registrar-instructor.spec.ts": {
+    "mtime": 1787294163.9476528,
+    "seen": 1790099224.8370767,
+    "ast_hash": "01b9b658a264a0da42e77f303cf68c51",
+    "semantic_hash": "01b9b658a264a0da42e77f303cf68c51"
+  },
+  "e2e/tests/02-crear-horario-escenario.spec.ts": {
+    "mtime": 1787294442.7100513,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ef4ad2be532b70a43583ffb52a0ad8f4",
+    "semantic_hash": "ef4ad2be532b70a43583ffb52a0ad8f4"
+  },
+  "e2e/tests/03-eliminar-categoria-409.spec.ts": {
+    "mtime": 1787294463.591538,
+    "seen": 1790099224.8370767,
+    "ast_hash": "e5a12dd22a66f19b9bce335ee52d47f1",
+    "semantic_hash": "e5a12dd22a66f19b9bce335ee52d47f1"
+  },
+  "e2e/tests/04-registrar-asistencia.spec.ts": {
+    "mtime": 1787291167.00204,
+    "seen": 1790099224.8370767,
+    "ast_hash": "df31de5b3b588268f58fac05992ca63c",
+    "semantic_hash": "df31de5b3b588268f58fac05992ca63c"
+  },
+  "e2e/tests/05-editar-eliminar-alumno.spec.ts": {
+    "mtime": 1787293859.9532743,
+    "seen": 1790099224.8370767,
+    "ast_hash": "95364bcd86be8e0fe7a57bb869b1e962",
+    "semantic_hash": "95364bcd86be8e0fe7a57bb869b1e962"
+  },
+  "karma.conf.js": {
+    "mtime": 1787207386.7629383,
+    "seen": 1790099224.8370767,
+    "ast_hash": "40f3b14a7bf7a0b25be976ac529f6b3c",
+    "semantic_hash": "40f3b14a7bf7a0b25be976ac529f6b3c"
+  },
+  "package.json": {
+    "mtime": 1787291189.5210023,
+    "seen": 1790099224.8370767,
+    "ast_hash": "2e2c518750f9a2245fd06fbe7798db3e",
+    "semantic_hash": "2e2c518750f9a2245fd06fbe7798db3e"
+  },
+  "playwright.config.ts": {
+    "mtime": 1787291084.8661058,
+    "seen": 1790099224.8370767,
+    "ast_hash": "30004395541fba8775e9d1690091d836",
+    "semantic_hash": "30004395541fba8775e9d1690091d836"
+  },
+  "src/app/Models/DTOs/alerta-dto.ts": {
+    "mtime": 1776404796.2521913,
+    "seen": 1790099224.8370767,
+    "ast_hash": "aa900016781970f880e01f58b5736c2c",
+    "semantic_hash": "aa900016781970f880e01f58b5736c2c"
+  },
+  "src/app/Models/DTOs/alumno-dto.ts": {
+    "mtime": 1776404796.2531939,
+    "seen": 1790099224.8370767,
+    "ast_hash": "23d6dc390a8d1666fc96560d48477100",
+    "semantic_hash": "23d6dc390a8d1666fc96560d48477100"
+  },
+  "src/app/Models/DTOs/atencion-dto.ts": {
+    "mtime": 1782538347.4541054,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ccc6fcc7e676eebb80488900165a8fbd",
+    "semantic_hash": "ccc6fcc7e676eebb80488900165a8fbd"
+  },
+  "src/app/Models/DTOs/categoria-dto.ts": {
+    "mtime": 1776404796.2541914,
+    "seen": 1790099224.8370767,
+    "ast_hash": "2d2c8f75e37675206dd0698e82028161",
+    "semantic_hash": "2d2c8f75e37675206dd0698e82028161"
+  },
+  "src/app/Models/DTOs/clase-dto.ts": {
+    "mtime": 1776404796.255166,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b2bb6124cf48272d5fd0530d098333fc",
+    "semantic_hash": "b2bb6124cf48272d5fd0530d098333fc"
+  },
+  "src/app/Models/DTOs/curso-dto.ts": {
+    "mtime": 1784179081.0508573,
+    "seen": 1790099224.8370767,
+    "ast_hash": "19235efa4675045b2a824fe3d7b36d1b",
+    "semantic_hash": "19235efa4675045b2a824fe3d7b36d1b"
+  },
+  "src/app/Models/DTOs/deporte-dto.ts": {
+    "mtime": 1776404796.2561655,
+    "seen": 1790099224.8370767,
+    "ast_hash": "42d407ffe0584f5ae31dda3d4b0ba683",
+    "semantic_hash": "42d407ffe0584f5ae31dda3d4b0ba683"
+  },
+  "src/app/Models/DTOs/disponibilidad-dto.ts": {
+    "mtime": 1790047646.026873,
+    "seen": 1790099224.8370767,
+    "ast_hash": "0393c1ccd05a120aec39ae05d039b40b",
+    "semantic_hash": "0393c1ccd05a120aec39ae05d039b40b"
+  },
+  "src/app/Models/DTOs/escenario-dto.ts": {
+    "mtime": 1785562893.0669358,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f9f8c171dfdba1bf4b56ccd71f096628",
+    "semantic_hash": "f9f8c171dfdba1bf4b56ccd71f096628"
+  },
+  "src/app/Models/DTOs/estadisticas-dto.ts": {
+    "mtime": 1776404796.2561655,
+    "seen": 1790099224.8370767,
+    "ast_hash": "74786e41a2f61762df9be226c81541d9",
+    "semantic_hash": "74786e41a2f61762df9be226c81541d9"
+  },
+  "src/app/Models/DTOs/grupo-dto.ts": {
+    "mtime": 1786170605.9111807,
+    "seen": 1790099224.8370767,
+    "ast_hash": "5c9956d3ecac4bad20296a658cd42876",
+    "semantic_hash": "5c9956d3ecac4bad20296a658cd42876"
+  },
+  "src/app/Models/DTOs/horario-dto.ts": {
+    "mtime": 1776404796.2571657,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b2afef3d4a7ed3e855f0f5382f15244c",
+    "semantic_hash": "b2afef3d4a7ed3e855f0f5382f15244c"
+  },
+  "src/app/Models/DTOs/imagen-dto.ts": {
+    "mtime": 1776404796.258674,
+    "seen": 1790099224.8370767,
+    "ast_hash": "c4f8013535664fcebfa8f2f1539c8ca7",
+    "semantic_hash": "c4f8013535664fcebfa8f2f1539c8ca7"
+  },
+  "src/app/Models/DTOs/inscripcion-dto.ts": {
+    "mtime": 1790047638.6770809,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ef6d6a19843b9f560de0f5160dd8157e",
+    "semantic_hash": "ef6d6a19843b9f560de0f5160dd8157e"
+  },
+  "src/app/Models/DTOs/instructor-dto.ts": {
+    "mtime": 1776404796.2591922,
+    "seen": 1790099224.8370767,
+    "ast_hash": "3868d1eb6d7c81b8049fedef984d337b",
+    "semantic_hash": "3868d1eb6d7c81b8049fedef984d337b"
+  },
+  "src/app/Models/DTOs/perfil-tdo.ts": {
+    "mtime": 1776404796.2607808,
+    "seen": 1790099224.8370767,
+    "ast_hash": "8f527f0905500a766e29387e08f42772",
+    "semantic_hash": "8f527f0905500a766e29387e08f42772"
+  },
+  "src/app/app-routing.module.ts": {
+    "mtime": 1789074857.2356005,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b60dbcc26536b07f9c51d52a2c989f27",
+    "semantic_hash": "b60dbcc26536b07f9c51d52a2c989f27"
+  },
+  "src/app/app.component.ts": {
+    "mtime": 1787633798.917145,
+    "seen": 1790099224.8370767,
+    "ast_hash": "7d6098f18a0ed0ade35f68fc45dc1278",
+    "semantic_hash": "7d6098f18a0ed0ade35f68fc45dc1278"
+  },
+  "src/app/app.module.ts": {
+    "mtime": 1787525191.2275646,
+    "seen": 1790099224.8370767,
+    "ast_hash": "bbcbf071aae22ed56bbb560ec3b14a10",
+    "semantic_hash": "bbcbf071aae22ed56bbb560ec3b14a10"
+  },
+  "src/app/services/alerta-service.service.ts": {
+    "mtime": 1776404796.2643938,
+    "seen": 1790099224.8370767,
+    "ast_hash": "7693276090a128baca86ad74a15b63b8",
+    "semantic_hash": "7693276090a128baca86ad74a15b63b8"
+  },
+  "src/app/services/alumno.service.spec.ts": {
+    "mtime": 1789676052.63665,
+    "seen": 1790099224.8370767,
+    "ast_hash": "3e6e61f2edbaa38134c22a63e00233b7",
+    "semantic_hash": "3e6e61f2edbaa38134c22a63e00233b7"
+  },
+  "src/app/services/alumno.service.ts": {
+    "mtime": 1789676001.4631753,
+    "seen": 1790099224.8370767,
+    "ast_hash": "46e348b978b3cf3681227e631f65c189",
+    "semantic_hash": "46e348b978b3cf3681227e631f65c189"
+  },
+  "src/app/services/asistencia.service.ts": {
+    "mtime": 1782537123.033611,
+    "seen": 1790099224.8370767,
+    "ast_hash": "67a8ad02a74adbca98f63a1f7996637f",
+    "semantic_hash": "67a8ad02a74adbca98f63a1f7996637f"
+  },
+  "src/app/services/auth.interceptor.spec.ts": {
+    "mtime": 1787861051.1039567,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ae2d58ef89247c8e8cd5a076f51b0f74",
+    "semantic_hash": "ae2d58ef89247c8e8cd5a076f51b0f74"
+  },
+  "src/app/services/auth.interceptor.ts": {
+    "mtime": 1787525160.2986836,
+    "seen": 1790099224.8370767,
+    "ast_hash": "4d24cf0ce7a4a518ccec7adb6d976ef4",
+    "semantic_hash": "4d24cf0ce7a4a518ccec7adb6d976ef4"
+  },
+  "src/app/services/auth.service.spec.ts": {
+    "mtime": 1789144009.1075811,
+    "seen": 1790099224.8370767,
+    "ast_hash": "429229caa076d129585b3bd0ff0ea4f5",
+    "semantic_hash": "429229caa076d129585b3bd0ff0ea4f5"
+  },
+  "src/app/services/auth.service.ts": {
+    "mtime": 1789143704.600416,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ec48c92e3f0c9d7ddaa7814a4102253b",
+    "semantic_hash": "ec48c92e3f0c9d7ddaa7814a4102253b"
+  },
+  "src/app/services/categoria.service.spec.ts": {
+    "mtime": 1787201685.4854553,
+    "seen": 1790099224.8370767,
+    "ast_hash": "9bf218c93669dccf57c60b4778df33ee",
+    "semantic_hash": "9bf218c93669dccf57c60b4778df33ee"
+  },
+  "src/app/services/categoria.service.ts": {
+    "mtime": 1776404796.2665422,
+    "seen": 1790099224.8370767,
+    "ast_hash": "57bc9fbee9c5e834bdfb733b258d30c9",
+    "semantic_hash": "57bc9fbee9c5e834bdfb733b258d30c9"
+  },
+  "src/app/services/clase.service.spec.ts": {
+    "mtime": 1787204380.8121705,
+    "seen": 1790099224.8370767,
+    "ast_hash": "942320e785acd1e3d4f8abbe113e7459",
+    "semantic_hash": "942320e785acd1e3d4f8abbe113e7459"
+  },
+  "src/app/services/clase.service.ts": {
+    "mtime": 1782537116.3955255,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f9e5defd53da8e022c36be60abdb9061",
+    "semantic_hash": "f9e5defd53da8e022c36be60abdb9061"
+  },
+  "src/app/services/cursodeportivo.service.spec.ts": {
+    "mtime": 1787200583.2192776,
+    "seen": 1790099224.8370767,
+    "ast_hash": "6a3fff218a4f7cc11ba71ee8f11c77a2",
+    "semantic_hash": "6a3fff218a4f7cc11ba71ee8f11c77a2"
+  },
+  "src/app/services/cursodeportivo.service.ts": {
+    "mtime": 1784181488.9893456,
+    "seen": 1790099224.8370767,
+    "ast_hash": "43f0e0b6625bc84d4a84515a8ec175de",
+    "semantic_hash": "43f0e0b6625bc84d4a84515a8ec175de"
+  },
+  "src/app/services/deporte.service.ts": {
+    "mtime": 1776404796.2691598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "bcf8ccfb0db9266dffcf1c9babfe2113",
+    "semantic_hash": "bcf8ccfb0db9266dffcf1c9babfe2113"
+  },
+  "src/app/services/escenario.service.spec.ts": {
+    "mtime": 1787202962.5516896,
+    "seen": 1790099224.8370767,
+    "ast_hash": "e98a03c44872c46a0928bea472beb7bb",
+    "semantic_hash": "e98a03c44872c46a0928bea472beb7bb"
+  },
+  "src/app/services/escenario.service.ts": {
+    "mtime": 1785562899.7052512,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d7a02213801091e0cacfc4330554c552",
+    "semantic_hash": "d7a02213801091e0cacfc4330554c552"
+  },
+  "src/app/services/grupo.service.spec.ts": {
+    "mtime": 1787201903.5559602,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b45e97ef62d86c6376a0f26a85ec0914",
+    "semantic_hash": "b45e97ef62d86c6376a0f26a85ec0914"
+  },
+  "src/app/services/grupo.service.ts": {
+    "mtime": 1776404796.2691598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "766a5bb503505eed1392a717032539f4",
+    "semantic_hash": "766a5bb503505eed1392a717032539f4"
+  },
+  "src/app/services/horario.service.spec.ts": {
+    "mtime": 1787202956.5897257,
+    "seen": 1790099224.8370767,
+    "ast_hash": "af23daa9fe5095d02601c89ce9559a2e",
+    "semantic_hash": "af23daa9fe5095d02601c89ce9559a2e"
+  },
+  "src/app/services/horario.service.ts": {
+    "mtime": 1785562907.5492315,
+    "seen": 1790099224.8370767,
+    "ast_hash": "19c8dcef5d8ba0fea4cdb51f59357f38",
+    "semantic_hash": "19c8dcef5d8ba0fea4cdb51f59357f38"
+  },
+  "src/app/services/imagen.service.ts": {
+    "mtime": 1776404796.2691598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f7f35a31145c4a00c879018bcd2501e7",
+    "semantic_hash": "f7f35a31145c4a00c879018bcd2501e7"
+  },
+  "src/app/services/inscripciones.service.spec.ts": {
+    "mtime": 1787200602.070155,
+    "seen": 1790099224.8370767,
+    "ast_hash": "3a6b91990dcff80c282737a5851c8966",
+    "semantic_hash": "3a6b91990dcff80c282737a5851c8966"
+  },
+  "src/app/services/inscripciones.service.ts": {
+    "mtime": 1790099342.1425095,
+    "seen": 1790099418.0512152,
+    "ast_hash": "c9e84dd1142de59adc77766de2980d68",
+    "semantic_hash": "c9e84dd1142de59adc77766de2980d68"
+  },
+  "src/app/services/instructor.service.spec.ts": {
+    "mtime": 1787202940.970559,
+    "seen": 1790099224.8370767,
+    "ast_hash": "1d86809ca23a0caafc3346dd51946173",
+    "semantic_hash": "1d86809ca23a0caafc3346dd51946173"
+  },
+  "src/app/services/instructor.service.ts": {
+    "mtime": 1776404796.2691598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "9878307f4677683e4c5560ce37b831ff",
+    "semantic_hash": "9878307f4677683e4c5560ce37b831ff"
+  },
+  "src/app/services/perfil.service.spec.ts": {
+    "mtime": 1789048823.3078253,
+    "seen": 1790099224.8370767,
+    "ast_hash": "a2b128f24c3650389be828710744fa0f",
+    "semantic_hash": "a2b128f24c3650389be828710744fa0f"
+  },
+  "src/app/services/perfil.service.ts": {
+    "mtime": 1789016647.969808,
+    "seen": 1790099224.8370767,
+    "ast_hash": "8e198a15a1750664a5a8c28c33fac28c",
+    "semantic_hash": "8e198a15a1750664a5a8c28c33fac28c"
+  },
+  "src/app/services/reportes.service.ts": {
+    "mtime": 1776404796.2691598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "de2ce2d33db15aed34222f03c4ac0453",
+    "semantic_hash": "de2ce2d33db15aed34222f03c4ac0453"
+  },
+  "src/app/services/token-interchange.service.spec.ts": {
+    "mtime": 1789071909.5699596,
+    "seen": 1790099224.8370767,
+    "ast_hash": "3315392e634bb2548262835f3639cc56",
+    "semantic_hash": "3315392e634bb2548262835f3639cc56"
+  },
+  "src/app/services/token-interchange.service.ts": {
+    "mtime": 1789074797.4697142,
+    "seen": 1790099224.8370767,
+    "ast_hash": "590566a79297c1e16aa9ca5bda6d1f6b",
+    "semantic_hash": "590566a79297c1e16aa9ca5bda6d1f6b"
+  },
+  "src/app/viewswebsite/Components/cursos/config-tipo-curso/config-tipo-curso.component.ts": {
+    "mtime": 1785994976.8803258,
+    "seen": 1790099224.8370767,
+    "ast_hash": "5fe9087453b4113a6b142d87d8fa4641",
+    "semantic_hash": "5fe9087453b4113a6b142d87d8fa4641"
+  },
+  "src/app/viewswebsite/Components/cursos/cursos-deportivos/cursos-deportivos.component.spec.ts": {
+    "mtime": 1789144665.2541215,
+    "seen": 1790099224.8370767,
+    "ast_hash": "a19fd72fe2c06a48ce01f32e681f2704",
+    "semantic_hash": "a19fd72fe2c06a48ce01f32e681f2704"
+  },
+  "src/app/viewswebsite/Components/cursos/cursos-deportivos/cursos-deportivos.component.ts": {
+    "mtime": 1789071874.2931547,
+    "seen": 1790099224.8370767,
+    "ast_hash": "0fdb36232ebae9b9a065d6b31b1d041a",
+    "semantic_hash": "0fdb36232ebae9b9a065d6b31b1d041a"
+  },
+  "src/app/viewswebsite/Components/cursos/form-curso-deportivo/form-curso-deportivi.component.ts": {
+    "mtime": 1786583047.3914618,
+    "seen": 1790099224.8370767,
+    "ast_hash": "299f3b098b41c802b824630b8584db19",
+    "semantic_hash": "299f3b098b41c802b824630b8584db19"
+  },
+  "src/app/viewswebsite/Components/cursos/form-grupos/form-grupos.component.ts": {
+    "mtime": 1776404796.286125,
+    "seen": 1790099224.8370767,
+    "ast_hash": "55b3240482d0a9db723322334c3b9f9e",
+    "semantic_hash": "55b3240482d0a9db723322334c3b9f9e"
+  },
+  "src/app/viewswebsite/Components/cursos/form-horario/form-horario.component.spec.ts": {
+    "mtime": 1787204393.3370943,
+    "seen": 1790099224.8370767,
+    "ast_hash": "48ff275f76aa970523489c7cf3812371",
+    "semantic_hash": "48ff275f76aa970523489c7cf3812371"
+  },
+  "src/app/viewswebsite/Components/cursos/form-horario/form-horario.component.ts": {
+    "mtime": 1785564686.4522104,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f3d193925c4447f5ebf8bab88cbd8831",
+    "semantic_hash": "f3d193925c4447f5ebf8bab88cbd8831"
+  },
+  "src/app/viewswebsite/Components/cursos/gestion-inscripciones/gestion-inscripciones.component.ts": {
+    "mtime": 1776404796.2885368,
+    "seen": 1790099224.8370767,
+    "ast_hash": "8e41581670e7eeec0ecdbed43cdc394c",
+    "semantic_hash": "8e41581670e7eeec0ecdbed43cdc394c"
+  },
+  "src/app/viewswebsite/Components/cursos/informacion-curso/informacion-curso.component.ts": {
+    "mtime": 1790046155.9586763,
+    "seen": 1790099224.8370767,
+    "ast_hash": "6efd026d5b3c6cc7ba3f7564885fcd38",
+    "semantic_hash": "6efd026d5b3c6cc7ba3f7564885fcd38"
+  },
+  "src/app/viewswebsite/Components/cursos/inscripcion-grupo/inscripcion-grupo.component.spec.ts": {
+    "mtime": 1790048202.8583436,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f2bcb589e4dd7ccf1e719a980ef323bc",
+    "semantic_hash": "f2bcb589e4dd7ccf1e719a980ef323bc"
+  },
+  "src/app/viewswebsite/Components/cursos/inscripcion-grupo/inscripcion-grupo.component.ts": {
+    "mtime": 1790048192.4387605,
+    "seen": 1790099224.8370767,
+    "ast_hash": "e7803765af7210e32c516f3da12a4d8c",
+    "semantic_hash": "e7803765af7210e32c516f3da12a4d8c"
+  },
+  "src/app/viewswebsite/Components/cursos/list-deportistasde-curso/list-deportistasde-curso.component.spec.ts": {
+    "mtime": 1787202488.8935633,
+    "seen": 1790099224.8370767,
+    "ast_hash": "dd51c788f0a8aba659f68338641b2803",
+    "semantic_hash": "dd51c788f0a8aba659f68338641b2803"
+  },
+  "src/app/viewswebsite/Components/cursos/list-deportistasde-curso/list-deportistasde-curso.component.ts": {
+    "mtime": 1790099386.9849012,
+    "seen": 1790099418.0557957,
+    "ast_hash": "8cc181d1adb2a8237c648a011581907c",
+    "semantic_hash": "8cc181d1adb2a8237c648a011581907c"
+  },
+  "src/app/viewswebsite/Components/cursos/list-grupos/list-grupos.component.spec.ts": {
+    "mtime": 1789144468.5060327,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d08d3932ba7e36fcd65fcbe1cd4035ef",
+    "semantic_hash": "d08d3932ba7e36fcd65fcbe1cd4035ef"
+  },
+  "src/app/viewswebsite/Components/cursos/list-grupos/list-grupos.component.ts": {
+    "mtime": 1790047697.9904003,
+    "seen": 1790099224.8370767,
+    "ast_hash": "474988a27a75d845459a71afeca7312e",
+    "semantic_hash": "474988a27a75d845459a71afeca7312e"
+  },
+  "src/app/viewswebsite/Components/cursos/nuevo-curso-categoria/nuevo-curso-categoria.component.ts": {
+    "mtime": 1785994986.0769548,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ff4cb979a23e789aa7ffd16dd21186cc",
+    "semantic_hash": "ff4cb979a23e789aa7ffd16dd21186cc"
+  },
+  "src/app/viewswebsite/Components/dialog/dialog.component.ts": {
+    "mtime": 1786167421.9346533,
+    "seen": 1790099224.8370767,
+    "ast_hash": "f22db82bc3ef33bd17cac6d30f6628b7",
+    "semantic_hash": "f22db82bc3ef33bd17cac6d30f6628b7"
+  },
+  "src/app/viewswebsite/Components/estadisticas/reportes/reportes.component.spec.ts": {
+    "mtime": 1787202474.7260005,
+    "seen": 1790099224.8370767,
+    "ast_hash": "cddef3f7ff873f1a86b459ca2e91f2eb",
+    "semantic_hash": "cddef3f7ff873f1a86b459ca2e91f2eb"
+  },
+  "src/app/viewswebsite/Components/estadisticas/reportes/reportes.component.ts": {
+    "mtime": 1786170629.0373697,
+    "seen": 1790099224.8370767,
+    "ast_hash": "a7f57f9292df92ea3cb2acab8d86548f",
+    "semantic_hash": "a7f57f9292df92ea3cb2acab8d86548f"
+  },
+  "src/app/viewswebsite/Components/usuarios/form-alerta/form-alerta.component.ts": {
+    "mtime": 1776404796.3443706,
+    "seen": 1790099224.8370767,
+    "ast_hash": "4dd9f3d3c8016faa12f5f3baac187f8a",
+    "semantic_hash": "4dd9f3d3c8016faa12f5f3baac187f8a"
+  },
+  "src/app/viewswebsite/Components/usuarios/form-inscripciones/form-inscripciones.component.spec.ts": {
+    "mtime": 1789676079.4243233,
+    "seen": 1790099224.8370767,
+    "ast_hash": "43d93a1f12aa964e1496ea6b05166b4d",
+    "semantic_hash": "43d93a1f12aa964e1496ea6b05166b4d"
+  },
+  "src/app/viewswebsite/Components/usuarios/form-inscripciones/form-inscripciones.component.ts": {
+    "mtime": 1789676018.3024025,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ef60b6b014a90af3eba2b8dc787f247b",
+    "semantic_hash": "ef60b6b014a90af3eba2b8dc787f247b"
+  },
+  "src/app/viewswebsite/Components/usuarios/informacion-estudiante/informacion-estudiante.component.ts": {
+    "mtime": 1776404796.349484,
+    "seen": 1790099224.8370767,
+    "ast_hash": "4bdd53a398f5f6fe8e18b46a0b6cf3b9",
+    "semantic_hash": "4bdd53a398f5f6fe8e18b46a0b6cf3b9"
+  },
+  "src/app/viewswebsite/Components/usuarios/informacion-instructor/informacion-instructor.component.ts": {
+    "mtime": 1776404796.3529224,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d430b66756ae8f7f74677c0ec6778c16",
+    "semantic_hash": "d430b66756ae8f7f74677c0ec6778c16"
+  },
+  "src/app/viewswebsite/Components/usuarios/lista-instructores/lista-instructores.component.ts": {
+    "mtime": 1785992339.9817722,
+    "seen": 1790099224.8370767,
+    "ast_hash": "824af7fecb4fa9bf48400d9f7188fdbe",
+    "semantic_hash": "824af7fecb4fa9bf48400d9f7188fdbe"
+  },
+  "src/app/viewswebsite/Components/usuarios/ver-notificaciones/ver-notificaciones.component.ts": {
+    "mtime": 1776404796.3594923,
+    "seen": 1790099224.8370767,
+    "ast_hash": "8bbe6444f2db153b367acb63a8aff6bf",
+    "semantic_hash": "8bbe6444f2db153b367acb63a8aff6bf"
+  },
+  "src/app/viewswebsite/pages/completar-perfil/completar-perfil.component.spec.ts": {
+    "mtime": 1787861358.9185572,
+    "seen": 1790099224.8370767,
+    "ast_hash": "1268f4871cd061513fbd67759f553c4b",
+    "semantic_hash": "1268f4871cd061513fbd67759f553c4b"
+  },
+  "src/app/viewswebsite/pages/completar-perfil/completar-perfil.component.ts": {
+    "mtime": 1787636039.7395895,
+    "seen": 1790099224.8370767,
+    "ast_hash": "54cdd80554860cb5d2a9ec421d96b41f",
+    "semantic_hash": "54cdd80554860cb5d2a9ec421d96b41f"
+  },
+  "src/app/viewswebsite/pages/header/header.component.spec.ts": {
+    "mtime": 1789144185.3926618,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b300e150a280e59aea4d7dcae4320a24",
+    "semantic_hash": "b300e150a280e59aea4d7dcae4320a24"
+  },
+  "src/app/viewswebsite/pages/header/header.component.ts": {
+    "mtime": 1789075160.8298671,
+    "seen": 1790099224.8370767,
+    "ast_hash": "163edd895c4364a493a8a9b6eb1c2dd2",
+    "semantic_hash": "163edd895c4364a493a8a9b6eb1c2dd2"
+  },
+  "src/app/viewswebsite/pages/home/home.component.spec.ts": {
+    "mtime": 1789071903.8167045,
+    "seen": 1790099224.8370767,
+    "ast_hash": "5e941bfdc7843b9a54490ecf0a66518a",
+    "semantic_hash": "5e941bfdc7843b9a54490ecf0a66518a"
+  },
+  "src/app/viewswebsite/pages/home/home.component.ts": {
+    "mtime": 1788989617.6261637,
+    "seen": 1790099224.8370767,
+    "ast_hash": "6e4689033effa5dafab0d2dab6f4c6d5",
+    "semantic_hash": "6e4689033effa5dafab0d2dab6f4c6d5"
+  },
+  "src/app/viewswebsite/pages/login/login.component.ts": {
+    "mtime": 1776404796.3676548,
+    "seen": 1790099224.8370767,
+    "ast_hash": "82d74130a2f360a80d9fee6c36e713dd",
+    "semantic_hash": "82d74130a2f360a80d9fee6c36e713dd"
+  },
+  "src/app/viewswebsite/pages/sidenav/sidenav.component.spec.ts": {
+    "mtime": 1789052312.6177156,
+    "seen": 1790099224.8370767,
+    "ast_hash": "975bd1d1704b7f21bfed9a631ca7b410",
+    "semantic_hash": "975bd1d1704b7f21bfed9a631ca7b410"
+  },
+  "src/app/viewswebsite/pages/sidenav/sidenav.component.ts": {
+    "mtime": 1787626454.0389311,
+    "seen": 1790099224.8370767,
+    "ast_hash": "df8af4c421b7a76b876b812d47195947",
+    "semantic_hash": "df8af4c421b7a76b876b812d47195947"
+  },
+  "src/main.ts": {
+    "mtime": 1776404796.3826149,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b31f899f737988d19f7481f69eb2651b",
+    "semantic_hash": "b31f899f737988d19f7481f69eb2651b"
+  },
+  "tsconfig.app.json": {
+    "mtime": 1776404796.3845656,
+    "seen": 1790099224.8370767,
+    "ast_hash": "fee250d2fee37a9598c61876ccae0648",
+    "semantic_hash": "fee250d2fee37a9598c61876ccae0648"
+  },
+  "tsconfig.json": {
+    "mtime": 1776404796.3845656,
+    "seen": 1790099224.8370767,
+    "ast_hash": "78e52384330154a510fce3747aebfbc8",
+    "semantic_hash": "78e52384330154a510fce3747aebfbc8"
+  },
+  "tsconfig.spec.json": {
+    "mtime": 1787200540.4714255,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b7d323263ce129bc8805819a8bbd0e2a",
+    "semantic_hash": "b7d323263ce129bc8805819a8bbd0e2a"
+  },
+  ".github/workflows/angular-ci.yml": {
+    "mtime": 1787258570.7372847,
+    "seen": 1790099224.8370767,
+    "ast_hash": "25242154f10654dc54e71b594e88ac9e",
+    "semantic_hash": "25242154f10654dc54e71b594e88ac9e"
+  },
+  "AGENTS.md": {
+    "mtime": 1783571929.9665816,
+    "seen": 1790099224.8370767,
+    "ast_hash": "5340e3d93f9dda815b6d996d75642ad4",
+    "semantic_hash": "5340e3d93f9dda815b6d996d75642ad4"
+  },
+  "README.md": {
+    "mtime": 1776404796.2445743,
+    "seen": 1790099224.8370767,
+    "ast_hash": "fbf3d20507636b0818d8795ec4154683",
+    "semantic_hash": "fbf3d20507636b0818d8795ec4154683"
+  },
+  "prueba.md": {
+    "mtime": 1787207576.8179386,
+    "seen": 1790099224.8370767,
+    "ast_hash": "27cc91d7b9902382535532f21387d1bd",
+    "semantic_hash": "27cc91d7b9902382535532f21387d1bd"
+  },
+  "reporte_investigacion_pruebas.md": {
+    "mtime": 1787204096.852648,
+    "seen": 1790099224.8370767,
+    "ast_hash": "30bd1cc05644d787c34d69876be90b1e",
+    "semantic_hash": "30bd1cc05644d787c34d69876be90b1e"
+  },
+  "src/app/app.component.html": {
+    "mtime": 1776404796.262566,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d88d7de6c85fc92b9845f478317f42f3",
+    "semantic_hash": "d88d7de6c85fc92b9845f478317f42f3"
+  },
+  "src/app/viewswebsite/Components/cursos/config-tipo-curso/config-tipo-curso.component.html": {
+    "mtime": 1776404796.2756395,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "src/app/viewswebsite/Components/cursos/cursos-deportivos/cursos-deportivos.component.html": {
+    "mtime": 1789071885.7405317,
+    "seen": 1790099224.8370767,
+    "ast_hash": "77b4380d19d0d0dea9c852fec42dda87",
+    "semantic_hash": "77b4380d19d0d0dea9c852fec42dda87"
+  },
+  "src/app/viewswebsite/Components/cursos/form-curso-deportivo/form-curso-deportivi.component.html": {
+    "mtime": 1786583056.108116,
+    "seen": 1790099224.8370767,
+    "ast_hash": "3f6c85c95cdf593c5c087144aaeace16",
+    "semantic_hash": "3f6c85c95cdf593c5c087144aaeace16"
+  },
+  "src/app/viewswebsite/Components/cursos/form-grupos/form-grupos.component.html": {
+    "mtime": 1776404796.2840238,
+    "seen": 1790099224.8370767,
+    "ast_hash": "2990dc4844f6d5bfa7d529271044b5c7",
+    "semantic_hash": "2990dc4844f6d5bfa7d529271044b5c7"
+  },
+  "src/app/viewswebsite/Components/cursos/form-horario/form-horario.component.html": {
+    "mtime": 1785562935.3153174,
+    "seen": 1790099224.8370767,
+    "ast_hash": "13472997e1cd22f3512d227198a7179f",
+    "semantic_hash": "13472997e1cd22f3512d227198a7179f"
+  },
+  "src/app/viewswebsite/Components/cursos/gestion-inscripciones/gestion-inscripciones.component.html": {
+    "mtime": 1776404796.2870295,
+    "seen": 1790099224.8370767,
+    "ast_hash": "de2b8d3a3f495c0fa65ebf4139e3cf2a",
+    "semantic_hash": "de2b8d3a3f495c0fa65ebf4139e3cf2a"
+  },
+  "src/app/viewswebsite/Components/cursos/informacion-curso/informacion-curso.component.html": {
+    "mtime": 1790046155.9452398,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b9d22f4a1c687610cd545b9f0380e622",
+    "semantic_hash": "b9d22f4a1c687610cd545b9f0380e622"
+  },
+  "src/app/viewswebsite/Components/cursos/inscripcion-grupo/inscripcion-grupo.component.html": {
+    "mtime": 1790047873.026408,
+    "seen": 1790099224.8370767,
+    "ast_hash": "8130db8caa31d9b7272db92360182e80",
+    "semantic_hash": "8130db8caa31d9b7272db92360182e80"
+  },
+  "src/app/viewswebsite/Components/cursos/list-deportistasde-curso/list-deportistasde-curso.component.html": {
+    "mtime": 1790099397.2668025,
+    "seen": 1790099418.0634627,
+    "ast_hash": "a892df74164365bd95e5bf9b93fdc0d3",
+    "semantic_hash": "a892df74164365bd95e5bf9b93fdc0d3"
+  },
+  "src/app/viewswebsite/Components/cursos/list-grupos/list-grupos.component.html": {
+    "mtime": 1790047710.826543,
+    "seen": 1790099224.8370767,
+    "ast_hash": "fc93c72f2375dcae0c9265caf771e9f6",
+    "semantic_hash": "fc93c72f2375dcae0c9265caf771e9f6"
+  },
+  "src/app/viewswebsite/Components/cursos/nuevo-curso-categoria/nuevo-curso-categoria.component.html": {
+    "mtime": 1776404796.3331656,
+    "seen": 1790099224.8370767,
+    "ast_hash": "c1d39910f91f011075a70a01dbe9955e",
+    "semantic_hash": "c1d39910f91f011075a70a01dbe9955e"
+  },
+  "src/app/viewswebsite/Components/dialog/dialog.component.html": {
+    "mtime": 1776404796.3361914,
+    "seen": 1790099224.8370767,
+    "ast_hash": "c161d26a227acf3982a9ac58dd865c6d",
+    "semantic_hash": "c161d26a227acf3982a9ac58dd865c6d"
+  },
+  "src/app/viewswebsite/Components/estadisticas/reportes/reportes.component.html": {
+    "mtime": 1786170633.5852976,
+    "seen": 1790099224.8370767,
+    "ast_hash": "ac9eb4abe7cf775669af6fbb8c25921b",
+    "semantic_hash": "ac9eb4abe7cf775669af6fbb8c25921b"
+  },
+  "src/app/viewswebsite/Components/usuarios/form-alerta/form-alerta.component.html": {
+    "mtime": 1776404796.3433714,
+    "seen": 1790099224.8370767,
+    "ast_hash": "5a3135fc15aba49de38a2c9f36eb6d33",
+    "semantic_hash": "5a3135fc15aba49de38a2c9f36eb6d33"
+  },
+  "src/app/viewswebsite/Components/usuarios/form-inscripciones/form-inscripciones.component.html": {
+    "mtime": 1789676035.5437498,
+    "seen": 1790099224.8370767,
+    "ast_hash": "9fc8ab9a9a255dd84106e1a356b3ba9e",
+    "semantic_hash": "9fc8ab9a9a255dd84106e1a356b3ba9e"
+  },
+  "src/app/viewswebsite/Components/usuarios/ver-notificaciones/ver-notificaciones.component.html": {
+    "mtime": 1776404796.3574774,
+    "seen": 1790099224.8370767,
+    "ast_hash": "bc499210588323e4d6693c058df7dbb5",
+    "semantic_hash": "bc499210588323e4d6693c058df7dbb5"
+  },
+  "src/app/viewswebsite/pages/login/login.component.html": {
+    "mtime": 1776404796.3666205,
+    "seen": 1790099224.8370767,
+    "ast_hash": "5c09b875c939cca8b95b24e43ada5cef",
+    "semantic_hash": "5c09b875c939cca8b95b24e43ada5cef"
+  },
+  "src/app/viewswebsite/pages/sidenav/sidenav.component.html": {
+    "mtime": 1789071915.4873295,
+    "seen": 1790099224.8370767,
+    "ast_hash": "1eb85977dd745ff5c5afc3fe99a6094b",
+    "semantic_hash": "1eb85977dd745ff5c5afc3fe99a6094b"
+  },
+  "src/index.html": {
+    "mtime": 1776404796.3826149,
+    "seen": 1790099224.8370767,
+    "ast_hash": "6cde8817cf9e4e2b8174b0863db2e6f4",
+    "semantic_hash": "6cde8817cf9e4e2b8174b0863db2e6f4"
+  },
+  "src/assets/imagesSystem/Alert.gif": {
+    "mtime": 1776404796.3732767,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d15286c38842c58dfa162f73e41f3fc5",
+    "semantic_hash": "d15286c38842c58dfa162f73e41f3fc5"
+  },
+  "src/assets/imagesSystem/Logo-Universidad-del-Cauca-horizontal-B.png": {
+    "mtime": 1776404796.3752768,
+    "seen": 1790099224.8370767,
+    "ast_hash": "41565a635c29a543e9c3b38b476b34b5",
+    "semantic_hash": "41565a635c29a543e9c3b38b476b34b5"
+  },
+  "src/assets/imagesSystem/Logo-Universidad-del-Cauca-vertical.png": {
+    "mtime": 1776404796.3773458,
+    "seen": 1790099224.8370767,
+    "ast_hash": "39b0c43081bbf7796980872783f18662",
+    "semantic_hash": "39b0c43081bbf7796980872783f18662"
+  },
+  "src/assets/imagesSystem/Logo_Unicauca2.png": {
+    "mtime": 1776404796.3773458,
+    "seen": 1790099224.8370767,
+    "ast_hash": "bcdad627588217516e8f67a4e435290a",
+    "semantic_hash": "bcdad627588217516e8f67a4e435290a"
+  },
+  "src/assets/imagesSystem/Silueta.jpeg": {
+    "mtime": 1776404796.378393,
+    "seen": 1790099224.8370767,
+    "ast_hash": "3eb450b760daaf688d1111d7186a4c53",
+    "semantic_hash": "3eb450b760daaf688d1111d7186a4c53"
+  },
+  "src/assets/imagesSystem/catDeportes.jpg": {
+    "mtime": 1776404796.3793988,
+    "seen": 1790099224.8370767,
+    "ast_hash": "0765252d0a2c4d37457576d415270121",
+    "semantic_hash": "0765252d0a2c4d37457576d415270121"
+  },
+  "src/assets/imagesSystem/deporte.jpg": {
+    "mtime": 1776404796.3793988,
+    "seen": 1790099224.8370767,
+    "ast_hash": "316ddc11928cbc0e2b3fdb2f984833fd",
+    "semantic_hash": "316ddc11928cbc0e2b3fdb2f984833fd"
+  },
+  "src/assets/imagesSystem/deportes.jpg": {
+    "mtime": 1776404796.380598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "b3a88e7a953c32471bd66f7703c44b46",
+    "semantic_hash": "b3a88e7a953c32471bd66f7703c44b46"
+  },
+  "src/assets/imagesSystem/logo_unicauca.png": {
+    "mtime": 1776404796.380598,
+    "seen": 1790099224.8370767,
+    "ast_hash": "d11255bfc108fee509f8ea4215fbfd6f",
+    "semantic_hash": "d11255bfc108fee509f8ea4215fbfd6f"
+  },
+  "src/assets/imagesSystem/portada.jpg": {
+    "mtime": 1776404796.381596,
+    "seen": 1790099224.8370767,
+    "ast_hash": "aeb9547ad9f59a391157c9f4a4085526",
+    "semantic_hash": "aeb9547ad9f59a391157c9f4a4085526"
+  }
+}

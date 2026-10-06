@@ -10,7 +10,21 @@
       <div class="personal-info">
         <div class="info-text">
           <h3>Tu información</h3>
-          <table>
+
+          <div *ngIf="cargandoPerfil" class="cargando-wrapper" aria-live="polite">
+            <mat-spinner diameter="32"></mat-spinner>
+            <span>Cargando tus datos...</span>
+          </div>
+
+          <table *ngIf="!cargandoPerfil">
+            <tr>
+              <th scope="row">Nombre:</th>
+              <td>{{ nombreInstructor ?? 'No disponible' }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Código:</th>
+              <td>{{ codigoInstructor ?? 'No disponible' }}</td>
+            </tr>
             <tr>
               <th scope="row">Rol:</th>
               <td>{{ perfil }}</td>

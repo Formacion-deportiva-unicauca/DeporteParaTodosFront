@@ -119,7 +119,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     this.grupoService.getGrupo(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe(
       (grupoTemp) => {
         this.grupo = grupoTemp;
-        this.consultarInstructor(grupoTemp.idInstructor!);
+        this.consultarInstructor(grupoTemp.idInstructor);
         this.horarioSerive.getHorarios(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe(
           (horario) => {
             grupoTemp.horarios = horario;
@@ -148,12 +148,15 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     }
   }
 
-  consultarInstructor(id: string): void {
-    this.instructorService.getInstructor(id).subscribe(
-      (instructor) => {
-        this.grupo.nombreInstructor = instructor.nombre;
-      }
-    );
+  consultarInstructor(id: string | null | undefined): void {
+    if (id === null || id === undefined || id.trim() === '') {
+      this.grupo.nombreInstructor = null;
+      return;
+    }
+    this.instructorService.getInstructor(id).subscribe({
+      next: (instructor) => { this.grupo.nombreInstructor = instructor?.nombre ?? null; },
+      error: () => { this.grupo.nombreInstructor = null; },
+    });
   }
 
   inscribirAlumno() {

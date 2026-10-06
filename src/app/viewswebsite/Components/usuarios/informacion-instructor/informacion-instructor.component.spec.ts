@@ -39,6 +39,7 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
   beforeEach(async () => {
     perfilSubject = new BehaviorSubject<string>('Instructor');
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    sessionStorage.setItem('dpt_perfil_id', '1061700114');
 
     await TestBed.configureTestingModule({
       imports: [InformacinInstructorComponent, NoopAnimationsModule, HttpClientTestingModule],
@@ -58,10 +59,15 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
     component = fixture.componentInstance;
 
     spyOn(component['grupoService'], 'getMisGrupos').and.returnValue(of([mockGrupo]));
+    spyOn(component['instructorService'], 'getInstructor').and.returnValue(
+      of({ id: '1061700114', nombre: 'Luis Alexis Mendez Rojas', correo: 'a@b.co', imagen: 0, tipoId: 'CC', sexo: 'M', rol: 'Instructor' }),
+    );
     spyOn(component['snackBar'], 'open').and.returnValue(null as any);
 
     fixture.detectChanges();
   });
+
+  afterEach(() => sessionStorage.removeItem('dpt_perfil_id'));
 
   it('should create', () => {
     expect(component).toBeTruthy();
@@ -101,6 +107,67 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
     expect(component.cargando).toBeFalse();
   });
 
+  describe('Tu información (datos del instructor de la sesión)', () => {
+    it('getInstructor() se llama con el dpt_perfil_id de la sesión', () => {
+      expect(component['instructorService'].getInstructor).toHaveBeenCalledWith('1061700114');
+    });
+
+    it('carga el nombre completo y el código al entrar a la vista', () => {
+      expect(component.nombreInstructor).toBe('Luis Alexis Mendez Rojas');
+      expect(component.codigoInstructor).toBe('1061700114');
+      expect(component.cargandoPerfil).toBeFalse();
+    });
+
+    it('muestra nombre, código y el rol en el bloque "Tu información"', () => {
+      const texto = (fixture.nativeElement as HTMLElement).querySelector('.info-text')!.textContent!;
+      expect(texto).toContain('Luis Alexis Mendez Rojas');
+      expect(texto).toContain('1061700114');
+      expect(texto).toContain('Instructor');
+    });
+
+    it('usa el id de la sesión como código si el backend no lo devuelve', () => {
+      (component['instructorService'].getInstructor as jasmine.Spy).and.returnValue(
+        of({ id: '', nombre: 'Luis Alexis Mendez Rojas', correo: 'a@b.co', imagen: 0, tipoId: 'CC', sexo: 'M', rol: 'Instructor' }),
+      );
+      component.cargarInfoInstructor();
+      expect(component.codigoInstructor).toBe('1061700114');
+    });
+
+    it('sin dpt_perfil_id no llama al backend y muestra "No disponible"', () => {
+      sessionStorage.removeItem('dpt_perfil_id');
+      (component['instructorService'].getInstructor as jasmine.Spy).calls.reset();
+      component.cargarInfoInstructor();
+      fixture.detectChanges();
+      expect(component['instructorService'].getInstructor).not.toHaveBeenCalled();
+      expect(component.nombreInstructor).toBeNull();
+      expect(component.codigoInstructor).toBeNull();
+      const texto = (fixture.nativeElement as HTMLElement).querySelector('.info-text')!.textContent!;
+      expect(texto).toContain('No disponible');
+    });
+
+    it('getInstructor falla → snackbar con snack-error y datos vacíos', () => {
+      (component['instructorService'].getInstructor as jasmine.Spy).and.returnValue(
+        throwError(() => new Error('net')),
+      );
+      component.cargarInfoInstructor();
+      expect(component.cargandoPerfil).toBeFalse();
+      expect(component['snackBar'].open).toHaveBeenCalledWith(
+        jasmine.stringContaining('información'),
+        '',
+        jasmine.objectContaining({ panelClass: 'snack-error' }),
+      );
+    });
+
+    it('getInstructor falla → la tabla de grupos sigue funcionando', () => {
+      (component['instructorService'].getInstructor as jasmine.Spy).and.returnValue(
+        throwError(() => new Error('net')),
+      );
+      component.cargarInfoInstructor();
+      fixture.detectChanges();
+      expect(component.grupos.data.length).toBe(1);
+    });
+  });
+
   describe('helpers de formato', () => {
     it('formatGrupo(): retorna "2026-1 · Grupo A"', () => {
       expect(component.formatGrupo(mockGrupo)).toBe('2026-1 · Grupo A');
@@ -138,10 +205,12 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
 describe('InformacinInstructorComponent — rol no Instructor', () => {
   let component: InformacinInstructorComponent;
   let fixture: ComponentFixture<InformacinInstructorComponent>;
+  let getInstructorSpy: jasmine.Spy;
 
   beforeEach(async () => {
     const perfilSubject = new BehaviorSubject<string>('Coordinador');
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    sessionStorage.setItem('dpt_perfil_id', '1061700114');
 
     await TestBed.configureTestingModule({
       imports: [InformacinInstructorComponent, NoopAnimationsModule, HttpClientTestingModule],
@@ -161,13 +230,22 @@ describe('InformacinInstructorComponent — rol no Instructor', () => {
     component = fixture.componentInstance;
 
     spyOn(component['grupoService'], 'getMisGrupos').and.returnValue(of([]));
+    getInstructorSpy = spyOn(component['instructorService'], 'getInstructor').and.returnValue(
+      of({ id: '1061700114', nombre: 'Luis Alexis Mendez Rojas', correo: 'a@b.co', imagen: 0, tipoId: 'CC', sexo: 'M', rol: 'Instructor' }),
+    );
     spyOn(component['snackBar'], 'open').and.returnValue(null as any);
 
     fixture.detectChanges();
   });
 
+  afterEach(() => sessionStorage.removeItem('dpt_perfil_id'));
+
   it('getMisGrupos() NO se llama para rol Coordinador', () => {
     expect(component['grupoService'].getMisGrupos).not.toHaveBeenCalled();
+  });
+
+  it('getInstructor() NO se llama para rol Coordinador', () => {
+    expect(getInstructorSpy).not.toHaveBeenCalled();
   });
 
   it('msg-rol visible para rol Coordinador', () => {

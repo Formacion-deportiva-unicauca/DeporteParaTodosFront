@@ -112,9 +112,7 @@ export class ListGruposComponent implements OnInit {
         this.grupos = grupostemp;
 
         this.grupos.forEach((itemgrupo) => {
-          this.instructorService.getInstructor(itemgrupo.idInstructor!).subscribe(
-            (instructor) => { itemgrupo.nombreInstructor = instructor.nombre; }
-          );
+          this.cargarNombreInstructor(itemgrupo);
 
           this.horarioservice.getHorarios(categoria, nombreCurso, itemgrupo.anio!, itemgrupo.iterable!).subscribe(
             (horarios: any) => { itemgrupo.horarios = Array.isArray(horarios) ? horarios : []; }
@@ -139,6 +137,18 @@ export class ListGruposComponent implements OnInit {
       },
       (error) => console.error('Error al obtener los grupos', error)
     );
+  }
+
+  private cargarNombreInstructor(grupo: GrupoDTO): void {
+    const id = grupo.idInstructor;
+    if (id === null || id === undefined || id.trim() === '') {
+      grupo.nombreInstructor = null;
+      return;
+    }
+    this.instructorService.getInstructor(id).subscribe({
+      next: (instructor) => { grupo.nombreInstructor = instructor?.nombre ?? null; },
+      error: () => { grupo.nombreInstructor = null; },
+    });
   }
 
   gestionarHorarios(item: GrupoDTO): void {

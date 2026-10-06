@@ -1,0 +1,13 @@
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\estadisticas\reportes\reportes.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\usuarios\form-alerta\form-alerta.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\usuarios\form-inscripciones\form-inscripciones.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\usuarios\informacion-estudiante\informacion-estudiante.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\usuarios\informacion-instructor\informacion-instructor.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\usuarios\lista-instructores\lista-instructores.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\Components\usuarios\ver-notificaciones\ver-notificaciones.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\pages\completar-perfil\completar-perfil.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\pages\header\header.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\pages\home\home.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\pages\login\login.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\app\viewswebsite\pages\sidenav\sidenav.component.html
+D:\ACER\Documents\Practica_Codigo_Fuente\Fronted2026\DeporteParaTodosFront\src\index.html

@@ -144,6 +144,14 @@ describe('AuthService', () => {
     expect(sessionStorage.getItem('dpt_role')).toBeNull();
   });
 
+  it('logout() elimina dpt_perfil y dpt_perfil_id de sessionStorage', () => {
+    sessionStorage.setItem('dpt_perfil', '{"id":"1","nombre":"X"}');
+    sessionStorage.setItem('dpt_perfil_id', '1');
+    service.logout();
+    expect(sessionStorage.getItem('dpt_perfil')).toBeNull();
+    expect(sessionStorage.getItem('dpt_perfil_id')).toBeNull();
+  });
+
   // ── initLogin then(): restauración de rol ────────────────────────────────
 
   it('initLogin() then(): restaura rol desde dpt_role en sessionStorage si existe', fakeAsync(() => {

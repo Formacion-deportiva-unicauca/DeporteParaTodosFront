@@ -126,3 +126,14 @@ tr.mat-header-row {
   background-color: #fff3cd;
   color: #856404;
 }
+
+.instructor-nombre {
+  display: block;
+  font-weight: 500;
+}
+
+.instructor-codigo {
+  display: block;
+  font-size: 0.75rem;
+  color: #555;
+}
