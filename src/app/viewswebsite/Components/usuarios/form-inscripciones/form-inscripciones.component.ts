@@ -161,7 +161,7 @@ export class FormInscripcionesComponent implements OnInit {
   }
 
   cancelar(): void {
-    this.router.navigate(['/cursos_deportivos']);
+    void this.router.navigate(['/cursos_deportivos']);
   }
 
   onCancel(): void {

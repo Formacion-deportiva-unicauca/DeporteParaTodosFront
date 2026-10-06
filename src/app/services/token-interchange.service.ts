@@ -43,7 +43,7 @@ export class TokenInterchangeService {
           // Usuario autenticado con Google pero sin rol registrado en el sistema.
           // SCRUM-159: redirige a CompletarPerfilComponent donde elige rol
           // y completa sus datos identificativos.
-          this.router.navigate(['/completar-perfil']);
+          void this.router.navigate(['/completar-perfil']);
           return EMPTY;
         }
         return throwError(() => err);

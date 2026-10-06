@@ -198,6 +198,6 @@ export class InscripcionGrupoComponent implements OnInit {
   }
 
   volver(): void {
-    this.router.navigate(['/list-grupos', this.categoria, this.curso]);
+    void this.router.navigate(['/list-grupos', this.categoria, this.curso]);
   }
 }

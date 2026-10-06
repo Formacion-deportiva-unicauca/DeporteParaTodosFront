@@ -64,7 +64,7 @@ export class SidenavComponent implements OnInit {
 
   cerrarSesion(): void {
     this.authService.logout();
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
 

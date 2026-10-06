@@ -47,18 +47,20 @@ export class AuthService {
       }
     });
 
-    this.oauthService.loadDiscoveryDocumentAndTryLogin().then(() => {
-      const claims: any = this.oauthService.getIdentityClaims();
-      if (claims) {
-        console.log('Usuario autenticado:', claims);
-      } else {
-        console.log('No hay usuario autenticado');
-      }
-      const role = sessionStorage.getItem('dpt_role');
-      if (role) {
-        this.perfilService.setPerfil(role);
-      }
-    });
+    this.oauthService.loadDiscoveryDocumentAndTryLogin()
+      .then(() => {
+        const claims: any = this.oauthService.getIdentityClaims();
+        if (claims) {
+          console.log('Usuario autenticado:', claims);
+        } else {
+          console.log('No hay usuario autenticado');
+        }
+        const role = sessionStorage.getItem('dpt_role');
+        if (role) {
+          this.perfilService.setPerfil(role);
+        }
+      })
+      .catch(err => console.error('Error al iniciar la sesión de OAuth:', err));
   }
 
   login() {
@@ -66,7 +68,7 @@ export class AuthService {
   }
 
   logout() {
-    this.oauthService.logOut();
+    void this.oauthService.logOut();
     sessionStorage.removeItem('dpt_token');
     sessionStorage.removeItem('dpt_role');
     sessionStorage.removeItem('dpt_perfil_id');

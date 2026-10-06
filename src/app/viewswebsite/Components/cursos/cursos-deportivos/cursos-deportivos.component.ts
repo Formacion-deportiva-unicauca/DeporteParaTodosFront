@@ -131,7 +131,7 @@ export class CursosDeportivosComponent implements OnInit {
   }
 
   gruposCurso(categoria: string, curso: string) {
-    this.router.navigate(['/list-grupos', categoria, curso]);
+    void this.router.navigate(['/list-grupos', categoria, curso]);
   }
 
   inscribirseAcurso(): void {

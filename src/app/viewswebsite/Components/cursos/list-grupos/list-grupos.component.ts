@@ -219,9 +219,9 @@ export class ListGruposComponent implements OnInit {
 
   alumnosGrupo(categoria: string, curso: string, anio: number, iterable: number): void {
     if (this.perfil === 'Alumno') {
-      this.router.navigate(['/inscripcion-grupo', categoria, curso, anio, iterable]);
+      void this.router.navigate(['/inscripcion-grupo', categoria, curso, anio, iterable]);
     } else {
-      this.router.navigate(['/listaDeportistasCurso', categoria, curso, anio, iterable]);
+      void this.router.navigate(['/listaDeportistasCurso', categoria, curso, anio, iterable]);
     }
   }
 }

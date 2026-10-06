@@ -37,7 +37,7 @@ export class ConfigTipoCursoComponent {
     });
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.confirmado) {
-        this.router.navigate(['/home']);
+        void this.router.navigate(['/home']);
       } else if (result?.errorStatus !== undefined) {
         const status = result.errorStatus;
         if (status === 409) {

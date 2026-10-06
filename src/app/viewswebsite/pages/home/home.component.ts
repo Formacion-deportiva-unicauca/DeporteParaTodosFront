@@ -116,11 +116,11 @@ export class HomeComponent {
   }
 
   configurarTipoCurso() {
-    this.router.navigate(['/configuracionCatCurso']);
+    void this.router.navigate(['/configuracionCatCurso']);
   }
 
   abrirCursosDeportivos(identificador: string): void {
-    this.router.navigate(['/cursos_deportivos', identificador]);
+    void this.router.navigate(['/cursos_deportivos', identificador]);
   }
 
   onUpdate(titulo: string): void {

@@ -69,7 +69,7 @@ export class CompletarPerfilComponent implements OnInit {
           duration: 4000,
           panelClass: ['snack-success'],
         });
-        this.router.navigate(['/home']);
+        void this.router.navigate(['/home']);
       },
       error: err => {
         console.error('Error al completar perfil:', err);
@@ -82,7 +82,7 @@ export class CompletarPerfilComponent implements OnInit {
   }
 
   cancelar(): void {
-    this.oauthService.logOut();
-    this.router.navigate(['/login']);
+    void this.oauthService.logOut();
+    void this.router.navigate(['/login']);
   }
 }

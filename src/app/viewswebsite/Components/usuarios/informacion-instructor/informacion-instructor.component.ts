@@ -117,6 +117,6 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
   }
 
   verDeportistas(g: MiGrupoInstructorDTO): void {
-    this.router.navigate(['/listaDeportistasCurso', g.categoria, g.curso, g.anio, g.iterable]);
+    void this.router.navigate(['/listaDeportistasCurso', g.categoria, g.curso, g.anio, g.iterable]);
   }
 }
