@@ -158,6 +158,17 @@ describe('InscripcionGrupoComponent', () => {
     );
   });
 
+  it('inscribirse(): error 422 con mensaje del backend → snackbar con ese mensaje', () => {
+    sessionStorage.setItem('dpt_perfil_id', '1');
+    inscripcionSpy.postInscripcion.and.returnValue(
+      throwError(() => ({ status: 422, error: { mensaje: 'Las inscripciones para el curso X estan cerradas' } }))
+    );
+    component.inscribirse();
+    expect(snackOpen).toHaveBeenCalledWith(
+      'Las inscripciones para el curso X estan cerradas', 'Cerrar', jasmine.any(Object)
+    );
+  });
+
   it('inscribirse(): error 409 sin cuerpo de error → snackbar genérico de error', () => {
     sessionStorage.setItem('dpt_perfil_id', '12345');
     inscripcionSpy.postInscripcion.and.returnValue(throwError(() => ({ status: 409 })));

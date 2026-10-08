@@ -174,6 +174,12 @@ export class ListGruposComponent implements OnInit {
     const dialogRef = this.dialog.open(FormGruposComponent, {
       data: { categoria: this.categoria, curso: this.titulo, anio: anio, iterable }
     });
+
+    dialogRef.afterClosed().subscribe((resultado) => {
+      if (resultado) {
+        this.loadGrupos(this.categoria, this.titulo);
+      }
+    });
   }
   onDelete(item: GrupoDTO): void {
     const dialogRef = this.dialog.open(DialogComponent, {

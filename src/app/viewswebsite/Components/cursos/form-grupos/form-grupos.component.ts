@@ -1,5 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { Subscription } from 'rxjs';
+import { CommonModule } from '@angular/common';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatCardModule } from '@angular/material/card';
@@ -10,11 +12,13 @@ import { GrupoService } from 'src/app/services/grupo.service';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
 import { ImagenService } from 'src/app/services/imagen.service';
 import { MatSelectModule } from '@angular/material/select';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatButtonModule } from '@angular/material/button';
+import { MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
 import { InstructorServisce } from 'src/app/services/instructor.service';
+
+type CampoFecha = 'fechaCreacion' | 'fechaFinalizacion' | 'fechaInscripcionApertura' | 'fechaIncripcionCierre';
 
 @Component({
   selector: 'app-form-grupos',
@@ -28,21 +32,16 @@ import { InstructorServisce } from 'src/app/services/instructor.service';
     MatIconModule,
     MatDialogModule,
     MatSelectModule,
-    MatNativeDateModule,
-    MatDatepickerModule,
     MatButtonModule,
-
-  ],
-
-  providers: [
     MatDatepickerModule,
     MatNativeDateModule,
-    DatePipe,
   ],
+  // dd/MM/yyyy en pantalla; el valor que viaja al backend sigue siendo texto 'yyyy-MM-dd'
+  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-CO' }],
   templateUrl: './form-grupos.component.html',
   styleUrls: ['./form-grupos.component.css'],
 })
-export class FormGruposComponent implements OnInit {
+export class FormGruposComponent implements OnInit, OnDestroy {
   imagenSeleccionada: File | null = null;
   imagenPreview: string | null = null;
   isEditing: boolean = false;
@@ -52,9 +51,17 @@ export class FormGruposComponent implements OnInit {
   // BUG 1 FIX: any[] porque el backend devuelve estructura plana {id, nombre, ...}
   // distinta a lo que define InstructorDTO { inst_codigo, perfil: {...} }
   instructores: any[] = [];
-  // BUG 2 FIX: variables Date separadas para los mat-datepicker (GrupoDTO usa string | null)
-  fechaCreacionDate: Date | null = new Date();
-  fechaFinalizacionDate: Date | null = null;
+  errorServidor: string | null = null;
+  readonly mensajeFechaNoBorrable = 'Esta fecha no se puede borrar; cámbiala por otra';
+  // Valores con los que se abrió el diálogo en edición (referencia para no permitir vaciarlas)
+  private fechasOriginales: Partial<Record<CampoFecha, string>> = {};
+  // Modelo Date (hora local) de cada calendario; la fuente de verdad sigue siendo el texto de `grupo`
+  fechasDate: Record<CampoFecha, Date | null> = {
+    fechaCreacion: null, fechaFinalizacion: null, fechaInscripcionApertura: null, fechaIncripcionCierre: null,
+  };
+  // Calendario a pantalla completa en móviles
+  touchUi = false;
+  private bpSub?: Subscription;
 
   grupo: GrupoDTO = {
     categoria: '',
@@ -76,20 +83,20 @@ export class FormGruposComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: { categoria: string, curso: string, anio: number, iterable: number },
     private grupoService: GrupoService,
     private imagenService: ImagenService,
-    private datepipe: DatePipe,
     private dialogRef: MatDialogRef<FormGruposComponent>,
     private instructorService: InstructorServisce,
+    private breakpointObserver: BreakpointObserver,
   ) { }
-
-  //Variables globales
-  fechaActual: Date = new Date();
 
   ngOnInit(): void {
     this.categoriaGrupo = this.data.categoria;
     this.cursoGrupo = this.data.curso;
-    // BUG 2 FIX: inicializar la variable Date (no el string del DTO)
-    this.fechaCreacionDate = new Date();
-
+    this.bpSub?.unsubscribe();
+    this.bpSub = this.breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small])
+      .subscribe((estado) => { this.touchUi = estado.matches; });
+    this.asignarFecha('fechaCreacion', this.hoyLocal());
+    this.isEditing = false;
+    this.fechasOriginales = {};
     if (this.data.anio != 0) {
       this.isEditing = true;
       this.loadGrupo(this.categoriaGrupo, this.cursoGrupo, this.data.anio, this.data.iterable);
@@ -105,7 +112,20 @@ export class FormGruposComponent implements OnInit {
   private loadGrupo(categoriaGrupo: string, cursoGrupo: string, anio: number, iterable: number): void {
     this.grupoService.getGrupo(categoriaGrupo, cursoGrupo, anio, iterable).subscribe(
       (grupotemp) => {
-        this.grupo = grupotemp;
+        this.grupo = {
+          ...grupotemp,
+          fechaCreacion: this.soloFecha(grupotemp.fechaCreacion),
+          fechaFinalizacion: this.soloFecha(grupotemp.fechaFinalizacion),
+          fechaInscripcionApertura: this.soloFecha(grupotemp.fechaInscripcionApertura),
+          fechaIncripcionCierre: this.soloFecha(grupotemp.fechaIncripcionCierre),
+        };
+        this.sincronizarFechasDate();
+        this.fechasOriginales = {
+          fechaCreacion: this.grupo.fechaCreacion!,
+          fechaFinalizacion: this.grupo.fechaFinalizacion!,
+          fechaInscripcionApertura: this.grupo.fechaInscripcionApertura!,
+          fechaIncripcionCierre: this.grupo.fechaIncripcionCierre!,
+        };
         if (this.grupo.imagenGrupo != null) {
           this.imagenService.getimagen(this.grupo.imagenGrupo).subscribe(
             (imagenData) => {
@@ -126,6 +146,9 @@ export class FormGruposComponent implements OnInit {
   }
 
   onSubmit(form: NgForm): void {
+    if (!this.formularioValido) {
+      return;
+    }
     if (this.isEditing) {
       this.updateGrupo();
     } else {
@@ -134,87 +157,170 @@ export class FormGruposComponent implements OnInit {
   }
 
   private crearGrupo(): void {
-    if (this.selectedFile) {
-      this.imagenService.postImagen(this.selectedFile).subscribe(
-        (imagenResponse) => {
-
-          const idImagen = imagenResponse.id;
-          // BUG 2 FIX: formatear desde la variable Date usando cast indicado por el usuario
-          const fechaFormateada = this.FormatDate(
-            this.fechaCreacionDate instanceof Date
-              ? this.fechaCreacionDate.toISOString().split('T')[0]
-              : ''
-          );
-          let fechaCierre = null;
-          if (this.fechaFinalizacionDate != null) {
-            fechaCierre = this.FormatDate(
-              this.fechaFinalizacionDate instanceof Date
-                ? this.fechaFinalizacionDate.toISOString().split('T')[0]
-                : ''
-            );
-          }
-
-          const nuevoGrupo: GrupoDTO = {
-            categoria: this.categoriaGrupo!,
-            curso: this.cursoGrupo!,
-            anio: null,
-            iterable: null,
-            imagenGrupo: idImagen,
-            idInstructor: this.grupo.idInstructor,
-            cupos: this.grupo.cupos,
-            fechaCreacion: fechaFormateada,
-            fechaFinalizacion: fechaCierre,
-            fechaInscripcionApertura: null,
-            fechaIncripcionCierre: null,
-          }
-          this.grupoService.createGrupo(nuevoGrupo).subscribe(
-            (response) => {
-              this.dialogRef.close(true);
-            },
-            (error) => {
-              console.error('Error al crear el grupo deportivo', error);
-            }
-          );
-        }
-      )
+    if (!this.selectedFile) {
+      this.errorServidor = 'Selecciona una imagen para el grupo';
+      return;
     }
+    this.imagenService.postImagen(this.selectedFile).subscribe({
+      next: (imagenResponse) => {
+        const nuevoGrupo: GrupoDTO = {
+          categoria: this.categoriaGrupo!,
+          curso: this.cursoGrupo!,
+          anio: null,
+          iterable: null,
+          imagenGrupo: imagenResponse.id,
+          idInstructor: this.grupo.idInstructor,
+          cupos: this.grupo.cupos,
+          ...this.fechasParaEnviar(),
+        };
+        this.grupoService.createGrupo(nuevoGrupo).subscribe({
+          next: () => { this.dialogRef.close(true); },
+          error: (err) => { this.mostrarError(err, 'No se pudo crear el grupo'); },
+        });
+      },
+      error: (err) => { this.mostrarError(err, 'No se pudo subir la imagen'); },
+    });
   }
 
   private updateGrupo(): void {
+    // La identidad del grupo es la ORIGINAL (la recibida al abrir el diálogo), nunca la del formulario.
+    const { categoria, curso, anio, iterable } = this.data;
     const payload: GrupoDTO = {
-      categoria: this.categoriaGrupo!,
-      curso: this.cursoGrupo!,
-      anio: this.grupo.anio,
-      iterable: this.grupo.iterable,
+      categoria,
+      curso,
+      anio,
+      iterable,
       idInstructor: this.grupo.idInstructor ?? null,
       cupos: this.grupo.cupos,
-      fechaCreacion: this.grupo.fechaCreacion,
-      fechaFinalizacion: this.grupo.fechaFinalizacion ?? null,
+      ...this.fechasParaEnviar(),
+    };
+
+    const enviar = (dto: GrupoDTO): void => {
+      this.grupoService.updateGrupo(categoria, curso, anio, iterable, dto).subscribe({
+        next: () => { this.dialogRef.close(true); },
+        error: (err) => { this.mostrarError(err, 'No se pudo actualizar el grupo'); },
+      });
     };
 
     if (this.selectedFile) {
-      this.imagenService.postImagen(this.selectedFile).subscribe(
-        (imagenResponse) => {
-          this.grupoService.updateGrupo(
-            this.categoriaGrupo!, this.cursoGrupo!,
-            this.grupo.anio!, this.grupo.iterable!,
-            { ...payload, imagenGrupo: imagenResponse.id }
-          ).subscribe(
-            () => { this.dialogRef.close(true); },
-            (error) => { console.error('Error al actualizar el grupo', error); }
-          );
-        }
-      );
+      this.imagenService.postImagen(this.selectedFile).subscribe({
+        next: (imagenResponse) => { enviar({ ...payload, imagenGrupo: imagenResponse.id }); },
+        error: (err) => { this.mostrarError(err, 'No se pudo subir la imagen'); },
+      });
     } else {
-      this.grupoService.updateGrupo(
-        this.categoriaGrupo!, this.cursoGrupo!,
-        this.grupo.anio!, this.grupo.iterable!,
-        payload
-      ).subscribe(
-        () => { this.dialogRef.close(true); },
-        (error) => { console.error('Error al actualizar el grupo', error); }
-      );
+      enviar(payload);
     }
+  }
+
+  private mostrarError(err: any, respaldo: string): void {
+    this.errorServidor = err?.error?.mensaje ?? respaldo;
+  }
+
+  /** Fechas como texto 'yyyy-MM-dd'; vacío → null. Sin Date ni toISOString (desfasan un día por zona horaria). */
+  private fechasParaEnviar(): Pick<GrupoDTO, 'fechaCreacion' | 'fechaFinalizacion' | 'fechaInscripcionApertura' | 'fechaIncripcionCierre'> {
+    return {
+      fechaCreacion: this.grupo.fechaCreacion || null,
+      fechaFinalizacion: this.grupo.fechaFinalizacion || null,
+      fechaInscripcionApertura: this.grupo.fechaInscripcionApertura || null,
+      fechaIncripcionCierre: this.grupo.fechaIncripcionCierre || null,
+    };
+  }
+
+  ngOnDestroy(): void {
+    this.bpSub?.unsubscribe();
+  }
+
+  /** Cambio desde el calendario: guarda el texto 'yyyy-MM-dd' con componentes LOCALES (sin toISOString). */
+  alElegirFecha(campo: CampoFecha, fecha: Date | null): void {
+    this.fechasDate[campo] = fecha;
+    this.grupo[campo] = fecha ? this.formatoLocal(fecha) : '';
+  }
+
+  limpiarFecha(campo: CampoFecha): void {
+    this.alElegirFecha(campo, null);
+  }
+
+  /** Solo se puede limpiar lo opcional; en edición una fecha con valor original no se puede borrar. */
+  puedeLimpiar(campo: CampoFecha): boolean {
+    return !!this.grupo[campo] && !(this.isEditing && !!this.fechasOriginales[campo]);
+  }
+
+  private asignarFecha(campo: CampoFecha, valor: string): void {
+    this.grupo[campo] = valor;
+    this.fechasDate[campo] = this.aDateLocal(valor);
+  }
+
+  private sincronizarFechasDate(): void {
+    (['fechaCreacion', 'fechaFinalizacion', 'fechaInscripcionApertura', 'fechaIncripcionCierre'] as CampoFecha[])
+      .forEach(c => { this.fechasDate[c] = this.aDateLocal(this.grupo[c]); });
+  }
+
+  /** 'yyyy-MM-dd' → Date a medianoche LOCAL (new Date('yyyy-MM-dd') sería UTC y desfasaría un día). */
+  private aDateLocal(valor: string | null | undefined): Date | null {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor ?? '');
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+  }
+
+  private formatoLocal(d: Date): string {
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }
+
+  private soloFecha(valor: string | null | undefined): string {
+    return valor ? valor.substring(0, 10) : '';
+  }
+
+  private hoyLocal(): string {
+    return this.formatoLocal(new Date());
+  }
+
+  /** Una regla solo aplica si ambas fechas tienen valor. 'yyyy-MM-dd' se compara bien como texto. */
+  private anterior(fecha?: string | null, referencia?: string | null): boolean {
+    return !!fecha && !!referencia && fecha < referencia;
+  }
+
+  get errorFinalizacion(): string | null {
+    return this.anterior(this.grupo.fechaFinalizacion, this.grupo.fechaCreacion)
+      ? 'La fecha de finalización del grupo no puede ser anterior a la fecha de inicio del grupo' : null;
+  }
+
+  get errorCierreInscripcion(): string | null {
+    return this.anterior(this.grupo.fechaIncripcionCierre, this.grupo.fechaInscripcionApertura)
+      ? 'El cierre de inscripciones no puede ser anterior a la apertura de inscripciones' : null;
+  }
+
+  /**
+   * En edición, una fecha que tenía valor al abrir no puede quedar vacía: el backend interpreta
+   * null como "conservar el valor actual" y el borrado se descartaría en silencio.
+   * TODO: levantar esta restricción cuando el backend permita quitar una fecha de forma explícita.
+   */
+  fechaVaciada(campo: CampoFecha): boolean {
+    return this.isEditing && !!this.fechasOriginales[campo] && !this.grupo[campo];
+  }
+
+  get errorCupos(): string | null {
+    const c = this.grupo.cupos;
+    return typeof c === 'number' && Number.isInteger(c) && c >= 1
+      ? null : 'Los cupos deben ser un número entero mayor o igual a 1';
+  }
+
+  /**
+   * Al crear, la apertura es obligatoria: el backend excluye del catálogo de inscripción
+   * los grupos con apertura null (NULL <= CURRENT_DATE nunca es verdadero).
+   */
+  get errorAperturaObligatoria(): string | null {
+    return !this.isEditing && !this.grupo.fechaInscripcionApertura
+      ? 'La apertura de inscripciones es obligatoria; sin ella el grupo no aparece para inscribirse' : null;
+  }
+
+  get formularioValido(): boolean {
+    return this.fechasValidas && !this.errorCupos && !this.errorAperturaObligatoria;
+  }
+
+  get fechasValidas(): boolean {
+    const campos: CampoFecha[] = ['fechaCreacion', 'fechaFinalizacion', 'fechaInscripcionApertura', 'fechaIncripcionCierre'];
+    return !this.errorFinalizacion && !this.errorCierreInscripcion && !campos.some(c => this.fechaVaciada(c));
   }
 
   onFileSelected(event: Event): void {
@@ -229,18 +335,6 @@ export class FormGruposComponent implements OnInit {
       };
       reader.readAsDataURL(this.imagenSeleccionada);
     }
-  }
-
-  private FormatDate(fecha: string): string {
-    return this.datepipe.transform(fecha, 'yyyy-MM-dd')!;
-  }
-
-  validarFechaCreacion = (fecha: Date | null): boolean => {
-    return !fecha || fecha <= this.fechaActual;
-  }
-
-  validarFechaCierre = (fecha: Date | null): boolean => {
-    return !fecha || fecha >= this.fechaActual;
   }
 
   onCancel(): void {

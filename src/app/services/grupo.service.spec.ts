@@ -135,7 +135,7 @@ describe('GrupoService', () => {
       expect(resp.cupos).toBe(30);
     });
     const req = httpMock.expectOne(
-      `${API}/grupo?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&anio=2026&iterable=1`
+      `${API}/grupo?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1`
     );
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(actualizado);
@@ -149,7 +149,7 @@ describe('GrupoService', () => {
       error: err => (errorCapturado = err),
     });
     const req = httpMock.expectOne(
-      `${API}/grupo?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&anio=2026&iterable=1`
+      `${API}/grupo?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1`
     );
     req.flush('No encontrado', { status: 404, statusText: 'Not Found' });
     expect(errorCapturado).toBeTruthy();
