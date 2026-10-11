@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
@@ -9,18 +8,18 @@ import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.com
 import { PerfilService } from 'src/app/services/perfil.service';
 import { GrupoService } from 'src/app/services/grupo.service';
 import { InstructorServisce } from 'src/app/services/instructor.service';
-import { MiGrupoInstructorDTO, MisCursosHorarioDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
-import { letraDeIterable } from 'src/app/shared/iterable-letra.util';
+import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
+import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
 
 @Component({
   selector: 'app-informacin-instructor',
   standalone: true,
   imports: [
     CommonModule,
-    MatTableModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
     SidenavComponent,
+    TablaGruposInstructorComponent,
   ],
   templateUrl: './informacion-instructor.component.html',
   styleUrls: ['./informacion-instructor.component.css'],
@@ -28,8 +27,7 @@ import { letraDeIterable } from 'src/app/shared/iterable-letra.util';
 export class InformacinInstructorComponent implements OnInit, OnDestroy {
   perfil: string = '';
   cargando = false;
-  displayedColumns: string[] = ['curso', 'categoria', 'grupo', 'horario', 'cupos', 'estadoCurso', 'inscripciones', 'acciones'];
-  grupos = new MatTableDataSource<MiGrupoInstructorDTO>([]);
+  grupos: MiGrupoInstructorDTO[] = [];
   cargandoPerfil = false;
   nombreInstructor: string | null = null;
   codigoInstructor: string | null = null;
@@ -84,7 +82,7 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
     this.cargando = true;
     this.grupoService.getMisGrupos().subscribe({
       next: (grupos) => {
-        this.grupos.data = Array.isArray(grupos) ? grupos : [];
+        this.grupos = Array.isArray(grupos) ? grupos : [];
         this.cargando = false;
       },
       error: () => {
@@ -95,25 +93,6 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
         });
       },
     });
-  }
-
-  formatGrupo(g: MiGrupoInstructorDTO): string {
-    return `${g.anio}-${g.periodo} · Grupo ${letraDeIterable(g.iterable)}`;
-  }
-
-  formatHorario(horarios: MisCursosHorarioDTO[]): string {
-    if (!horarios || horarios.length === 0) return 'Horario por definir';
-    return horarios
-      .map(h => {
-        const esc = h.escenario ? ` ${h.escenario}` : '';
-        return `${h.dia} ${h.horaInicio} - ${h.horaFin}${esc}`;
-      })
-      .join(', ');
-  }
-
-  formatCupos(g: MiGrupoInstructorDTO): string {
-    const base = g.cupos == null ? 'Sin cupos definidos' : `${g.inscritos} / ${g.cupos}`;
-    return g.enEspera > 0 ? `${base} · ${g.enEspera} en espera` : base;
   }
 
   verDeportistas(g: MiGrupoInstructorDTO): void {

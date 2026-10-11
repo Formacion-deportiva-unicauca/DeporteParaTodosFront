@@ -1,0 +1,73 @@
+  <div *ngIf="cargando" class="cargando-wrapper" aria-live="polite">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Cargando grupos...</span>
+  </div>
+
+  <p *ngIf="!cargando && grupos.length === 0" class="empty-msg">
+    {{ mensajeVacio }}
+  </p>
+
+  <div class="tabla-container" *ngIf="!cargando && grupos.length > 0">
+    <table mat-table [dataSource]="grupos" class="mat-elevation-z8"
+           aria-label="Grupos a cargo del instructor">
+
+      <ng-container matColumnDef="curso">
+        <th mat-header-cell *matHeaderCellDef scope="col">Curso</th>
+        <td mat-cell *matCellDef="let g">{{ g.curso }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="categoria">
+        <th mat-header-cell *matHeaderCellDef scope="col">Categoría</th>
+        <td mat-cell *matCellDef="let g">{{ g.categoria }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="grupo">
+        <th mat-header-cell *matHeaderCellDef scope="col">Grupo</th>
+        <td mat-cell *matCellDef="let g">{{ formatGrupo(g) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="horario">
+        <th mat-header-cell *matHeaderCellDef scope="col">Horario</th>
+        <td mat-cell *matCellDef="let g">{{ formatHorario(g.horarios) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cupos">
+        <th mat-header-cell *matHeaderCellDef scope="col">Cupos</th>
+        <td mat-cell *matCellDef="let g">{{ formatCupos(g) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="estadoCurso">
+        <th mat-header-cell *matHeaderCellDef scope="col">Estado curso</th>
+        <td mat-cell *matCellDef="let g">
+          <span class="badge"
+                [class.badge-activo]="g.estadoCurso === 'ACTIVO'"
+                [class.badge-inactivo]="g.estadoCurso === 'INACTIVO'">
+            {{ g.estadoCurso === 'ACTIVO' ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="inscripciones">
+        <th mat-header-cell *matHeaderCellDef scope="col">Inscripciones</th>
+        <td mat-cell *matCellDef="let g">
+          <span class="badge"
+                [class.badge-abiertas]="g.estadoInscripciones === 'ABIERTO'"
+                [class.badge-cerradas]="g.estadoInscripciones === 'CERRADO'">
+            {{ g.estadoInscripciones === 'ABIERTO' ? 'Abiertas' : 'Cerradas' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef scope="col">Acciones</th>
+        <td mat-cell *matCellDef="let g">
+          <button class="btn-ver" (click)="verDeportistas.emit(g)">
+            Ver deportistas
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>

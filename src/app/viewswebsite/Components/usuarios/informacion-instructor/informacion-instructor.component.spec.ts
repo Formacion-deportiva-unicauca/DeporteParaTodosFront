@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 
@@ -9,6 +10,7 @@ import { InformacinInstructorComponent } from './informacion-instructor.componen
 import { PerfilService } from 'src/app/services/perfil.service';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
 import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
+import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
 
 const mockGrupo: MiGrupoInstructorDTO = {
   categoria: 'Futbol',
@@ -75,8 +77,8 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
 
   it('getMisGrupos() se llama y llena la tabla con 1 fila', () => {
     expect(component['grupoService'].getMisGrupos).toHaveBeenCalled();
-    expect(component.grupos.data.length).toBe(1);
-    expect(component.grupos.data[0].curso).toBe('Fútbol Avanzado');
+    expect(component.grupos.length).toBe(1);
+    expect(component.grupos[0].curso).toBe('Fútbol Avanzado');
   });
 
   it('cargando pasa a false tras respuesta exitosa', () => {
@@ -87,7 +89,7 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
     (component['grupoService'].getMisGrupos as jasmine.Spy).and.returnValue(of([]));
     component.cargarGrupos();
     fixture.detectChanges();
-    expect(component.grupos.data.length).toBe(0);
+    expect(component.grupos.length).toBe(0);
     expect((fixture.nativeElement as HTMLElement).querySelector('.empty-msg')).not.toBeNull();
   });
 
@@ -164,34 +166,24 @@ describe('InformacinInstructorComponent — rol Instructor', () => {
       );
       component.cargarInfoInstructor();
       fixture.detectChanges();
-      expect(component.grupos.data.length).toBe(1);
+      expect(component.grupos.length).toBe(1);
     });
   });
 
-  describe('helpers de formato', () => {
-    it('formatGrupo(): retorna "2026-1 · Grupo A"', () => {
-      expect(component.formatGrupo(mockGrupo)).toBe('2026-1 · Grupo A');
-    });
+  it('la tabla hija recibe los grupos y el estado de carga del padre', () => {
+    const tabla = fixture.debugElement.query(By.directive(TablaGruposInstructorComponent))
+      .componentInstance as TablaGruposInstructorComponent;
+    expect(tabla.grupos).toBe(component.grupos);
+    expect(tabla.grupos.length).toBe(1);
+    expect(tabla.cargando).toBeFalse();
+  });
 
-    it('formatHorario(): lista vacía → "Horario por definir"', () => {
-      expect(component.formatHorario([])).toBe('Horario por definir');
-    });
-
-    it('formatHorario(): formatea "dia horaInicio - horaFin escenario"', () => {
-      expect(component.formatHorario(mockGrupo.horarios)).toBe('Lunes 08:00 - 10:00 Cancha A');
-    });
-
-    it('formatCupos(): cupos null → "Sin cupos definidos"', () => {
-      expect(component.formatCupos({ ...mockGrupo, cupos: null, enEspera: 0 })).toBe('Sin cupos definidos');
-    });
-
-    it('formatCupos(): cupos no null, enEspera=0 → "inscritos / cupos"', () => {
-      expect(component.formatCupos({ ...mockGrupo, enEspera: 0 })).toBe('12 / 20');
-    });
-
-    it('formatCupos(): enEspera > 0 → agrega "· N en espera"', () => {
-      expect(component.formatCupos(mockGrupo)).toBe('12 / 20 · 2 en espera');
-    });
+  it('al recibir (verDeportistas) de la tabla navega con los 4 parámetros del grupo', () => {
+    const tabla = fixture.debugElement.query(By.directive(TablaGruposInstructorComponent));
+    (tabla.componentInstance as TablaGruposInstructorComponent).verDeportistas.emit(mockGrupo);
+    expect(routerSpy.navigate).toHaveBeenCalledOnceWith(
+      ['/listaDeportistasCurso', mockGrupo.categoria, mockGrupo.curso, mockGrupo.anio, mockGrupo.iterable],
+    );
   });
 
   it('verDeportistas(): navega a /listaDeportistasCurso con los 4 params correctos', () => {
