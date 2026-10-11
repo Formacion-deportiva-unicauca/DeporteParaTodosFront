@@ -12,6 +12,7 @@ import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.com
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
+import { etiquetaInscripcionGrupo, inscripcionesAbiertasDeGrupo } from 'src/app/shared/fecha-grupo.util';
 import { GrupoService } from 'src/app/services/grupo.service';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { ImagenService } from 'src/app/services/imagen.service';
@@ -218,13 +219,29 @@ export class ListGruposComponent implements OnInit {
     return puedeInscribirseUtil(this.curso, this.categoria);
   }
 
+  etiquetaInscripcion(grupo: GrupoDTO): string | null {
+    return etiquetaInscripcionGrupo(grupo);
+  }
+
+  /** Solo el Coordinador: cómo reabrir un grupo cerrado por su fecha de cierre. */
+  pistaReabrir(grupo: GrupoDTO): string | null {
+    return this.perfil === 'Coordinador' && !inscripcionesAbiertasDeGrupo(grupo) && grupo.motivoInscripcion === 'CERRADAS'
+      ? 'Para reabrir, cambia la fecha de cierre en Actualizar' : null;
+  }
+
+  inscripcionAbierta(grupo: GrupoDTO): boolean {
+    return inscripcionesAbiertasDeGrupo(grupo);
+  }
+
   letraDeIterable(n: number | null): string {
     if (!n || n < 1) return '?';
     return String.fromCharCode(64 + n);
   }
 
-  alumnosGrupo(categoria: string, curso: string, anio: number, iterable: number): void {
+  alumnosGrupo(categoria: string, curso: string, anio: number, iterable: number, grupo?: GrupoDTO): void {
     if (this.perfil === 'Alumno') {
+      // El backend decide si el grupo admite inscripciones; el Alumno no entra a inscribirse si no.
+      if (!inscripcionesAbiertasDeGrupo(grupo)) return;
       void this.router.navigate(['/inscripcion-grupo', categoria, curso, anio, iterable]);
     } else {
       void this.router.navigate(['/listaDeportistasCurso', categoria, curso, anio, iterable]);

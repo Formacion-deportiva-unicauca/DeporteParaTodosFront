@@ -101,6 +101,98 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     );
   });
 
+  // ── Ventana de inscripción del grupo (SCRUM-185) ───────────────────────────
+
+  const grupoBase: GrupoDTO = {
+    categoria: 'Recreativo', curso: 'Natacion', anio: 2026, iterable: 1, periodo: 2, cupos: 10, fechaCreacion: '2026-01-01',
+  };
+  const cerrado: GrupoDTO = { ...grupoBase, inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS', fechaIncripcionCierre: '2026-06-14' };
+  const noAbierto: GrupoDTO = { ...grupoBase, inscripcionesAbiertas: false, motivoInscripcion: 'NO_ABIERTAS', fechaInscripcionApertura: '2026-07-01' };
+  const abierto: GrupoDTO = { ...grupoBase, inscripcionesAbiertas: true, motivoInscripcion: 'ABIERTAS' };
+  const etiqueta = (): string | null =>
+    (fixture.nativeElement as HTMLElement).querySelector('.etiqueta-inscripcion')?.textContent?.trim() ?? null;
+
+  it('etiqueta "Cerraron el dd/MM/yyyy" para CERRADAS (con la fecha de cierre)', () => {
+    component.grupos = [cerrado];
+    fixture.detectChanges();
+    expect(etiqueta()).toBe('Cerraron el 14/06/2026');
+  });
+
+  const pista = (): string | null =>
+    (fixture.nativeElement as HTMLElement).querySelector('.pista-reabrir')?.textContent?.trim() ?? null;
+
+  it('Coordinador: grupo cerrado por fecha muestra cómo reabrir', () => {
+    component.perfil = 'Coordinador';
+    component.grupos = [cerrado];
+    fixture.detectChanges();
+    expect(pista()).toBe('Para reabrir, cambia la fecha de cierre en Actualizar');
+  });
+
+  it('la pista de reabrir NO aparece para Alumno ni Instructor, ni con grupo abierto o no abierto aún', () => {
+    for (const rol of ['Alumno', 'Instructor']) {
+      component.perfil = rol;
+      component.grupos = [cerrado];
+      fixture.detectChanges();
+      expect(pista()).toBeNull();
+    }
+    component.perfil = 'Coordinador';
+    component.grupos = [abierto];
+    fixture.detectChanges();
+    expect(pista()).toBeNull();
+    component.grupos = [noAbierto];
+    fixture.detectChanges();
+    expect(pista()).toBeNull();
+  });
+
+  it('el badge del curso se distingue del grupo: "Curso: inscripciones abiertas/cerradas"', () => {
+    const badge = (): string =>
+      (fixture.nativeElement as HTMLElement).querySelector('.estado-info .badge.ms-2')?.textContent?.trim() ?? '';
+    component.curso = { ...component.curso!, estadoInscripciones: 'ABIERTO' };
+    fixture.detectChanges();
+    expect(badge()).toBe('Curso: inscripciones abiertas');
+    component.curso = { ...component.curso!, estadoInscripciones: 'CERRADO' };
+    fixture.detectChanges();
+    expect(badge()).toBe('Curso: inscripciones cerradas');
+  });
+
+  it('etiqueta "Abren el dd/MM/yyyy" para NO_ABIERTAS', () => {
+    component.grupos = [noAbierto];
+    fixture.detectChanges();
+    expect(etiqueta()).toBe('Abren el 01/07/2026');
+  });
+
+  it('ninguna etiqueta para ABIERTAS ni cuando el backend no manda el campo', () => {
+    component.grupos = [abierto];
+    fixture.detectChanges();
+    expect(etiqueta()).toBeNull();
+    component.grupos = [grupoBase];
+    fixture.detectChanges();
+    expect(etiqueta()).toBeNull();
+  });
+
+  it('Alumno NO navega a inscripcion-grupo con un grupo cerrado o no abierto', () => {
+    component.perfil = 'Alumno';
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, cerrado);
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, noAbierto);
+    expect(routerSpy.navigate).not.toHaveBeenCalled();
+  });
+
+  it('Alumno sí navega con un grupo abierto o sin el campo (compatibilidad)', () => {
+    component.perfil = 'Alumno';
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, abierto);
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, grupoBase);
+    expect(routerSpy.navigate).toHaveBeenCalledTimes(2);
+  });
+
+  it('Coordinador e Instructor siguen navegando a la lista de deportistas aunque el grupo esté cerrado', () => {
+    for (const rol of ['Coordinador', 'Instructor']) {
+      routerSpy.navigate.calls.reset();
+      component.perfil = rol;
+      component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, cerrado);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/listaDeportistasCurso', 'Recreativo', 'Natacion', 2026, 1]);
+    }
+  });
+
   it('loadGrupos: mantiene curso como null cuando getCurso falla', () => {
     (component['cursodeportivoService'].getCurso as jasmine.Spy)
       .and.returnValue(throwError(() => new Error('error')));

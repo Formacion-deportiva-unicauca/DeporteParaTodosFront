@@ -20,7 +20,7 @@
       </span>
       <span class="badge ms-2" *ngIf="cursoInfo.estadoInscripciones"
         [ngClass]="cursoInfo.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : 'bg-warning text-dark'">
-        {{ cursoInfo.estadoInscripciones === 'ABIERTO' ? 'Inscripciones abiertas' : 'Inscripciones cerradas' }}
+        {{ cursoInfo.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : 'Curso: inscripciones cerradas' }}
       </span>
     </div>
 
@@ -69,9 +69,9 @@
             <ng-template #sinHorario>Por definir</ng-template>
           </td>
         </tr>
-        <tr *ngIf="grupo!.fechaInscripcionApertura">
-          <th>Inscripciones abiertas</th>
-          <td>{{ grupo!.fechaInscripcionApertura }} – {{ grupo!.fechaIncripcionCierre }}</td>
+        <tr>
+          <th>Inscripciones</th>
+          <td id="ventana-inscripcion">{{ textoVentana }}</td>
         </tr>
       </table>
     </div>
@@ -88,13 +88,14 @@
     <div class="accion">
       <ng-container *ngIf="!yaInscrito; else inscritoTpl">
         <button class="btn-inscribirse"
-                [disabled]="inscribiendo || !puedeInscribirse()"
+                [disabled]="inscribiendo || !puedeInscribirseEnGrupo()"
                 [class.btn-espera]="disponibilidad && disponibilidad.cuposDisponibles === 0"
                 (click)="inscribirse()">
           {{ inscribiendo ? 'Procesando...'
              : (disponibilidad && disponibilidad.cuposDisponibles === 0) ? 'Unirse a lista de espera'
              : 'Inscribirme en este grupo' }}
         </button>
+        <p *ngIf="avisoGrupo" class="aviso-cerrado aviso-grupo-cerrado" role="status">{{ avisoGrupo }}</p>
         <p *ngIf="!puedeInscribirse() && cursoInfo" class="aviso-cerrado">
           {{ cursoInfo.estadoCurso !== 'ACTIVO'
              ? 'El curso no está activo actualmente.'

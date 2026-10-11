@@ -149,3 +149,10 @@ p {
 
 
 
+
+.pista-reabrir {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin: 4px 0 0;
+  text-align: center;
+}

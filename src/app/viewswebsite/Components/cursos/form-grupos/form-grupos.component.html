@@ -81,8 +81,8 @@
       </button>
       <mat-datepicker-toggle matSuffix [for]="picker_fechaInscripcionApertura" aria-label="Abrir calendario de apertura de inscripciones"></mat-datepicker-toggle>
       <mat-datepicker #picker_fechaInscripcionApertura [touchUi]="touchUi"></mat-datepicker>
+      <mat-hint>Si lo dejas vacío, las inscripciones están abiertas desde ya</mat-hint>
     </mat-form-field>
-    <p *ngIf="errorAperturaObligatoria" class="error-fecha" id="error-apertura-obligatoria" role="alert">{{ errorAperturaObligatoria }}</p>
     <p *ngIf="fechaVaciada('fechaInscripcionApertura')" class="error-fecha" id="error-vacia-fechaInscripcionApertura" role="alert">{{ mensajeFechaNoBorrable }}</p>
 
     <mat-form-field appearance="outline" class="form-field">
@@ -96,7 +96,7 @@
       </button>
       <mat-datepicker-toggle matSuffix [for]="picker_fechaIncripcionCierre" aria-label="Abrir calendario de cierre de inscripciones"></mat-datepicker-toggle>
       <mat-datepicker #picker_fechaIncripcionCierre [touchUi]="touchUi"></mat-datepicker>
-      <mat-hint>Si lo dejas vacío, las inscripciones no se cierran por fecha (el último día es inclusivo)</mat-hint>
+      <mat-hint>Si lo dejas vacío, el grupo no se cierra por fecha. El último día es inclusivo</mat-hint>
     </mat-form-field>
     <p *ngIf="fechaVaciada('fechaIncripcionCierre')" class="error-fecha" id="error-vacia-fechaIncripcionCierre" role="alert">{{ mensajeFechaNoBorrable }}</p>
     <p *ngIf="errorCierreInscripcion" class="error-fecha" id="error-cierre-inscripcion" role="alert">{{ errorCierreInscripcion }}</p>

@@ -466,35 +466,46 @@ describe('FormGruposComponent', () => {
 
   // ── Apertura obligatoria al crear / pista del cierre ───────────────────────
 
-  it('creación sin apertura: inválido, muestra el mensaje, deshabilita Guardar y no guarda', () => {
+  const hintDe = (nombre: string): string => {
+    const input = (fixture.nativeElement as HTMLElement).querySelector(`input[name="${nombre}"]`) as HTMLInputElement;
+    const ids = (input.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+    return ids.map(id => document.getElementById(id)?.textContent?.trim() ?? '').join(' ');
+  };
+
+  it('apertura: ayuda accesible (aria-describedby) "abiertas desde ya"', () => {
+    expect(hintDe('fechaInscripcionApertura')).toContain('Si lo dejas vacío, las inscripciones están abiertas desde ya');
+  });
+
+  it('cierre: ayuda accesible (aria-describedby) "no se cierra por fecha"', () => {
+    expect(hintDe('fechaIncripcionCierre')).toContain('Si lo dejas vacío, el grupo no se cierra por fecha. El último día es inclusivo');
+  });
+
+  it('creación sin apertura ya NO se bloquea (apertura null = abierto desde siempre)', () => {
     component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
     component.ngOnInit();
     component.grupo.fechaInscripcionApertura = '';
     fixture.detectChanges();
-    const el: HTMLElement = fixture.nativeElement;
-    expect(component.errorAperturaObligatoria).toContain('obligatoria');
-    expect(component.formularioValido).toBeFalse();
-    expect(el.querySelector('#error-apertura-obligatoria')).toBeTruthy();
-    expect((el.querySelector('button.aceptar') as HTMLButtonElement).disabled).toBeTrue();
+    expect(component.formularioValido).toBeTrue();
+    expect(((fixture.nativeElement as HTMLElement).querySelector('button.aceptar') as HTMLButtonElement).disabled).toBeFalse();
+  });
+
+  it('el PUT NO incluye inscripcionesAbiertas ni motivoInscripcion aunque el grupo cargado los traiga', () => {
+    component.grupo.inscripcionesAbiertas = true;
+    component.grupo.motivoInscripcion = 'ABIERTAS';
+    component['updateGrupo']();
+    const body = grupoServiceSpy.updateGrupo.calls.mostRecent().args[4] as any;
+    expect('inscripcionesAbiertas' in body).toBeFalse();
+    expect('motivoInscripcion' in body).toBeFalse();
+  });
+
+  it('el POST NO incluye inscripcionesAbiertas ni motivoInscripcion', () => {
+    imagenServiceSpy.postImagen.and.returnValue(of({ id: 3 } as any));
     component.selectedFile = new File(['x'], 'a.jpg');
-    component.onSubmit({} as NgForm);
-    expect(imagenServiceSpy.postImagen).not.toHaveBeenCalled();
-  });
-
-  it('creación con apertura: la regla obligatoria deja de aplicar', () => {
-    component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
-    component.ngOnInit();
-    component.alElegirFecha('fechaInscripcionApertura', new Date(2026, 2, 1));
-    expect(component.errorAperturaObligatoria).toBeNull();
-  });
-
-  it('edición con apertura vacía desde el inicio: no exige apertura', () => {
-    expect(component.isEditing).toBeTrue();
-    component.grupo.fechaInscripcionApertura = '';
-    expect(component.errorAperturaObligatoria).toBeNull();
-  });
-
-  it('el cierre de inscripciones muestra la pista de que vacío = sin cierre por fecha', () => {
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('no se cierran por fecha');
+    component.grupo.inscripcionesAbiertas = false;
+    component.grupo.motivoInscripcion = 'CERRADAS';
+    component['crearGrupo']();
+    const body = grupoServiceSpy.createGrupo.calls.mostRecent().args[0] as any;
+    expect('inscripcionesAbiertas' in body).toBeFalse();
+    expect('motivoInscripcion' in body).toBeFalse();
   });
 });

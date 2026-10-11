@@ -18,7 +18,7 @@
         </span>
         <span class="badge ms-2" *ngIf="curso.estadoInscripciones"
             [ngClass]="curso.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : 'bg-warning text-dark'">
-            {{ curso.estadoInscripciones === 'ABIERTO' ? 'Inscripciones abiertas' : 'Inscripciones cerradas' }}
+            {{ curso.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : 'Curso: inscripciones cerradas' }}
         </span>
     </div>
 
@@ -29,11 +29,11 @@
                 <mat-card class="mycard shadow fixed-card">
 
                     <div class="img-container"
-                         [class.img-no-click]="perfil === 'Alumno' && !puedeInscribirse()"
+                         [class.img-no-click]="perfil === 'Alumno' && (!puedeInscribirse() || !inscripcionAbierta(item))"
                          role="button"
                          tabindex="0"
-                         (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!)"
-                         (keydown.enter)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!)">
+                         (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)"
+                         (keydown.enter)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
                         <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
                             [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" mat-card-image
                             alt="Imagen de grupo" />
@@ -87,6 +87,11 @@
                             </ng-template>
                         </div>
 
+                        <div class="disponibilidad-badges" *ngIf="etiquetaInscripcion(item) as etiqueta">
+                            <span class="badge bg-warning text-dark etiqueta-inscripcion">{{ etiqueta }}</span>
+                        </div>
+                        <p class="pista-reabrir" *ngIf="pistaReabrir(item) as pista">{{ pista }}</p>
+
                         <div class="disponibilidad-badges" *ngIf="disponibilidad[dispKey(item.anio, item.iterable)] as disp">
                             <span class="badge"
                                 [ngClass]="disp.cuposDisponibles > 0 ? 'bg-success' : 'bg-warning text-dark'">
@@ -100,7 +105,8 @@
                         <div class="d-flex justify-content-center">
                             <button class="btnInscripcion"
                                 *ngIf="perfil === 'Alumno'"
-                                (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!)">
+                                [disabled]="!inscripcionAbierta(item)"
+                                (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
                                 Inscribirme
                             </button>
                         </div>

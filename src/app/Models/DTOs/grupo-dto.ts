@@ -16,4 +16,7 @@ export interface GrupoDTO {
   imagenBase64?: string | null;
   tipoArchivo?: string | null;
   horarios?: HorarioDTO[];
+  // Solo de SALIDA (calculados por el backend); nunca se envían en POST/PUT /grupo
+  inscripcionesAbiertas?: boolean;
+  motivoInscripcion?: 'ABIERTAS' | 'NO_ABIERTAS' | 'CERRADAS';
 }

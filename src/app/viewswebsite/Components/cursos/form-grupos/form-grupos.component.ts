@@ -305,17 +305,8 @@ export class FormGruposComponent implements OnInit, OnDestroy {
       ? null : 'Los cupos deben ser un número entero mayor o igual a 1';
   }
 
-  /**
-   * Al crear, la apertura es obligatoria: el backend excluye del catálogo de inscripción
-   * los grupos con apertura null (NULL <= CURRENT_DATE nunca es verdadero).
-   */
-  get errorAperturaObligatoria(): string | null {
-    return !this.isEditing && !this.grupo.fechaInscripcionApertura
-      ? 'La apertura de inscripciones es obligatoria; sin ella el grupo no aparece para inscribirse' : null;
-  }
-
   get formularioValido(): boolean {
-    return this.fechasValidas && !this.errorCupos && !this.errorAperturaObligatoria;
+    return this.fechasValidas && !this.errorCupos;
   }
 
   get fechasValidas(): boolean {

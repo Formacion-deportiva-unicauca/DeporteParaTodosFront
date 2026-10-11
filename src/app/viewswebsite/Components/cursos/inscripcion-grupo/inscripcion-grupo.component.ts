@@ -15,6 +15,7 @@ import { InscripcionDTO } from 'src/app/Models/DTOs/inscripcion-dto';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
 import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-inscribirse';
+import { avisoInscripcionGrupo, inscripcionesAbiertasDeGrupo, textoVentanaInscripcion } from 'src/app/shared/fecha-grupo.util';
 
 @Component({
   selector: 'app-inscripcion-grupo',
@@ -112,6 +113,24 @@ export class InscripcionGrupoComponent implements OnInit {
 
   puedeInscribirse(): boolean {
     return puedeInscribirseUtil(this.cursoInfo, this.categoria);
+  }
+
+  /** El grupo admite inscripciones según el backend (undefined = sí, por compatibilidad). */
+  grupoAbierto(): boolean {
+    return inscripcionesAbiertasDeGrupo(this.grupo);
+  }
+
+  /** Se puede inscribir solo si AMBOS lo permiten: el curso y la ventana de fechas del grupo. */
+  puedeInscribirseEnGrupo(): boolean {
+    return this.puedeInscribirse() && this.grupoAbierto();
+  }
+
+  get avisoGrupo(): string | null {
+    return avisoInscripcionGrupo(this.grupo);
+  }
+
+  get textoVentana(): string {
+    return textoVentanaInscripcion(this.grupo?.fechaInscripcionApertura, this.grupo?.fechaIncripcionCierre);
   }
 
   inscribirse(): void {

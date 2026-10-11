@@ -225,6 +225,90 @@ describe('InscripcionGrupoComponent', () => {
       'Ya estás inscrito en este grupo.', 'Cerrar', jasmine.any(Object)
     );
   });
+
+  // ── Ventana de inscripción del grupo (SCRUM-185) ───────────────────────────
+
+  const el = (): HTMLElement => fixture.nativeElement as HTMLElement;
+  const boton = (): HTMLButtonElement => el().querySelector('button.btn-inscribirse') as HTMLButtonElement;
+  const aviso = (): string | null => el().querySelector('.aviso-grupo-cerrado')?.textContent?.trim() ?? null;
+  const conGrupo = (extra: any): void => {
+    component.grupo = { ...mockGrupo, ...extra } as any;
+    fixture.detectChanges();
+  };
+
+  it('grupo abierto y curso abierto: botón habilitado y sin aviso de grupo', () => {
+    conGrupo({ inscripcionesAbiertas: true, motivoInscripcion: 'ABIERTAS' });
+    expect(boton().disabled).toBeFalse();
+    expect(aviso()).toBeNull();
+  });
+
+  it('inscripcionesAbiertas undefined se trata como true (backend sin el campo)', () => {
+    conGrupo({});
+    expect(boton().disabled).toBeFalse();
+    expect(aviso()).toBeNull();
+  });
+
+  it('grupo CERRADAS: botón deshabilitado y aviso con la fecha de cierre', () => {
+    conGrupo({ inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS', fechaIncripcionCierre: '2026-06-14' });
+    expect(boton().disabled).toBeTrue();
+    expect(aviso()).toBe('Las inscripciones de este grupo cerraron el 14/06/2026');
+  });
+
+  it('grupo NO_ABIERTAS: botón deshabilitado y aviso con la fecha de apertura', () => {
+    conGrupo({ inscripcionesAbiertas: false, motivoInscripcion: 'NO_ABIERTAS', fechaInscripcionApertura: '2026-07-01' });
+    expect(boton().disabled).toBeTrue();
+    expect(aviso()).toBe('Las inscripciones de este grupo abren el 01/07/2026');
+  });
+
+  it('se inscribe solo si AMBOS lo permiten: grupo abierto pero curso cerrado → deshabilitado', () => {
+    component.cursoInfo = { ...mockCursoActivo, estadoInscripciones: 'CERRADO' };
+    conGrupo({ inscripcionesAbiertas: true, motivoInscripcion: 'ABIERTAS' });
+    expect(boton().disabled).toBeTrue();
+    expect(el().querySelector('.aviso-cerrado')).toBeTruthy();
+  });
+
+  it('el badge del curso dice "Curso: inscripciones abiertas/cerradas"', () => {
+    const badge = (): string => el().querySelector('.estado-info .badge.ms-2')?.textContent?.trim() ?? '';
+    conGrupo({});
+    expect(badge()).toBe('Curso: inscripciones abiertas');
+    component.cursoInfo = { ...mockCursoActivo, estadoInscripciones: 'CERRADO' };
+    fixture.detectChanges();
+    expect(badge()).toBe('Curso: inscripciones cerradas');
+  });
+
+  it('texto de fechas: desde y hasta', () => {
+    conGrupo({ fechaInscripcionApertura: '2026-10-01', fechaIncripcionCierre: '2026-10-31' });
+    expect(el().querySelector('#ventana-inscripcion')?.textContent).toContain('Inscripciones desde 01/10/2026 hasta 31/10/2026');
+  });
+
+  it('texto de fechas: apertura null', () => {
+    conGrupo({ fechaInscripcionApertura: null, fechaIncripcionCierre: '2026-10-31' });
+    expect(el().querySelector('#ventana-inscripcion')?.textContent).toContain('Inscripciones abiertas hasta 31/10/2026');
+  });
+
+  it('texto de fechas: cierre null (sin guion colgando)', () => {
+    conGrupo({ fechaInscripcionApertura: '2026-10-01', fechaIncripcionCierre: null });
+    const t = el().querySelector('#ventana-inscripcion')?.textContent ?? '';
+    expect(t).toContain('Inscripciones desde 01/10/2026, sin fecha de cierre');
+    expect(t).not.toContain('–');
+  });
+
+  it('texto de fechas: ambas null', () => {
+    conGrupo({ fechaInscripcionApertura: null, fechaIncripcionCierre: null });
+    expect(el().querySelector('#ventana-inscripcion')?.textContent).toContain('Sin fecha de cierre');
+  });
+
+  it('inscribirse(): 422 GC-0016 muestra err.error.mensaje del backend', () => {
+    sessionStorage.setItem('dpt_perfil_id', '7');
+    const mensaje = 'La inscripcion no esta disponible en este momento, Las inscripciones de este grupo cerraron el 14/06/2026';
+    inscripcionSpy.postInscripcion.and.returnValue(throwError(() => ({
+      status: 422,
+      error: { codigoError: 'GC-0016', mensaje, codigoHttp: 422, url: '/api/v2/inscripcion', metodo: 'POST' },
+    })));
+    component.inscribirse();
+    expect(snackOpen).toHaveBeenCalledWith(mensaje, 'Cerrar', jasmine.any(Object));
+    expect(component.inscribiendo).toBeFalse();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -294,3 +378,4 @@ describe('InscripcionGrupoComponent › puedeInscribirse + getCurso', () => {
     expect(component.puedeInscribirse()).toBeFalse();
   });
 });
+
