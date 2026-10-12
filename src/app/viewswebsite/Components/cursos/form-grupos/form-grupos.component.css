@@ -76,3 +76,7 @@ mat-dialog-content {
   font-size: 0.85rem;
   margin: -8px 0 12px;
 }
+
+.close-button {
+  float: right;
+}

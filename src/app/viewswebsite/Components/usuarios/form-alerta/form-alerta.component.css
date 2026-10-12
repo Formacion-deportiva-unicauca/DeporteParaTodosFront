@@ -52,3 +52,7 @@ button.aceptar {
     padding: 10px 20px;
     border-radius: 8px;
 }
+
+.close-button {
+  float: right;
+}

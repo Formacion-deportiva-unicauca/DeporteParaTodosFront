@@ -66,3 +66,7 @@ mat-dialog-content {
   padding: 0 20px;
   white-space: nowrap;
 }
+
+.close-button {
+  float: right;
+}

@@ -61,3 +61,7 @@ mat-dialog-content {
     max-height: 40vh;
   }
 }
+
+.close-button {
+  float: right;
+}
