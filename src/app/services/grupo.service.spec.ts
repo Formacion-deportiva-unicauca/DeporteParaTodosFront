@@ -211,4 +211,27 @@ describe('GrupoService', () => {
     req.flush(null, { status: 401, statusText: 'Unauthorized' });
     expect(errorCapturado).toBeTruthy();
   });
+
+  // ── getGruposDeInstructor ─────────────────────────────────────────────────
+
+  it('getGruposDeInstructor: GET /api/v2/grupo/instructor?idInstructor=<id> con el id codificado', () => {
+    service.getGruposDeInstructor('A B/ñ').subscribe(grupos => expect(grupos.length).toBe(1));
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/grupo/instructor?idInstructor=A%20B%2F%C3%B1');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.body).toBeNull();
+    req.flush([{
+      categoria: 'Futbol', curso: 'Avanzado', anio: 2026, iterable: 1, periodo: 1,
+      cupos: 20, estadoCurso: 'ACTIVO', estadoInscripciones: 'ABIERTO', inscritos: 10, enEspera: 0, horarios: [],
+    }]);
+  });
+
+  it('getGruposDeInstructor: acepta [] y propaga el 404 (instructor inexistente)', () => {
+    let vacio: any; let err: any;
+    service.getGruposDeInstructor('INS01').subscribe(g => (vacio = g));
+    httpMock.expectOne(`${API}/grupo/instructor?idInstructor=INS01`).flush([]);
+    expect(vacio).toEqual([]);
+    service.getGruposDeInstructor('NO').subscribe({ next: () => fail('debería fallar'), error: e => (err = e) });
+    httpMock.expectOne(`${API}/grupo/instructor?idInstructor=NO`).flush({ mensaje: 'x' }, { status: 404, statusText: 'Not Found' });
+    expect(err.status).toBe(404);
+  });
 });

@@ -1,0 +1,108 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cabecera h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #000066;
+}
+
+.personal-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.info-text {
+  flex: 2;
+}
+
+.profile-pic {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile-pic img {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+}
+
+.course-info {
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 0 0 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background-color: #0c3f69;
+  color: #000066;
+  font-weight: bold;
+}
+
+td, th {
+  padding: 8px;
+  border: 1px solid #ccc;
+}
+
+.cargando-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.msg-rol {
+  padding: 16px;
+  color: #555;
+}
+
+.error-grupos {
+  padding: 16px 0;
+  color: #721c24;
+}
+
+.enlace-volver {
+  color: #1565c0;
+  text-decoration: underline;
+  padding: 0 16px;
+}
+
+.enlace-volver:focus-visible,
+.btn-cerrar:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .personal-info {
+    flex-direction: column-reverse;
+    gap: 16px;
+  }
+}

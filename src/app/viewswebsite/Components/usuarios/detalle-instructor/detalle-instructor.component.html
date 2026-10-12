@@ -1,0 +1,93 @@
+<app-sidenav>
+  <div class="container">
+
+    <p *ngIf="perfil && perfil !== 'Coordinador'" class="msg-rol">
+      Esta sección es exclusiva para el rol Coordinador.
+    </p>
+
+    <ng-container *ngIf="perfil === 'Coordinador'">
+
+      <ng-container *ngIf="!instructorNoEncontrado; else noEncontrado">
+
+        <header class="cabecera">
+          <h1>{{ instructor?.nombre ?? 'Detalle del instructor' }}</h1>
+          <button mat-icon-button type="button" class="btn-cerrar"
+                  aria-label="Cerrar y volver a la lista de instructores"
+                  (click)="cerrar()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <section class="personal-info" aria-labelledby="titulo-info">
+          <div class="info-text">
+            <h2 id="titulo-info">Información personal</h2>
+
+            <div *ngIf="cargandoInstructor" class="cargando-wrapper" aria-live="polite">
+              <mat-spinner diameter="32"></mat-spinner>
+              <span>Cargando datos...</span>
+            </div>
+
+            <table *ngIf="!cargandoInstructor">
+              <tr>
+                <th scope="row">Nombre:</th>
+                <td>{{ instructor?.nombre ?? 'No disponible' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Identificación:</th>
+                <td>{{ instructor?.id ?? 'No disponible' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Correo:</th>
+                <td>{{ instructor?.correo ?? 'No disponible' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Rol:</th>
+                <td>Instructor</td>
+              </tr>
+              <tr *ngIf="instructor?.tipoId">
+                <th scope="row">Tipo de identificación:</th>
+                <td>{{ instructor?.tipoId }}</td>
+              </tr>
+              <tr *ngIf="instructor?.sexo">
+                <th scope="row">Sexo:</th>
+                <td>{{ instructor?.sexo }}</td>
+              </tr>
+            </table>
+          </div>
+          <div class="profile-pic">
+            <img src="./assets/imagesSystem/Silueta.jpeg" alt="Foto de perfil" />
+          </div>
+        </section>
+
+        <section class="course-info" aria-labelledby="titulo-cursos">
+          <h2 id="titulo-cursos">Cursos a cargo</h2>
+
+          <p *ngIf="errorGrupos" class="error-grupos" role="alert">
+            No se pudieron cargar los grupos de este instructor. Intenta de nuevo más tarde.
+          </p>
+
+          <app-tabla-grupos-instructor
+            *ngIf="!errorGrupos"
+            [grupos]="grupos"
+            [cargando]="cargandoGrupos"
+            [mensajeVacio]="'Este instructor no tiene grupos a cargo'"
+            (verDeportistas)="verDeportistas($event)">
+          </app-tabla-grupos-instructor>
+        </section>
+
+      </ng-container>
+
+      <ng-template #noEncontrado>
+        <header class="cabecera">
+          <h1>Instructor no encontrado</h1>
+        </header>
+        <p class="msg-rol" role="alert">
+          No existe un instructor con esa identificación, o ya fue eliminado.
+        </p>
+        <a class="enlace-volver" routerLink="/lista-instructores">Volver a la lista de instructores</a>
+      </ng-template>
+
+    </ng-container>
+
+  </div>
+</app-sidenav>

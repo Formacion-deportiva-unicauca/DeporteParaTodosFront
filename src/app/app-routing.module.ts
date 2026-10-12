@@ -16,6 +16,7 @@ import { InformacionEstudianteComponent } from './viewswebsite/Components/usuari
 import { FormAlertaComponent } from './viewswebsite/Components/usuarios/form-alerta/form-alerta.component';
 import { CompletarPerfilComponent } from './viewswebsite/pages/completar-perfil/completar-perfil.component';
 import { InscripcionGrupoComponent } from './viewswebsite/Components/cursos/inscripcion-grupo/inscripcion-grupo.component';
+import { DetalleInstructorComponent } from './viewswebsite/Components/usuarios/detalle-instructor/detalle-instructor.component';
 
 const routes: Routes = [
   {path:'', redirectTo:'home',pathMatch:'full'},
@@ -30,6 +31,7 @@ const routes: Routes = [
   {path: 'list-grupos/:categoria/:curso', component: ListGruposComponent},
   {path: 'info-instructor', component: InformacinInstructorComponent},
   {path: 'lista-instructores', component: ListaInstructoresComponent},
+  {path: 'lista-instructores/:id', component: DetalleInstructorComponent},
   {path: 'reportes', component:ReportesComponent},
   {path: 'info-estudiante', component: InformacionEstudianteComponent},
   {path: 'notificacion', component: FormAlertaComponent},

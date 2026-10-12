@@ -58,6 +58,17 @@ export class GrupoService {
     );
   }
 
+  /** Solo Coordinador. 404 = instructor inexistente o eliminado. */
+  getGruposDeInstructor(idInstructor: string): Observable<MiGrupoInstructorDTO[]> {
+    return this.http.get<MiGrupoInstructorDTO[]>(
+      `${this.apiUrl}/grupo/instructor?idInstructor=${encodeURIComponent(idInstructor)}`
+    ).pipe(
+      catchError((error) => {
+        return throwError(error);
+      })
+    );
+  }
+
   getMisGrupos(): Observable<MiGrupoInstructorDTO[]> {
     return this.http.get<MiGrupoInstructorDTO[]>(`${this.apiUrl}/grupo/misGrupos`).pipe(
       catchError((error) => {
