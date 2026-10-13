@@ -1,5 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { InstructorDTO, PerfilInstructor } from "../Models/DTOs/instructor-dto";
+import { PlazoCargaDTO } from "../Models/DTOs/plazo-carga-dto";
 import { Injectable } from "@angular/core";
 import { Observable, catchError, throwError } from "rxjs";
 
@@ -31,6 +32,22 @@ export class InstructorServisce {
 
     actualizarInstructor(id: string, datos: { nombre: string; correo: string }): Observable<InstructorDTO> {
         return this.http.put<InstructorDTO>(`${this.apiUrl}/instructor/${encodeURIComponent(id)}`, datos).pipe(
+            catchError((error) => {
+                return throwError(error);
+            })
+        );
+    }
+
+    getPlazosCarga(): Observable<PlazoCargaDTO[]> {
+        return this.http.get<PlazoCargaDTO[]>(`${this.apiUrl}/instructores/plazos-carga`).pipe(
+            catchError((error) => {
+                return throwError(error);
+            })
+        );
+    }
+
+    asignarPlazoCarga(id: string, fechaLimite: string): Observable<PlazoCargaDTO> {
+        return this.http.put<PlazoCargaDTO>(`${this.apiUrl}/instructor/${encodeURIComponent(id)}/plazo-carga`, { fechaLimite }).pipe(
             catchError((error) => {
                 return throwError(error);
             })

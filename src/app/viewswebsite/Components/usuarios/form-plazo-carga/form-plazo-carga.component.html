@@ -1,0 +1,31 @@
+<button mat-icon-button class="close-button" type="button" matDialogClose aria-label="Cerrar diálogo">
+  <mat-icon>close</mat-icon>
+</button>
+
+<mat-dialog-content class="dialog-content">
+  <header class="title-two">Plazo de carga de atenciones</header>
+
+  <form [formGroup]="form" (ngSubmit)="guardar()" class="form-content" novalidate>
+    <p class="datos-instructor"><strong>Instructor:</strong> {{ data.nombre }} · Periodo {{ data.anio }}-{{ data.periodo }}</p>
+    <p class="estado-actual"><strong>Estado actual:</strong> {{ estadoActual }}</p>
+
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Fecha límite de carga</mat-label>
+      <input matInput id="fechaLimite" placeholder="dd/mm/aaaa" autocomplete="off"
+             [matDatepicker]="selector" [formControl]="fechaCtrl" cdkFocusInitial>
+      <mat-datepicker-toggle matSuffix [for]="selector" aria-label="Abrir calendario de fecha límite de carga"></mat-datepicker-toggle>
+      <mat-datepicker #selector [touchUi]="touchUi"></mat-datepicker>
+      <mat-hint>Hasta esta fecha, inclusive, el instructor puede cargar atenciones. Después solo el Coordinador puede ampliar el plazo.</mat-hint>
+      <mat-error *ngIf="fechaCtrl.hasError('matDatepickerParse')">Escribe la fecha como dd/mm/aaaa, por ejemplo 15/11/2026</mat-error>
+    </mat-form-field>
+
+    <p class="fecha-elegida" aria-live="polite">{{ textoFechaElegida }}</p>
+
+    <p *ngIf="errorServidor" class="error-servidor" role="alert">{{ errorServidor }}</p>
+
+    <div class="form-buttons">
+      <button mat-button type="button" class="btn-cancelar" (click)="cancelar()">Cancelar</button>
+      <button mat-raised-button type="submit" class="btn-guardar" [disabled]="!puedeGuardar">Guardar</button>
+    </div>
+  </form>
+</mat-dialog-content>

@@ -13,7 +13,8 @@ import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
 import { ImagenService } from 'src/app/services/imagen.service';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
+import { DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
+import { FechaEsAdapter } from 'src/app/shared/fecha-es.adapter';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
 import { InstructorServisce } from 'src/app/services/instructor.service';
@@ -37,7 +38,11 @@ type CampoFecha = 'fechaCreacion' | 'fechaFinalizacion' | 'fechaInscripcionApert
     MatNativeDateModule,
   ],
   // dd/MM/yyyy en pantalla; el valor que viaja al backend sigue siendo texto 'yyyy-MM-dd'
-  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-CO' }],
+  // El DateAdapter se registra aquí para que lea este locale (el del módulo no ve los providers del componente).
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'es-CO' },
+    { provide: DateAdapter, useClass: FechaEsAdapter },
+  ],
   templateUrl: './form-grupos.component.html',
   styleUrls: ['./form-grupos.component.css'],
 })

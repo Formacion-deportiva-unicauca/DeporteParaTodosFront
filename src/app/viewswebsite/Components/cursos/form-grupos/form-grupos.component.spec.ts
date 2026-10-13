@@ -238,6 +238,22 @@ describe('FormGruposComponent', () => {
     expect(component.grupo.fechaIncripcionCierre).toBe('2026-02-01');
   });
 
+  it('los calendarios muestran las fechas en dd/MM/yyyy (no mes/día), sin desfase', async () => {
+    grupoServiceSpy.getGrupo.and.returnValue(of({
+      ...mockGrupo,
+      fechaCreacion: '2026-10-15',
+      fechaFinalizacion: '2026-12-31',
+    }));
+    component.ngOnInit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const valor = (nombre: string): string =>
+      ((fixture.nativeElement as HTMLElement).querySelector(`input[name="${nombre}"]`) as HTMLInputElement).value;
+    expect(valor('fechaCreacion')).toBe('15/10/2026');
+    expect(valor('fechaFinalizacion')).toBe('31/12/2026');
+  });
+
   it('precarga con fechas nulas las deja vacías', () => {
     expect(component.grupo.fechaFinalizacion).toBe('');
   });

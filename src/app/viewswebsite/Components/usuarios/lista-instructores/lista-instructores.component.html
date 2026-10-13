@@ -35,6 +35,9 @@
       Limpiar búsqueda
     </button>
 
+    <p class="aviso-reportes" *ngIf="textoAviso as aviso" role="status" aria-live="polite">{{ aviso }}</p>
+    <p class="error-plazos" *ngIf="errorPlazos" role="alert">No se pudo cargar el estado de los reportes</p>
+
     <div class="tabla-container">
       <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" matSort
              [style.display]="hayFilas ? null : 'none'">
@@ -58,9 +61,28 @@
           <td mat-cell *matCellDef="let instructor">{{ instructor.correo }}</td>
         </ng-container>
 
+        <!-- Columna Reporte (solo Coordinador): texto + icono, sin orden ni filtro -->
+        <ng-container matColumnDef="Reporte">
+          <th mat-header-cell *matHeaderCellDef scope="col">Reporte</th>
+          <td mat-cell *matCellDef="let instructor">
+            <ng-container *ngIf="plazoDe(instructor.id) as p; else sinDatoReporte">
+              <span class="celda-reporte">
+                <mat-icon aria-hidden="true">{{ iconoReporte(p.estadoReporte) }}</mat-icon>
+                <span class="texto-reporte">{{ textoReporte(p) }}</span>
+              </span>
+            </ng-container>
+            <ng-template #sinDatoReporte>
+              <span class="celda-reporte"><span class="texto-reporte">{{ cargandoPlazos ? 'Cargando…' : '—' }}</span></span>
+            </ng-template>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="Acciones">
           <th mat-header-cell *matHeaderCellDef>Acciones</th>
           <td mat-cell *matCellDef="let instructor">
+            <button mat-stroked-button type="button" class="btn-plazo" *ngIf="perfil === 'Coordinador' && plazoDe(instructor.id) as p"
+                    [attr.aria-label]="textoBotonPlazo(p) + ' de carga a ' + instructor.nombre"
+                    (click)="asignarPlazo(instructor)">{{ textoBotonPlazo(p) }}</button>
             <button mat-icon-button type="button" color="primary" *ngIf="perfil === 'Coordinador'"
                     [attr.aria-label]="'Editar instructor ' + instructor.nombre"
                     (click)="editarInstructor(instructor)">

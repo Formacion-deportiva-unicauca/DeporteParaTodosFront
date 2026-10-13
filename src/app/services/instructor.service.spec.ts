@@ -142,4 +142,53 @@ describe('InstructorServisce', () => {
     expect(error.status).toBe(409);
     expect(error.error.mensaje).toBe('correo en uso');
   });
+
+  // ── plazos de carga (SCRUM-80) ────────────────────────────────────────────
+
+  it('getPlazosCarga: GET /api/v2/instructores/plazos-carga y devuelve el arreglo', () => {
+    const plazos = [{
+      idInstructor: 'INS01', anio: 2026, periodo: 2, fechaLimite: '2026-10-15',
+      estadoReporte: 'PENDIENTE', plazoVencido: false, clasesConAsistencia: 0,
+    }];
+    service.getPlazosCarga().subscribe(r => expect(r).toEqual(plazos as any));
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/plazos-carga');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys().length).toBe(0);
+    req.flush(plazos);
+  });
+
+  it('getPlazosCarga: propaga 403 sin cuerpo', () => {
+    let error: any;
+    service.getPlazosCarga().subscribe({ next: () => fail('debería fallar'), error: e => (error = e) });
+    httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/plazos-carga').flush(null, { status: 403, statusText: 'Forbidden' });
+    expect(error.status).toBe(403);
+  });
+
+  it('asignarPlazoCarga: PUT /api/v2/instructor/<id>/plazo-carga con { fechaLimite } y devuelve el elemento', () => {
+    const respuesta = {
+      idInstructor: 'INS01', anio: 2026, periodo: 2, fechaLimite: '2026-11-01',
+      estadoReporte: 'PENDIENTE', plazoVencido: false, clasesConAsistencia: 0,
+    };
+    service.asignarPlazoCarga('INS01', '2026-11-01').subscribe(r => expect(r).toEqual(respuesta as any));
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructor/INS01/plazo-carga');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ fechaLimite: '2026-11-01' });
+    req.flush(respuesta);
+  });
+
+  it('asignarPlazoCarga: codifica el id en la ruta', () => {
+    service.asignarPlazoCarga('A B/ñ', '2026-11-01').subscribe();
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructor/A%20B%2F%C3%B1/plazo-carga');
+    expect(req.request.method).toBe('PUT');
+    req.flush({});
+  });
+
+  it('asignarPlazoCarga: propaga 422 con su cuerpo de error', () => {
+    let error: any;
+    service.asignarPlazoCarga('INS01', '2000-01-01').subscribe({ next: () => fail('debería fallar'), error: e => (error = e) });
+    httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructor/INS01/plazo-carga')
+      .flush({ mensaje: 'fecha pasada' }, { status: 422, statusText: 'Unprocessable Entity' });
+    expect(error.status).toBe(422);
+    expect(error.error.mensaje).toBe('fecha pasada');
+  });
 });

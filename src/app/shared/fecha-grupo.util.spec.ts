@@ -1,6 +1,6 @@
 import { GrupoDTO } from '../Models/DTOs/grupo-dto';
 import {
-  avisoInscripcionGrupo, etiquetaInscripcionGrupo, formatearFecha,
+  aDateLocal, avisoInscripcionGrupo, etiquetaInscripcionGrupo, fechaLarga, formatearFecha, formatoLocal,
   inscripcionesAbiertasDeGrupo, textoVentanaInscripcion,
 } from './fecha-grupo.util';
 
@@ -66,6 +66,42 @@ describe('fecha-grupo.util', () => {
       const grupo = g({ inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS' });
       expect(etiquetaInscripcionGrupo(grupo)).toBe('Inscripciones cerradas');
       expect(avisoInscripcionGrupo(grupo)).toBe('Las inscripciones de este grupo están cerradas');
+    });
+  });
+
+  describe('aDateLocal / formatoLocal (sin desfase de zona horaria)', () => {
+    it('aDateLocal: yyyy-MM-dd → Date a medianoche LOCAL', () => {
+      const d = aDateLocal('2026-12-31')!;
+      expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()]).toEqual([2026, 11, 31, 0]);
+    });
+    it('aDateLocal: ignora la hora si viene y devuelve null si no es una fecha', () => {
+      expect(aDateLocal('2026-06-14T00:00:00')!.getDate()).toBe(14);
+      expect(aDateLocal(null)).toBeNull();
+      expect(aDateLocal('')).toBeNull();
+      expect(aDateLocal('14/06/2026')).toBeNull();
+    });
+    it('formatoLocal: usa los componentes locales (31-ene a las 23:59 sigue siendo 31)', () => {
+      expect(formatoLocal(new Date(2026, 0, 31, 23, 59))).toBe('2026-01-31');
+      expect(formatoLocal(new Date(2026, 8, 5))).toBe('2026-09-05');
+    });
+    it('ida y vuelta: formatoLocal(aDateLocal(x)) === x', () => {
+      for (const x of ['2026-01-01', '2026-02-28', '2024-02-29', '2026-12-31']) {
+        expect(formatoLocal(aDateLocal(x)!)).toBe(x);
+      }
+    });
+  });
+
+  describe('fechaLarga', () => {
+    it('texto largo en español para anunciar la fecha elegida', () => {
+      const t = fechaLarga('2026-11-01');
+      expect(t).toContain('noviembre');
+      expect(t).toContain('2026');
+      expect(t).toContain('1');
+    });
+    it('fin de año sin desfase', () => expect(fechaLarga('2026-12-31')).toContain('31 de diciembre'));
+    it('vacío o inválido → texto vacío', () => {
+      expect(fechaLarga(null)).toBe('');
+      expect(fechaLarga('xx')).toBe('');
     });
   });
 });

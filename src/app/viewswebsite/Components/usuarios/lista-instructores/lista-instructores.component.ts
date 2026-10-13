@@ -11,13 +11,17 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, distinctUntilChanged } from 'rxjs';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
 import { InstructorServisce } from 'src/app/services/instructor.service';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { FormInscripcionesComponent } from '../form-inscripciones/form-inscripciones.component';
 import { DialogComponent } from '../../dialog/dialog.component';
 import { FormInstructorComponent, ResultadoFormInstructor } from '../form-instructor/form-instructor.component';
+import { FormPlazoCargaComponent, ResultadoFormPlazoCarga } from '../form-plazo-carga/form-plazo-carga.component';
+import { PlazoCargaDTO } from 'src/app/Models/DTOs/plazo-carga-dto';
+import { formatearFecha } from 'src/app/shared/fecha-grupo.util';
+import { iconoReporte, textoAvisoReportes, textoBotonPlazo, textoReporte } from 'src/app/shared/plazo-carga.util';
 
 @Component({
   selector: 'app-lista-instructores',
@@ -49,7 +53,18 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
 
   isButtonEnabled = false;
   checked = false;
-  displayedColumns: string[] = ['Identificacion', 'Nombre', 'Correo', 'Acciones'];
+  private readonly columnasBase = ['Identificacion', 'Nombre', 'Correo', 'Acciones'];
+  private readonly columnasCoordinador = ['Identificacion', 'Nombre', 'Correo', 'Reporte', 'Acciones'];
+  displayedColumns: string[] = this.columnasBase;
+
+  // Plazos de carga por instructor (solo Coordinador), unidos a la lista por idInstructor.
+  plazos = new Map<string, PlazoCargaDTO>();
+  cargandoPlazos = false;
+  errorPlazos = false;
+
+  readonly textoReporte = textoReporte;
+  readonly iconoReporte = iconoReporte;
+  readonly textoBotonPlazo = textoBotonPlazo;
 
   private perfilSub: Subscription = Subscription.EMPTY;
 
@@ -61,7 +76,18 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
   ) { }
 
   ngOnInit(): void {
-    this.perfilSub = this.perfilService.perfil$.subscribe(p => this.perfil = p);
+    this.perfilSub = this.perfilService.perfil$.pipe(distinctUntilChanged()).subscribe(p => {
+      this.perfil = p;
+      // Guarda de rol: solo el Coordinador ve la columna y pide los plazos.
+      this.displayedColumns = p === 'Coordinador' ? this.columnasCoordinador : this.columnasBase;
+      if (p === 'Coordinador') {
+        this.cargarPlazos();
+      } else {
+        this.plazos = new Map();
+        this.cargandoPlazos = false;
+        this.errorPlazos = false;
+      }
+    });
     // Coincidencia por subcadena en id, nombre o correo, sin mayúsculas ni tildes.
     this.dataSource.filterPredicate = (i, filtro) =>
       [i.id, i.nombre, i.correo].some(campo => this.normalizar(campo).includes(filtro));
@@ -93,6 +119,64 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
         this.dataSource.data = this.instructores;
       }
     );
+  }
+
+  /** Petición independiente de la lista: si falla, la lista se ve igual con "—" y un aviso propio. */
+  private cargarPlazos(): void {
+    this.cargandoPlazos = true;
+    this.errorPlazos = false;
+    this.instructorservice.getPlazosCarga().subscribe({
+      next: lista => {
+        this.plazos = new Map((Array.isArray(lista) ? lista : []).map(p => [p.idInstructor, p] as [string, PlazoCargaDTO]));
+        this.cargandoPlazos = false;
+      },
+      error: () => {
+        this.plazos = new Map();
+        this.cargandoPlazos = false;
+        this.errorPlazos = true;
+      },
+    });
+  }
+
+  plazoDe(id: string): PlazoCargaDTO | undefined {
+    return this.plazos.get(id);
+  }
+
+  /** Aviso sobre la tabla; los plazos de instructores que no están en la lista se ignoran. */
+  get textoAviso(): string | null {
+    if (this.perfil !== 'Coordinador' || this.cargandoPlazos || this.errorPlazos) return null;
+    const delasFilas = this.instructores
+      .map(i => this.plazos.get(i.id))
+      .filter((p): p is PlazoCargaDTO => !!p);
+    return textoAvisoReportes(delasFilas);
+  }
+
+  asignarPlazo(instructor: InstructorDTO): void {
+    const plazo = this.plazoDe(instructor.id);
+    if (!plazo) return;
+    const dialogRef = this.dialog.open(FormPlazoCargaComponent, {
+      data: {
+        id: instructor.id,
+        nombre: instructor.nombre,
+        fechaActual: plazo.fechaLimite,
+        estado: plazo.estadoReporte,
+        plazoVencido: plazo.plazoVencido,
+        anio: plazo.anio,
+        periodo: plazo.periodo,
+      },
+    });
+    dialogRef.afterClosed().subscribe((resultado?: ResultadoFormPlazoCarga) => {
+      if (!resultado) return;
+      if ('yaNoExiste' in resultado) {
+        this.snackBar.open('El instructor ya no existe', '', { duration: 3000, panelClass: 'snack-error' });
+        this.cargarInstructores();
+        this.cargarPlazos();
+        return;
+      }
+      // Solo cambia esa entrada: las filas no se vuelven a crear (se conservan filtro, orden y foco).
+      this.plazos = new Map(this.plazos).set(resultado.idInstructor, resultado);
+      this.snackBar.open(`Plazo asignado hasta ${formatearFecha(resultado.fechaLimite)}`, '', { duration: 3000, panelClass: 'snack-success' });
+    });
   }
 
   private normalizar(valor: string | null | undefined): string {

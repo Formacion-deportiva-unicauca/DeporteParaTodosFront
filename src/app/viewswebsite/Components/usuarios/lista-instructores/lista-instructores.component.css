@@ -111,3 +111,36 @@ table {
   color: #1565c0;
   cursor: pointer;
 }
+
+.aviso-reportes {
+  margin: 4px 0 8px;
+  padding: 8px 12px;
+  border-left: 4px solid #1565c0;
+  background: #eef4fb;
+  color: #1a1a1a;
+}
+
+.error-plazos {
+  margin: 4px 0 8px;
+  padding: 8px 12px;
+  border-left: 4px solid #b3261e;
+  background: #fdecea;
+  color: #7a1a14;
+}
+
+.celda-reporte {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.celda-reporte mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.btn-plazo:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 2px;
+}

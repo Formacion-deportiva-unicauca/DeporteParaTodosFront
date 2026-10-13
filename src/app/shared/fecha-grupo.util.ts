@@ -48,3 +48,24 @@ export function avisoInscripcionGrupo(g: GrupoDTO | null | undefined): string | 
   const hasta = formatearFecha(g?.fechaIncripcionCierre);
   return hasta ? `Las inscripciones de este grupo cerraron el ${hasta}` : 'Las inscripciones de este grupo están cerradas';
 }
+
+/**
+ * Conversión entre el texto 'yyyy-MM-dd' y el Date que usa el calendario de Material, siempre en hora LOCAL:
+ * new Date('yyyy-MM-dd') se interpreta como UTC y desfasa un día, y toISOString() también.
+ */
+export function aDateLocal(valor: string | null | undefined): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor ?? '');
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+
+export function formatoLocal(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** Fecha en texto largo en español ("domingo, 1 de noviembre de 2026"), para anunciarla a lectores de pantalla. */
+export function fechaLarga(valor: string | null | undefined): string {
+  const d = aDateLocal(valor);
+  return d ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'full' }).format(d) : '';
+}
