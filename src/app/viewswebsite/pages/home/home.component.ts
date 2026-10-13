@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DialogComponent } from '../../Components/dialog/dialog.component';
 import { NuevoCursoCategoriaComponent } from '../../Components/cursos/nuevo-curso-categoria/nuevo-curso-categoria.component';
 import { HeaderComponent } from '../header/header.component';
+import { SidenavComponent } from '../sidenav/sidenav.component';
 import { CategoriaService } from 'src/app/services/categoria.service';
 import { CategoriaDTO } from 'src/app/Models/DTOs/categoria-dto';
 import * as bootstrap from 'bootstrap';
@@ -38,6 +39,7 @@ import { TokenInterchangeService } from 'src/app/services/token-interchange.serv
     MatDialogModule,
     MatSnackBarModule,
     HeaderComponent,
+    SidenavComponent,
   ],
 
   templateUrl: './home.component.html',

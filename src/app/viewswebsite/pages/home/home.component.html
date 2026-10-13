@@ -1,4 +1,14 @@
-<app-header></app-header>
+<!-- Coordinador: menu lateral (Home, Instructores, Reportes) con el inicio dentro. Instructor, Alumno y visitantes: la cabecera de siempre. -->
+<app-sidenav *ngIf="perfil === 'Coordinador'; else conCabecera">
+    <ng-container *ngTemplateOutlet="contenidoInicio"></ng-container>
+</app-sidenav>
+
+<ng-template #conCabecera>
+    <app-header></app-header>
+    <ng-container *ngTemplateOutlet="contenidoInicio"></ng-container>
+</ng-template>
+
+<ng-template #contenidoInicio>
 <div class="container d-flex justify-content-center">
     <div class="text-home col-lg-10 shadow p-3 mb-5 bg-white rounded">
         <h1 class="title-one">Deporte para todos</h1>
@@ -76,3 +86,4 @@
         </div>
     </div>
 </div>
+</ng-template>
