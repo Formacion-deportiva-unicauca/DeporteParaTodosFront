@@ -1,0 +1,30 @@
+<button mat-icon-button class="close-button" type="button" matDialogClose aria-label="Cerrar diálogo">
+  <mat-icon>close</mat-icon>
+</button>
+
+<mat-dialog-content class="dialog-content">
+  <header class="title-two">Editar instructor</header>
+
+  <form [formGroup]="form" (ngSubmit)="guardar()" class="form-content" novalidate>
+    <p class="identificacion"><strong>Identificación:</strong> {{ data.id }}</p>
+
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Nombre</mat-label>
+      <input matInput id="nombre" formControlName="nombre" autocomplete="off" cdkFocusInitial>
+      <mat-error *ngIf="form.controls.nombre.invalid">El nombre es obligatorio</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Correo</mat-label>
+      <input matInput id="correo" type="email" formControlName="correo">
+      <mat-hint>El correo no se puede modificar</mat-hint>
+    </mat-form-field>
+
+    <p *ngIf="errorServidor" class="error-servidor" role="alert">{{ errorServidor }}</p>
+
+    <div class="form-buttons">
+      <button mat-button type="button" class="btn-cancelar" (click)="cancelar()">Cancelar</button>
+      <button mat-raised-button type="submit" class="btn-guardar" [disabled]="!puedeGuardar">Guardar</button>
+    </div>
+  </form>
+</mat-dialog-content>

@@ -106,3 +106,15 @@ td, th {
     gap: 16px;
   }
 }
+
+.titulo-con-accion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn-editar:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 2px;
+}

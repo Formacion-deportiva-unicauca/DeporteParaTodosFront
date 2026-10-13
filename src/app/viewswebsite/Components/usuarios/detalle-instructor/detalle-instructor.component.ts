@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EMPTY, Subject, combineLatest, distinctUntilChanged, map, merge, switchMap, takeUntil, tap, catchError } from 'rxjs';
@@ -14,6 +15,7 @@ import { GrupoService } from 'src/app/services/grupo.service';
 import { PerfilInstructor } from 'src/app/Models/DTOs/instructor-dto';
 import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
+import { FormInstructorComponent, ResultadoFormInstructor } from '../form-instructor/form-instructor.component';
 
 /** Detalle de un instructor para el Coordinador: información personal y grupos que dirige. */
 @Component({
@@ -25,6 +27,7 @@ import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatDialogModule,
     MatSnackBarModule,
     SidenavComponent,
     TablaGruposInstructorComponent,
@@ -42,9 +45,11 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
   errorGrupos = false;
 
   private destroy$ = new Subject<void>();
+  private idActual = '';
 
   constructor(
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
     private perfilService: PerfilService,
     private instructorService: InstructorServisce,
     private grupoService: GrupoService,
@@ -86,6 +91,7 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
   }
 
   private cargarInstructor(id: string) {
+    this.idActual = id;
     this.cargandoInstructor = true;
     return this.instructorService.getInstructor(id).pipe(
       tap(instructor => {
@@ -120,6 +126,23 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
         return EMPTY;
       }),
     );
+  }
+
+  editar(): void {
+    if (!this.instructor) return;
+    const { id, nombre, correo } = this.instructor;
+    this.dialog.open(FormInstructorComponent, { data: { id, nombre, correo } })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((resultado?: ResultadoFormInstructor) => {
+        if (!resultado) return;
+        if ('yaNoExiste' in resultado) {
+          this.instructorNoEncontrado = true;
+          return;
+        }
+        // Se vuelve a pedir el instructor para mostrar lo que realmente quedó guardado.
+        this.cargarInstructor(this.idActual).pipe(takeUntil(this.destroy$)).subscribe();
+      });
   }
 
   cerrar(): void {

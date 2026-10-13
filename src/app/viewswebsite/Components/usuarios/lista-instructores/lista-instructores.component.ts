@@ -17,6 +17,7 @@ import { InstructorServisce } from 'src/app/services/instructor.service';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { FormInscripcionesComponent } from '../form-inscripciones/form-inscripciones.component';
 import { DialogComponent } from '../../dialog/dialog.component';
+import { FormInstructorComponent, ResultadoFormInstructor } from '../form-instructor/form-instructor.component';
 
 @Component({
   selector: 'app-lista-instructores',
@@ -131,6 +132,24 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
       if (resultado?.confirmacionCreacion) {
         this.cargarInstructores();
       }
+    });
+  }
+
+  editarInstructor(instructor: InstructorDTO): void {
+    const dialogRef = this.dialog.open(FormInstructorComponent, {
+      data: { id: instructor.id, nombre: instructor.nombre, correo: instructor.correo }
+    });
+    dialogRef.afterClosed().subscribe((resultado?: ResultadoFormInstructor) => {
+      if (!resultado) return;
+      if ('yaNoExiste' in resultado) {
+        this.snackBar.open('El instructor ya no existe', '', { duration: 3000, panelClass: 'snack-error' });
+        this.cargarInstructores();
+        return;
+      }
+      // Reemplazar la fila conserva el filtro y el orden vigentes (MatTableDataSource los reaplica).
+      this.instructores = this.instructores.map(i => i.id === resultado.id ? { ...i, ...resultado } : i);
+      this.dataSource.data = this.instructores;
+      this.snackBar.open('Instructor actualizado', '', { duration: 3000, panelClass: 'snack-success' });
     });
   }
 

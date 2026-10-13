@@ -114,4 +114,32 @@ describe('InstructorServisce', () => {
     req.flush('Conflicto', { status: 409, statusText: 'Conflict' });
     expect(errorCapturado).toBeTruthy();
   });
+
+  // ── actualizarInstructor ──────────────────────────────────────────────────
+
+  it('actualizarInstructor: PUT /api/v2/instructor/<id> con el cuerpo { nombre, correo } y devuelve el DTO', () => {
+    const respuesta = { id: 'INS01', nombre: 'Carlos Pérez', correo: 'nuevo@unicauca.edu.co', sexo: 'M' };
+    service.actualizarInstructor('INS01', { nombre: 'Carlos Pérez', correo: 'nuevo@unicauca.edu.co' })
+      .subscribe(r => expect(r).toEqual(respuesta));
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructor/INS01');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ nombre: 'Carlos Pérez', correo: 'nuevo@unicauca.edu.co' });
+    req.flush(respuesta);
+  });
+
+  it('actualizarInstructor: codifica el id en la ruta', () => {
+    service.actualizarInstructor('A B/ñ', { nombre: 'x', correo: 'x@y.co' }).subscribe();
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructor/A%20B%2F%C3%B1');
+    expect(req.request.method).toBe('PUT');
+    req.flush({});
+  });
+
+  it('actualizarInstructor: propaga 409 con su cuerpo de error', () => {
+    let error: any;
+    service.actualizarInstructor('INS01', { nombre: 'x', correo: 'x@y.co' }).subscribe({ next: () => fail('debería fallar'), error: e => (error = e) });
+    httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructor/INS01')
+      .flush({ mensaje: 'correo en uso' }, { status: 409, statusText: 'Conflict' });
+    expect(error.status).toBe(409);
+    expect(error.error.mensaje).toBe('correo en uso');
+  });
 });

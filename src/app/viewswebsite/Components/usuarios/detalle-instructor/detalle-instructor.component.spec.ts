@@ -12,6 +12,7 @@ import { InstructorServisce } from 'src/app/services/instructor.service';
 import { GrupoService } from 'src/app/services/grupo.service';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
 import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
+import { FormInstructorComponent } from '../form-instructor/form-instructor.component';
 import { PerfilInstructor } from 'src/app/Models/DTOs/instructor-dto';
 import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 
@@ -225,5 +226,66 @@ describe('DetalleInstructorComponent', () => {
     fixture.destroy();
     expect(() => params$.next(convertToParamMap({ id: 'OTRO' }))).not.toThrow();
     expect(instructorSpy.getInstructor).toHaveBeenCalledTimes(1);
+  });
+
+  describe('editar (SCRUM-79)', () => {
+    const botonEditar = (): HTMLButtonElement | null => el().querySelector('button.btn-editar');
+    let abrir: jasmine.Spy;
+    const cierraCon = (resultado: unknown): void => {
+      abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
+    };
+
+    it('el botón Editar aparece solo para el Coordinador', () => {
+      perfil$.next('Instructor');
+      crear();
+      expect(botonEditar()).toBeNull();
+    });
+
+    it('abre el MISMO formulario con los datos ya cargados (id, nombre, correo)', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
+      botonEditar()!.click();
+      expect(botonEditar()!.textContent?.trim()).toBe('Editar');
+      expect(abrir).toHaveBeenCalledWith(
+        FormInstructorComponent,
+        jasmine.objectContaining({ data: { id: 'INS01', nombre: 'Katerinn Arcos Daza', correo: 'kate@unicauca.edu.co' } }),
+      );
+    });
+
+    it('cerrar sin guardar no vuelve a pedir el instructor', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
+      botonEditar()!.click();
+      expect(instructorSpy.getInstructor).toHaveBeenCalledTimes(1);
+    });
+
+    it('éxito: vuelve a pedir getInstructor y muestra los datos nuevos (incluido el h1)', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open');
+      instructorSpy.getInstructor.and.returnValue(of({ ...instructor, nombre: 'Katerinn Nuevo Nombre', correo: 'nuevo@unicauca.edu.co' }));
+      cierraCon({ ...instructor, nombre: 'Katerinn Nuevo Nombre', correo: 'nuevo@unicauca.edu.co', sexo: 'F' });
+      botonEditar()!.click();
+      fixture.detectChanges();
+      expect(instructorSpy.getInstructor).toHaveBeenCalledTimes(2);
+      expect(instructorSpy.getInstructor).toHaveBeenCalledWith('INS01');
+      expect(texto('h1')).toBe('Katerinn Nuevo Nombre');
+      expect(texto('.personal-info')).toContain('nuevo@unicauca.edu.co');
+    });
+
+    it('señal "ya no existe": muestra el estado "Instructor no encontrado"', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open');
+      cierraCon({ yaNoExiste: true });
+      botonEditar()!.click();
+      fixture.detectChanges();
+      expect(texto('h1')).toBe('Instructor no encontrado');
+      expect(el().querySelector('a[href="/lista-instructores"]')).not.toBeNull();
+      expect(el().querySelector('table[mat-table]')).toBeNull();
+    });
+
+    it('Editar está deshabilitado si el instructor no se pudo cargar', () => {
+      crear(() => instructorSpy.getInstructor.and.returnValue(throwError(() => http(500))));
+      expect(botonEditar()!.disabled).toBeTrue();
+    });
   });
 });

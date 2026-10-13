@@ -10,7 +10,10 @@
       <ng-container *ngIf="!instructorNoEncontrado; else noEncontrado">
 
         <header class="cabecera">
-          <h1>{{ instructor?.nombre ?? 'Detalle del instructor' }}</h1>
+          <div class="titulo-con-accion">
+            <h1>{{ instructor?.nombre ?? 'Detalle del instructor' }}</h1>
+            <button mat-stroked-button type="button" class="btn-editar" [disabled]="!instructor" (click)="editar()">Editar</button>
+          </div>
           <button mat-icon-button type="button" class="btn-cerrar"
                   aria-label="Cerrar y volver a la lista de instructores"
                   (click)="cerrar()">

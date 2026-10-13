@@ -9,6 +9,7 @@ import { InstructorServisce } from 'src/app/services/instructor.service';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
+import { FormInstructorComponent } from '../form-instructor/form-instructor.component';
 
 const instructorDummy: InstructorDTO = {
   id: 'INS01',
@@ -227,6 +228,94 @@ describe('ListaInstructoresComponent', () => {
       expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(1);
       expect(campo().value).toBe('garcia');
       expect(nombres()).toEqual(['María García']);
+    });
+  });
+
+  describe('editar instructor (SCRUM-79)', () => {
+    const maria: InstructorDTO = { id: '1001', nombre: 'María García', correo: 'maria@unicauca.edu.co', sexo: 'F' };
+    const juan: InstructorDTO = { id: '2002', nombre: 'Juan Pérez', correo: 'juan.perez@unicauca.edu.co', sexo: 'M' };
+    const ana: InstructorDTO = { id: '3003', nombre: 'Ana Gómez', correo: 'ana@correo.com', sexo: 'F' };
+    const el = (): HTMLElement => fixture.nativeElement as HTMLElement;
+    const nombres = (): string[] =>
+      Array.from(el().querySelectorAll('tr[mat-row] a.enlace-instructor')).map(a => a.textContent!.trim());
+    const botonEditar = (nombre: string): HTMLButtonElement =>
+      el().querySelector(`button[aria-label="Editar instructor ${nombre}"]`) as HTMLButtonElement;
+    let abrir: jasmine.Spy;
+    let snack: jasmine.Spy;
+    const cierraCon = (resultado: unknown): void => {
+      abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
+    };
+
+    beforeEach(() => {
+      mockInstructorService.getInstructores.and.returnValue(of([maria, juan, ana]));
+      component['cargarInstructores']();
+      fixture.detectChanges();
+      abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
+      snack = spyOn(component['snackBar'], 'open');
+      mockInstructorService.getInstructores.calls.reset();
+    });
+
+    it('cada fila tiene un botón de editar con aria-label "Editar instructor {nombre}"', () => {
+      expect(el().querySelectorAll('tr[mat-row] button[aria-label^="Editar instructor "]').length).toBe(3);
+      expect(botonEditar('María García').textContent).toContain('edit');
+      expect(botonEditar('María García').getAttribute('type')).toBe('button');
+    });
+
+    it('el icono abre el diálogo con los datos de ESA fila', () => {
+      botonEditar('Juan Pérez').click();
+      expect(abrir).toHaveBeenCalledWith(
+        FormInstructorComponent,
+        jasmine.objectContaining({ data: { id: '2002', nombre: 'Juan Pérez', correo: 'juan.perez@unicauca.edu.co' } }),
+      );
+    });
+
+    it('Cancelar (sin resultado) no cambia la tabla, no recarga ni muestra snackbar', () => {
+      botonEditar('Juan Pérez').click();
+      fixture.detectChanges();
+      expect(nombres()).toEqual(['María García', 'Juan Pérez', 'Ana Gómez']);
+      expect(mockInstructorService.getInstructores).not.toHaveBeenCalled();
+      expect(snack).not.toHaveBeenCalled();
+    });
+
+    it('éxito: actualiza la fila, conserva el filtro vigente y muestra "Instructor actualizado"', () => {
+      const campo = el().querySelector('input#buscar-instructor') as HTMLInputElement;
+      campo.value = 'garcia';
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      expect(nombres()).toEqual(['María García']);
+      cierraCon({ ...maria, nombre: 'María García Ruiz' });
+      botonEditar('María García').click();
+      fixture.detectChanges();
+      expect(nombres()).toEqual(['María García Ruiz']);
+      expect(campo.value).toBe('garcia');
+      expect(snack).toHaveBeenCalledWith('Instructor actualizado', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+    });
+
+    it('éxito: conserva el orden vigente', () => {
+      const th = Array.from(el().querySelectorAll('th')).find(h => h.textContent!.trim() === 'Nombre') as HTMLElement;
+      th.click();
+      fixture.detectChanges();
+      expect(nombres()).toEqual(['Ana Gómez', 'Juan Pérez', 'María García']);
+      cierraCon({ ...ana, nombre: 'Zoe Gómez' });
+      botonEditar('Ana Gómez').click();
+      fixture.detectChanges();
+      expect(nombres()).toEqual(['Juan Pérez', 'María García', 'Zoe Gómez']);
+    });
+
+    it('señal "ya no existe": recarga la lista y avisa', () => {
+      cierraCon({ yaNoExiste: true });
+      botonEditar('Juan Pérez').click();
+      expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(1);
+      expect(snack).toHaveBeenCalledWith('El instructor ya no existe', '', jasmine.objectContaining({ panelClass: 'snack-error' }));
+    });
+
+    it('el icono de editar solo existe para el Coordinador', () => {
+      perfil$.next('Instructor');
+      fixture.detectChanges();
+      expect(el().querySelectorAll('button[aria-label^="Editar instructor "]').length).toBe(0);
+      perfil$.next('Coordinador');
+      fixture.detectChanges();
+      expect(el().querySelectorAll('button[aria-label^="Editar instructor "]').length).toBe(3);
     });
   });
 

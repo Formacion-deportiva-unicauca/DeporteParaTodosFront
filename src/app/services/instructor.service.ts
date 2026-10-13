@@ -29,6 +29,14 @@ export class InstructorServisce {
         );
     }
 
+    actualizarInstructor(id: string, datos: { nombre: string; correo: string }): Observable<InstructorDTO> {
+        return this.http.put<InstructorDTO>(`${this.apiUrl}/instructor/${encodeURIComponent(id)}`, datos).pipe(
+            catchError((error) => {
+                return throwError(error);
+            })
+        );
+    }
+
     deleteInstructor(instructorId: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/instructor?instructorId=${encodeURIComponent(instructorId)}`).pipe(
             catchError((error) => {
