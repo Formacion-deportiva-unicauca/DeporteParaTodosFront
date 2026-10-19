@@ -1,0 +1,56 @@
+<button mat-icon-button class="close-button" type="button" matDialogClose aria-label="Cerrar diálogo">
+  <mat-icon>close</mat-icon>
+</button>
+
+<mat-dialog-content class="dialog-content">
+  <header class="title-two">Prórroga para registrar asistencia</header>
+
+  <form [formGroup]="form" (ngSubmit)="guardar()" class="form-content" novalidate>
+    <p class="explicacion-prorroga">
+      Cada instructor puede registrar asistencia de un mes hasta el último día de ese mes, más los días de prórroga
+      que asignes aquí. Si el mes ya terminó, los días se cuentan desde hoy.
+    </p>
+
+    <section class="instructores-elegidos" aria-labelledby="titulo-elegidos">
+      <h2 id="titulo-elegidos" class="subtitulo">Instructores elegidos ({{ data.instructores.length }})</h2>
+      <p *ngIf="data.instructores.length === 0" class="sin-instructores" role="alert">
+        No hay instructores elegidos. Cierra este diálogo y elige al menos uno.
+      </p>
+      <ul *ngIf="data.instructores.length > 0">
+        <li *ngFor="let i of data.instructores">{{ i.nombre }}</li>
+      </ul>
+    </section>
+
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Mes</mat-label>
+      <select matNativeControl id="mes" formControlName="mes">
+        <option *ngFor="let m of meses" [value]="m.valor">{{ m.etiqueta }}</option>
+      </select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Días de prórroga</mat-label>
+      <input matInput id="dias" type="number" min="0" max="60" step="1" inputmode="numeric"
+             formControlName="dias" autocomplete="off" cdkFocusInitial>
+      <mat-hint>0 quita la prórroga. Entero de 0 a 60.</mat-hint>
+      <mat-error *ngIf="diasCtrl.hasError('required')">Escribe los días de prórroga (0 a 60)</mat-error>
+      <mat-error *ngIf="diasCtrl.hasError('diasFueraDeRango')">Los días deben ser un entero de 0 a 60</mat-error>
+    </mat-form-field>
+
+    <section class="vigentes" aria-live="polite" aria-labelledby="titulo-vigentes">
+      <h2 id="titulo-vigentes" class="subtitulo">Prórrogas vigentes del mes</h2>
+      <p *ngIf="cargandoVigentes">Cargando prórrogas vigentes…</p>
+      <p *ngIf="errorVigentes" class="error-vigentes" role="alert">{{ errorVigentes }}</p>
+      <ul *ngIf="!cargandoVigentes && !errorVigentes && data.instructores.length > 0">
+        <li *ngFor="let i of data.instructores">{{ i.nombre }}: {{ textoVigente(i.id) }}</li>
+      </ul>
+    </section>
+
+    <p *ngIf="errorServidor" class="error-servidor" role="alert">{{ errorServidor }}</p>
+
+    <div class="form-buttons">
+      <button mat-button type="button" class="btn-cancelar" (click)="cancelar()">Cancelar</button>
+      <button mat-raised-button type="submit" class="btn-guardar" [disabled]="!puedeGuardar">Guardar</button>
+    </div>
+  </form>
+</mat-dialog-content>

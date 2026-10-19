@@ -14,6 +14,8 @@ import { InscripcionEnEsperaDto } from 'src/app/Models/DTOs/inscripcion-en-esper
 import { ClaseDTO } from 'src/app/Models/DTOs/clase-dto';
 import { AtencionDTO } from 'src/app/Models/DTOs/atencion-dto';
 import { AlumnoDTO } from 'src/app/Models/DTOs/alumno-dto';
+import { NovedadClaseService } from 'src/app/services/novedad-clase.service';
+import { NovedadClaseDto } from 'src/app/Models/DTOs/novedad-clase-dto';
 
 describe('ListDeportistasdeCursoComponent', () => {
   let component: ListDeportistasdeCursoComponent;
@@ -108,6 +110,8 @@ describe('ListDeportistasdeCursoComponent', () => {
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
     spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of({} as any));
+    spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
 
     fixture.detectChanges();
   });
@@ -304,6 +308,8 @@ describe('ListDeportistasdeCursoComponent — rol Instructor', () => {
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
     spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of({} as any));
+    spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
 
     fixture.detectChanges();
   });
@@ -324,5 +330,163 @@ describe('ListDeportistasdeCursoComponent — rol Instructor', () => {
     component.listaEspera = [mockEsperaItem];
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Lista de espera');
+  });
+});
+
+// ── Pruebas de novedad de clase no realizada ────────────────────────────────
+describe('ListDeportistasdeCursoComponent — novedad de clase no realizada', () => {
+  let component: ListDeportistasdeCursoComponent;
+  let fixture: ComponentFixture<ListDeportistasdeCursoComponent>;
+
+  const mockNovedad: NovedadClaseDto = {
+    codigo: 1,
+    categoria: 'Futbol',
+    curso: 'Avanzado',
+    anio: 2024,
+    iterable: 1,
+    fecha: '2024-08-20',
+    motivo: 'CLIMA',
+    descripcion: null,
+    estado: 'NO_REALIZADA',
+    idUsuarioCreador: 'inst-1',
+    fechaCreacion: '2024-08-20T10:00:00',
+    idUsuarioModificador: null,
+    fechaModificacion: null,
+    version: 0,
+  };
+
+  beforeEach(async () => {
+    const perfilSubject = new BehaviorSubject<string>('Coordinador');
+
+    await TestBed.configureTestingModule({
+      imports: [ListDeportistasdeCursoComponent, NoopAnimationsModule, HttpClientTestingModule],
+      providers: [
+        DatePipe,
+        { provide: PerfilService, useValue: { perfil$: perfilSubject } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of(convertToParamMap({
+              categoria: 'Futbol',
+              curso: 'Avanzado',
+              anio: '2024',
+              iterable: '1',
+            })),
+          },
+        },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    })
+      .overrideComponent(ListDeportistasdeCursoComponent, {
+        remove: { imports: [SidenavComponent] },
+        add: { schemas: [NO_ERRORS_SCHEMA] },
+      })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ListDeportistasdeCursoComponent);
+    component = fixture.componentInstance;
+
+    const mockGrupoLocal: GrupoDTO = {
+      categoria: 'Futbol',
+      curso: 'Avanzado',
+      anio: 2024,
+      iterable: 1,
+      imagenGrupo: 0,
+      idInstructor: 'inst-1',
+      nombreInstructor: '',
+      cupos: 10,
+      fechaCreacion: '',
+    };
+
+    spyOn(component['grupoService'], 'getGrupo').and.returnValue(of(mockGrupoLocal));
+    spyOn(component['alumnoService'], 'getAlumnosGrupo').and.returnValue(of([]));
+    spyOn(component['inscripcionService'], 'getListaEspera').and.returnValue(of([]));
+    spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
+    spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
+    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of({} as any));
+    spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([mockNovedad]));
+
+    fixture.detectChanges();
+  });
+
+  it('abrirFormNovedad() muestra el formulario de novedad', () => {
+    component.abrirFormNovedad();
+    expect(component.mostrarFormNovedad).toBeTrue();
+  });
+
+  it('cerrarFormNovedad() oculta el formulario y limpia controles', () => {
+    component.abrirFormNovedad();
+    component.motivoCtrl.setValue('OTRO');
+    component.descripcionCtrl.setValue('alguna descripcion');
+    component.cerrarFormNovedad();
+    expect(component.mostrarFormNovedad).toBeFalse();
+    expect(component.motivoCtrl.value).toBe('');
+    expect(component.descripcionCtrl.value).toBe('');
+  });
+
+  it('descripcionObligatoria es true cuando el motivo es OTRO', () => {
+    component.motivoCtrl.setValue('OTRO');
+    expect(component.descripcionObligatoria).toBeTrue();
+  });
+
+  it('descripcionObligatoria es false cuando el motivo no es OTRO', () => {
+    component.motivoCtrl.setValue('CLIMA');
+    expect(component.descripcionObligatoria).toBeFalse();
+  });
+
+  it('formNovedadValido es false cuando motivo esta vacio', () => {
+    component.motivoCtrl.setValue('');
+    component.descripcionCtrl.setValue('');
+    expect(component.formNovedadValido).toBeFalse();
+  });
+
+  it('formNovedadValido es false cuando motivo es OTRO y descripcion esta vacia', () => {
+    component.motivoCtrl.setValue('OTRO');
+    component.descripcionCtrl.setValue('');
+    expect(component.formNovedadValido).toBeFalse();
+  });
+
+  it('formNovedadValido es true cuando motivo es CLIMA sin descripcion', () => {
+    component.motivoCtrl.setValue('CLIMA');
+    component.descripcionCtrl.setValue('');
+    expect(component.formNovedadValido).toBeTrue();
+  });
+
+  it('registrarNovedad() llama al servicio y muestra snack de éxito', () => {
+    component.abrirFormNovedad();
+    component.motivoCtrl.setValue('CLIMA');
+    component.fechaNovedadCtrl.setValue('2024-08-20');
+    component.registrarNovedad();
+    expect(component['novedadClaseService'].registrarNovedad).toHaveBeenCalled();
+    expect(component.mostrarFormNovedad).toBeFalse();
+    expect(component['snackBar'].open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Novedad registrada'), 'Cerrar',
+      jasmine.objectContaining({ panelClass: ['snack-success'] })
+    );
+  });
+
+  it('cargarNovedades() carga la lista de novedades del grupo', () => {
+    component.cargarNovedades();
+    expect(component.novedades.length).toBe(1);
+    expect(component.novedades[0].motivo).toBe('CLIMA');
+  });
+
+  it('getNovedadParaFecha() encuentra la novedad por fecha', () => {
+    component.cargarNovedades();
+    const encontrada = component.getNovedadParaFecha('2024-08-20');
+    expect(encontrada).not.toBeNull();
+    expect(encontrada!.motivo).toBe('CLIMA');
+  });
+
+  it('getNovedadParaFecha() retorna null si no hay novedad para esa fecha', () => {
+    component.cargarNovedades();
+    const encontrada = component.getNovedadParaFecha('2024-09-01');
+    expect(encontrada).toBeNull();
+  });
+
+  it('motivoNombre() retorna el nombre legible del motivo', () => {
+    expect(component.motivoNombre('CLIMA').normalize('NFC')).toBe('Condiciones climáticas'.normalize('NFC'));
+    expect(component.motivoNombre('OTRO').normalize('NFC')).toBe('Otro motivo'.normalize('NFC'));
   });
 });

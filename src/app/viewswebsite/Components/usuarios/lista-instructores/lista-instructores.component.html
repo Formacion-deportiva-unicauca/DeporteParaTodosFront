@@ -38,9 +38,31 @@
     <p class="aviso-reportes" *ngIf="textoAviso as aviso" role="status" aria-live="polite">{{ aviso }}</p>
     <p class="error-plazos" *ngIf="errorPlazos" role="alert">No se pudo cargar el estado de los reportes</p>
 
+    <div class="barra-seleccion" *ngIf="perfil === 'Coordinador'">
+      <p class="contador-seleccion" aria-live="polite">{{ textoSeleccion }}</p>
+      <button mat-stroked-button type="button" class="btn-prorroga-masiva"
+              [disabled]="seleccionados.size === 0" (click)="asignarProrrogaSeleccionados()">Asignar prórroga</button>
+      <button mat-button type="button" class="btn-limpiar-seleccion" *ngIf="seleccionados.size > 0"
+              (click)="limpiarSeleccion()">Limpiar selección</button>
+    </div>
+
     <div class="tabla-container">
       <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" matSort
              [style.display]="hayFilas ? null : 'none'">
+        <!-- Columna de selección (solo Coordinador) -->
+        <ng-container matColumnDef="Seleccion">
+          <th mat-header-cell *matHeaderCellDef scope="col">
+            <mat-checkbox aria-label="Seleccionar todos los instructores mostrados"
+                          [checked]="todosSeleccionados" [indeterminate]="algunosSeleccionados"
+                          (change)="alternarTodos($event.checked)"></mat-checkbox>
+          </th>
+          <td mat-cell *matCellDef="let instructor">
+            <mat-checkbox [aria-label]="'Seleccionar a ' + instructor.nombre"
+                          [checked]="estaSeleccionado(instructor.id)"
+                          (change)="alternar(instructor.id, $event.checked)"></mat-checkbox>
+          </td>
+        </ng-container>
+
         <!-- Columna Código -->
         <ng-container matColumnDef="Identificacion">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Identificación</th>
@@ -80,9 +102,9 @@
         <ng-container matColumnDef="Acciones">
           <th mat-header-cell *matHeaderCellDef>Acciones</th>
           <td mat-cell *matCellDef="let instructor">
-            <button mat-stroked-button type="button" class="btn-plazo" *ngIf="perfil === 'Coordinador' && plazoDe(instructor.id) as p"
-                    [attr.aria-label]="textoBotonPlazo(p) + ' de carga a ' + instructor.nombre"
-                    (click)="asignarPlazo(instructor)">{{ textoBotonPlazo(p) }}</button>
+            <button mat-stroked-button type="button" class="btn-prorroga-fila" *ngIf="perfil === 'Coordinador'"
+                    [attr.aria-label]="'Asignar prórroga a ' + instructor.nombre"
+                    (click)="asignarProrrogaA(instructor)">Prórroga</button>
             <button mat-icon-button type="button" color="primary" *ngIf="perfil === 'Coordinador'"
                     [attr.aria-label]="'Editar instructor ' + instructor.nombre"
                     (click)="editarInstructor(instructor)">

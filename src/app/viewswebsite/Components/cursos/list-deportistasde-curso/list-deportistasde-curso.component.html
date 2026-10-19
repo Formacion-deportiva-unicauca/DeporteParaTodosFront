@@ -3,7 +3,7 @@
     <h2>Información de grupo</h2>
     <table class="tabla-info">
       <tr>
-        <td><strong>Categoría</strong></td>
+        <td><strong>Categoróa</strong></td>
         <td>{{ grupo.categoria }}</td>
       </tr>
       <tr>
@@ -52,37 +52,39 @@
 
         <!-- Columna Código -->
         <ng-container matColumnDef="Código">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Código </th>
+          <th mat-header-cell scope="col" *matHeaderCellDef mat-sort-header> Código </th>
           <td mat-cell *matCellDef="let alumno"> {{ alumno.codigo }} </td>
         </ng-container>
 
         <!-- Columna Nombre -->
         <ng-container matColumnDef="Nombre">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Nombre </th>
+          <th mat-header-cell scope="col" *matHeaderCellDef mat-sort-header> Nombre </th>
           <td mat-cell *matCellDef="let alumno"> {{ alumno.nombre }} </td>
         </ng-container>
 
          <ng-container matColumnDef="Correo">
-          <th mat-header-cell *matHeaderCellDef> Correo </th>
+          <th mat-header-cell scope="col" *matHeaderCellDef> Correo </th>
           <td mat-cell *matCellDef="let alumno"> {{ alumno.correo }} </td>
         </ng-container>
 
         <!-- Columna Correo -->
         <ng-container matColumnDef="Faltas">
-          <th mat-header-cell *matHeaderCellDef> Faltas </th>
+          <th mat-header-cell scope="col" *matHeaderCellDef> Faltas </th>
           <td mat-cell *matCellDef="let alumno">  </td>
         </ng-container>
 
         <ng-container matColumnDef="Asistencia">
-          <th mat-header-cell *matHeaderCellDef> Asistencia </th>
+          <th mat-header-cell scope="col" *matHeaderCellDef> Asistencia </th>
           <td mat-cell *matCellDef="let alumno">
-            <mat-checkbox (change)="toggleSelection(alumno, $event)" [checked]="isSelected(alumno)">
+            <mat-checkbox [aria-label]="'Asistió: ' + alumno.nombre" [disabled]="cargandoMarcas || bloqueado"
+                          [checked]="estaMarcado(alumno)"
+                          (change)="alternarAsistencia(alumno, $event.checked)">
             </mat-checkbox>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="Acciones">
-          <th mat-header-cell *matHeaderCellDef> Acciones </th>
+          <th mat-header-cell scope="col" *matHeaderCellDef> Acciones </th>
           <td mat-cell *matCellDef="let alumno">
             <button mat-icon-button color="primary" (click)="editarAlumno(alumno)" *ngIf="rol === 'Coordinador'">
               <mat-icon>edit</mat-icon>
@@ -101,11 +103,92 @@
     </div>
 
   </div>
-  <div class="btnAsistencias">
-    <button mat-raised-button class="btn-primary" [disabled]="seleccionados.length === 0"
-      (click)="registrarAsistencia()">
-      Registrar asistencia
-    </button>
+  <div class="datos registro-asistencia" role="region" aria-labelledby="titulo-registro">
+    <div class="headerTabla">
+      <h2 id="titulo-registro">Registrar asistencia</h2>
+    </div>
+
+    <div class="resumen-registro">
+      <p class="fecha-hoy"><strong>Fecha:</strong> {{ hoyLargo }} (hoy)</p>
+      <p class="dias-de-clase" *ngIf="situacionHoy !== 'hoy-sin-clase' && textoDiasDeClase as dias">{{ dias }}</p>
+      <p class="horario-del-dia" *ngIf="franjaVisible as f"><strong>Horario de hoy:</strong> {{ f.texto }}</p>
+    </div>
+
+    <div id="aviso-horario" class="aviso-horario sin-horario" *ngIf="situacionHoy === 'sin-horario'" role="alert">
+      <mat-icon aria-hidden="true">event_busy</mat-icon>
+      <span>Este grupo no tiene horario definido; pide al Coordinador que lo configure</span>
+    </div>
+    <div id="aviso-horario" class="aviso-horario hoy-sin-clase" *ngIf="situacionHoy === 'hoy-sin-clase'" role="alert">
+      <mat-icon aria-hidden="true">event_busy</mat-icon>
+      <span>{{ textoHoySinClase }}</span>
+    </div>
+
+    <section class="fuera-de-horario" *ngIf="mostrarFueraDeHorario" aria-labelledby="titulo-fuera-horario" role="alert">
+      <h3 id="titulo-fuera-horario">Clase fuera de horario</h3>
+      <p>Este grupo no tiene una franja de horario asignada para hoy.</p>
+    </section>
+
+    <p class="ayuda-asistencia" *ngIf="!bloqueado">Marca a quienes asistieron; quien quede sin marcar se registra con falta.</p>
+    <p class="contadores-asistencia" *ngIf="!bloqueado" aria-live="polite">{{ textoContadores }}</p>
+    <p class="cargando-marcas" *ngIf="cargandoMarcas" aria-live="polite">Cargando asistencia registrada…</p>
+
+    <p class="error-registro" *ngIf="errorRegistro" role="alert">{{ errorRegistro }}</p>
+    <p class="aviso-registro" *ngIf="avisoRegistro" aria-live="polite">{{ avisoRegistro }}</p>
+
+    <div class="btnAsistencias">
+      <button mat-raised-button type="button" class="btn-primary btn-registrar"
+              [disabled]="!puedeRegistrar" [attr.aria-describedby]="bloqueado ? 'aviso-horario' : null"
+              (click)="registrarAsistencia()">
+        {{ textoBotonRegistrar }}
+      </button>
+      <button mat-raised-button type="button" class="btn-primary btn-novedad"
+              [disabled]="!puedeRegistrarNovedad" (click)="abrirFormNovedad()">
+        <mat-icon>event_busy</mat-icon> Registrar novedad de clase no realizada
+      </button>
+    </div>
+
+    <!-- ── Formulario de novedad ─────────────────────────────────────────── -->
+    <section class="form-novedad" *ngIf="mostrarFormNovedad" role="region" aria-labelledby="titulo-novedad">
+      <h3 id="titulo-novedad">Registro de clase no realizada</h3>
+      <p>Seleccione el motivo y, si corresponde, una descripción adicional.</p>
+
+      <div class="campo">
+        <label for="fechaNovedad">Fecha de la clase</label>
+        <input id="fechaNovedad" type="date" [formControl]="fechaNovedadCtrl" required />
+      </div>
+
+      <div class="campo">
+        <label for="motivoNovedad">Motivo</label>
+        <select id="motivoNovedad" [formControl]="motivoCtrl" required>
+          <option value="">-- Seleccione --</option>
+          <option *ngFor="let m of motivos" [value]="m.codigo">{{ m.nombre }}</option>
+        </select>
+      </div>
+
+      <div class="campo" *ngIf="descripcionObligatoria">
+        <label for="descripcionNovedad">Descripción (obligatoria para 'Otro motivo')</label>
+        <textarea id="descripcionNovedad" rows="3" [formControl]="descripcionCtrl" required></textarea>
+        <small class="pie-campo">Máximo {{ maxDescripcion }} caracteres</small>
+      </div>
+
+      <div class="campo" *ngIf="!descripcionObligatoria">
+        <label for="descripcionNovedad">Descripción adicional (opcional)</label>
+        <textarea id="descripcionNovedad" rows="3" [formControl]="descripcionCtrl"></textarea>
+        <small class="pie-campo">Máximo {{ maxDescripcion }} caracteres</small>
+      </div>
+
+      <p class="error-registro" *ngIf="errorNovedad" role="alert">{{ errorNovedad }}</p>
+
+      <div class="btnAsistencias">
+        <button mat-raised-button type="button" class="btn-primary"
+                [disabled]="!formNovedadValido" (click)="registrarNovedad()">
+          Guardar novedad
+        </button>
+        <button mat-button type="button" class="btn-secundario" (click)="cerrarFormNovedad()">
+          Cancelar
+        </button>
+      </div>
+    </section>
   </div>
 
   <div class="datos" *ngIf="rol === 'Coordinador' && listaEspera.length > 0">
@@ -174,8 +257,26 @@
              style="cursor:pointer;">
           <span><strong>Fecha:</strong> {{ clase.fecha | date:'d \'de\' MMMM \'de\' y' }}</span>
           <span class="ms-3"><strong>Duración:</strong> {{ clase.horas }}h {{ clase.minutos }}min</span>
+          <span class="badge-novedad" *ngIf="getNovedadParaFecha(clase.fecha) as novedad">
+            <mat-icon>event_busy</mat-icon> No realizada: {{ motivoNombre(novedad.motivo) }}
+          </span>
           <mat-icon>{{ clasesExpandidas.has(clase.codigo) ? 'expand_less' : 'expand_more' }}</mat-icon>
         </div>
+
+        <p class="clase-justificacion" *ngIf="clase.justificacion && clase.justificacion.trim()">
+          <strong>Justificación:</strong> {{ clase.justificacion.trim() }}
+        </p>
+
+        <p class="clase-novedad" *ngIf="getNovedadParaFecha(clase.fecha) as novedad; else noNovedad">
+          <strong>Estado:</strong> No realizada &middot;
+          <strong>Motivo:</strong> {{ motivoNombre(novedad.motivo) }} &
+          <strong>Registrado por:</strong> {{ novedad.idUsuarioCreador }} &
+          <strong>Fecha:</strong> {{ novedad.fechaCreacion | date:'short' }}
+          <span *ngIf="novedad.descripcion && novedad.descripcion.trim()">
+            &middot; <strong>Descripción:</strong> {{ novedad.descripcion.trim() }}
+          </span>
+        </p>
+        <ng-template #noNovedad></ng-template>
 
         <div *ngIf="clasesExpandidas.has(clase.codigo)" class="clase-detalle">
           <p *ngIf="!clasesAtenciones[clase.codigo]">Cargando asistencias...</p>
@@ -184,15 +285,15 @@
             <table *ngIf="atenciones.length > 0" class="tabla-atenciones">
               <thead>
                 <tr>
-                  <th>Deportista</th>
-                  <th>Asistió</th>
-                  <th>Acciones</th>
+                  <th scope="col">Deportista</th>
+                  <th scope="col">Asistió</th>
+                  <th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let atencion of atenciones">
                   <td>{{ getNombreAlumno(atencion.idPerfil) }}</td>
-                  <td>{{ atencion.estaAtendido ? 'Sí' : 'No' }}</td>
+                  <td>{{ atencion.estaAtendido ? 'Só' : 'No' }}</td>
                   <td>
                     <button mat-icon-button color="warn" (click)="eliminarAtencion(atencion, clase)"
                             title="Eliminar asistencia">

@@ -13,6 +13,7 @@ import { GrupoService } from 'src/app/services/grupo.service';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
 import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
 import { FormInstructorComponent } from '../form-instructor/form-instructor.component';
+import { FormProrrogaRegistroComponent } from '../form-prorroga-registro/form-prorroga-registro.component';
 import { PerfilInstructor } from 'src/app/Models/DTOs/instructor-dto';
 import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 
@@ -286,6 +287,78 @@ describe('DetalleInstructorComponent', () => {
     it('Editar está deshabilitado si el instructor no se pudo cargar', () => {
       crear(() => instructorSpy.getInstructor.and.returnValue(throwError(() => http(500))));
       expect(botonEditar()!.disabled).toBeTrue();
+    });
+  });
+
+  describe('prórroga de registro (SCRUM-80 rediseñado)', () => {
+    const botonProrroga = (): HTMLButtonElement | null => el().querySelector('button.btn-prorroga');
+    let abrir: jasmine.Spy;
+    const cierraCon = (resultado: unknown): void => {
+      abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
+    };
+
+    it('el botón "Prórroga" aparece solo para el Coordinador', () => {
+      perfil$.next('Instructor');
+      crear();
+      expect(botonProrroga()).toBeNull();
+    });
+
+    it('es un botón real con aria-label que incluye el nombre y se deshabilita si el instructor no se cargó', () => {
+      crear();
+      expect(botonProrroga()!.textContent?.trim()).toBe('Prórroga');
+      expect(botonProrroga()!.getAttribute('aria-label')).toBe('Asignar prórroga a Katerinn Arcos Daza');
+      expect(botonProrroga()!.getAttribute('type')).toBe('button');
+    });
+
+    it('deshabilitado si getInstructor falla', () => {
+      crear(() => instructorSpy.getInstructor.and.returnValue(throwError(() => http(500))));
+      expect(botonProrroga()!.disabled).toBeTrue();
+    });
+
+    it('abre el MISMO diálogo de prórroga con ese instructor (id y nombre)', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
+      botonProrroga()!.click();
+      expect(abrir).toHaveBeenCalledWith(
+        FormProrrogaRegistroComponent,
+        jasmine.objectContaining({ data: { instructores: [{ id: 'INS01', nombre: 'Katerinn Arcos Daza' }] } }),
+      );
+    });
+
+    it('éxito: snackbar "Prórroga asignada a 1 instructor" sin volver a pedir el instructor', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open');
+      const snack = snackOpen;
+      cierraCon([{ idInstructor: 'INS01', dias: 10, fechaLimite: '2026-11-10' }]);
+      botonProrroga()!.click();
+      expect(snack).toHaveBeenCalledWith('Prórroga asignada a 1 instructor', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+      expect(instructorSpy.getInstructor).toHaveBeenCalledTimes(1);
+    });
+
+    it('dias = 0: "Prórroga quitada"', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open');
+      const snack = snackOpen;
+      cierraCon([{ idInstructor: 'INS01', dias: 0, fechaLimite: null }]);
+      botonProrroga()!.click();
+      expect(snack).toHaveBeenCalledWith('Prórroga quitada', '', jasmine.any(Object));
+    });
+
+    it('Cancelar no muestra snackbar', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
+      const snack = snackOpen;
+      botonProrroga()!.click();
+      expect(snack).not.toHaveBeenCalled();
+    });
+
+    it('señal "ya no existe": muestra el estado "Instructor no encontrado"', () => {
+      crear();
+      abrir = spyOn(component['dialog'], 'open');
+      cierraCon({ yaNoExiste: true });
+      botonProrroga()!.click();
+      fixture.detectChanges();
+      expect(texto('h1')).toBe('Instructor no encontrado');
     });
   });
 });

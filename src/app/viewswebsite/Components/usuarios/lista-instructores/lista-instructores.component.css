@@ -144,3 +144,23 @@ table {
   outline: 2px solid #1565c0;
   outline-offset: 2px;
 }
+
+.barra-seleccion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+
+.contador-seleccion {
+  margin: 0;
+  font-weight: 600;
+}
+
+.btn-prorroga-masiva:focus-visible,
+.btn-limpiar-seleccion:focus-visible,
+.btn-prorroga-fila:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 2px;
+}

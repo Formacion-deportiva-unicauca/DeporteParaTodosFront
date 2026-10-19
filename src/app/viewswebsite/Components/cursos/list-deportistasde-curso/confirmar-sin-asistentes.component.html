@@ -1,0 +1,14 @@
+<button mat-icon-button class="close-button" type="button" aria-label="Cerrar diálogo" (click)="volver()">
+  <mat-icon>close</mat-icon>
+</button>
+
+<h2 mat-dialog-title class="titulo">Registrar el día sin asistentes</h2>
+
+<mat-dialog-content>
+  <p class="texto-confirmacion">Ningún alumno marcado: todos quedarán con falta. ¿Continuar?</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" class="btn-volver" cdkFocusInitial (click)="volver()">Volver</button>
+  <button mat-flat-button type="button" class="btn-confirmar" (click)="confirmar()">Continuar</button>
+</mat-dialog-actions>

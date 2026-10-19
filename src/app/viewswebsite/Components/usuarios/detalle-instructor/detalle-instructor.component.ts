@@ -16,6 +16,8 @@ import { PerfilInstructor } from 'src/app/Models/DTOs/instructor-dto';
 import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
 import { FormInstructorComponent, ResultadoFormInstructor } from '../form-instructor/form-instructor.component';
+import { FormProrrogaRegistroComponent, ResultadoFormProrrogaRegistro } from '../form-prorroga-registro/form-prorroga-registro.component';
+import { textoResultadoProrroga } from 'src/app/shared/prorroga-registro.util';
 
 /** Detalle de un instructor para el Coordinador: información personal y grupos que dirige. */
 @Component({
@@ -142,6 +144,23 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
         }
         // Se vuelve a pedir el instructor para mostrar lo que realmente quedó guardado.
         this.cargarInstructor(this.idActual).pipe(takeUntil(this.destroy$)).subscribe();
+      });
+  }
+
+  /** Abre el diálogo de prórroga de registro con este instructor. */
+  asignarProrroga(): void {
+    if (!this.instructor) return;
+    const { id, nombre } = this.instructor;
+    this.dialog.open(FormProrrogaRegistroComponent, { data: { instructores: [{ id, nombre }] } })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((resultado?: ResultadoFormProrrogaRegistro) => {
+        if (!resultado) return;
+        if ('yaNoExiste' in resultado) {
+          this.instructorNoEncontrado = true;
+          return;
+        }
+        this.snackBar.open(textoResultadoProrroga(resultado), '', { duration: 3000, panelClass: 'snack-success' });
       });
   }
 

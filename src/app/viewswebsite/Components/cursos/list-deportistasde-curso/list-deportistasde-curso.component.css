@@ -60,3 +60,220 @@ table {
   background-color:#000066 !important;
   color: white !important; 
 }
+
+/* ── Registrar asistencia ───────────────────────────────────────────────── */
+.registro-asistencia {
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+.registro-asistencia p {
+  margin: 6px 0;
+}
+
+.resumen-registro {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 8px 0 12px;
+}
+
+.fecha-hoy {
+  font-size: 1.05rem;
+}
+
+.horario-del-dia,
+.dias-de-clase {
+  color: #333;
+}
+
+.aviso-horario {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left: 4px solid #b3261e;
+  background: #fdecea;
+  color: #7a1a14;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 8px 0 12px;
+  font-weight: 600;
+}
+
+.fuera-de-horario {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 8px 0 16px;
+}
+
+.fuera-de-horario h3 {
+  font-size: 1.1rem;
+  margin: 0 0 6px;
+  color: #000066;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 0;
+}
+
+.campo label {
+  font-weight: 600;
+}
+
+/* Misma letra que el resto de la pantalla (los controles nativos usan otra por defecto). */
+.registro-asistencia textarea,
+.registro-asistencia input {
+  font: inherit;
+  color: inherit;
+  padding: 8px 10px;
+  border: 1px solid #8a8a8a;
+  border-radius: 4px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.registro-asistencia textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.registro-asistencia textarea:focus-visible,
+.registro-asistencia input:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 1px;
+}
+
+.pie-campo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fuera-de-horario small {
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.duracion-manual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.duracion-manual input {
+  width: 110px;
+}
+
+.ayuda-asistencia {
+  color: #333;
+  margin-top: 14px;
+}
+
+.contadores-asistencia {
+  font-weight: 700;
+  margin: 4px 0 8px;
+}
+
+.cargando-marcas {
+  color: #555;
+}
+
+.error-registro {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+.aviso-registro {
+  color: #333;
+}
+
+.registro-asistencia .btnAsistencias {
+  justify-content: flex-end;
+  padding: 8px 0 0;
+}
+
+.aviso-horario mat-icon {
+  flex: 0 0 auto;
+}
+
+/* ── Historial de clases ────────────────────────────────────────────────── */
+.clase-justificacion {
+  margin: 4px 0 8px;
+  color: #333;
+  font-style: italic;
+}
+
+/* ── Novedad de clase no realizada ─────────────────────────────────────── */
+.badge-novedad {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #fff3e0;
+  color: #e65100;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clase-novedad {
+  margin: 4px 0 8px;
+  color: #e65100;
+  font-size: 0.9em;
+}
+
+.form-novedad {
+  margin: 16px 0;
+  padding: 16px;
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.form-novedad h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.form-novedad .campo {
+  margin-bottom: 12px;
+}
+
+.form-novedad label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-novedad input,
+.form-novedad select,
+.form-novedad textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+.form-novedad .pie-campo {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8em;
+  color: #666;
+}
+
+.form-novedad .btnAsistencias {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}

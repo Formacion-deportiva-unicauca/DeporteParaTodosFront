@@ -11,7 +11,7 @@ import { PerfilService } from 'src/app/services/perfil.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
 import { FormInstructorComponent } from '../form-instructor/form-instructor.component';
-import { FormPlazoCargaComponent } from '../form-plazo-carga/form-plazo-carga.component';
+import { FormProrrogaRegistroComponent } from '../form-prorroga-registro/form-prorroga-registro.component';
 import { PlazoCargaDTO } from 'src/app/Models/DTOs/plazo-carga-dto';
 
 const instructorDummy: InstructorDTO = {
@@ -346,7 +346,6 @@ describe('ListaInstructoresComponent', () => {
         tr => tr.querySelector('a.enlace-instructor')?.textContent?.trim() === nombre,
       ) as HTMLElement;
     const textoReporte = (nombre: string): string => fila(nombre).querySelector('.texto-reporte')?.textContent?.trim() ?? '';
-    const botonPlazo = (nombre: string): HTMLButtonElement | null => fila(nombre).querySelector('button.btn-plazo');
     const nombres = (): string[] =>
       Array.from(el().querySelectorAll('tr[mat-row] a.enlace-instructor')).map(a => a.textContent!.trim());
     const aviso = (): HTMLElement | null => el().querySelector('.aviso-reportes');
@@ -429,27 +428,6 @@ describe('ListaInstructoresComponent', () => {
       });
     });
 
-    describe('botón por fila', () => {
-      beforeEach(() => cargar([maria, juan, ana, luis, eva]));
-
-      it('"Asignar plazo" si SIN_PLAZO, con aria-label que incluye el nombre', () => {
-        expect(botonPlazo('María García')?.textContent?.trim()).toBe('Asignar plazo');
-        expect(botonPlazo('María García')?.getAttribute('aria-label')).toBe('Asignar plazo de carga a María García');
-        expect(botonPlazo('María García')?.getAttribute('type')).toBe('button');
-      });
-
-      it('"Ampliar plazo" si el plazo está vencido (VENCIDO y GENERADO con plazo cerrado)', () => {
-        expect(botonPlazo('Ana Gómez')?.textContent?.trim()).toBe('Ampliar plazo');
-        expect(botonPlazo('Luis Ríos')?.textContent?.trim()).toBe('Ampliar plazo');
-        expect(botonPlazo('Ana Gómez')?.getAttribute('aria-label')).toBe('Ampliar plazo de carga a Ana Gómez');
-      });
-
-      it('"Cambiar plazo" en los demás casos', () => {
-        expect(botonPlazo('Juan Pérez')?.textContent?.trim()).toBe('Cambiar plazo');
-        expect(botonPlazo('Eva Mora')?.textContent?.trim()).toBe('Cambiar plazo');
-      });
-    });
-
     describe('si los plazos fallan', () => {
       beforeEach(() => cargar([maria, juan], throwError(() => new HttpErrorResponse({ status: 500 }))));
 
@@ -488,85 +466,252 @@ describe('ListaInstructoresComponent', () => {
       });
     });
 
-    describe('asignar plazo (diálogo)', () => {
-      let abrir: jasmine.Spy;
-      let snack: jasmine.Spy;
-      const cierraCon = (resultado: unknown): void => {
-        abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
-      };
+  });
 
-      beforeEach(() => {
-        cargar([maria, juan, ana, luis, eva]);
-        abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
-        snack = spyOn(component['snackBar'], 'open');
-        mockInstructorService.getInstructores.calls.reset();
-        mockInstructorService.getPlazosCarga.calls.reset();
+  describe('prórroga de registro (SCRUM-80 rediseñado)', () => {
+    const maria: InstructorDTO = { id: '1001', nombre: 'María García', correo: 'maria@unicauca.edu.co', sexo: 'F' };
+    const juan: InstructorDTO = { id: '2002', nombre: 'Juan Pérez', correo: 'juan.perez@unicauca.edu.co', sexo: 'M' };
+    const ana: InstructorDTO = { id: '3003', nombre: 'Ana Gómez', correo: 'ana@correo.com', sexo: 'F' };
+    const el = (): HTMLElement => fixture.nativeElement as HTMLElement;
+    const fila = (nombre: string): HTMLElement =>
+      Array.from(el().querySelectorAll('tr[mat-row]')).find(
+        tr => tr.querySelector('a.enlace-instructor')?.textContent?.trim() === nombre,
+      ) as HTMLElement;
+    const casilla = (nombre: string): HTMLInputElement => fila(nombre).querySelector('mat-checkbox input') as HTMLInputElement;
+    const casillaTodos = (): HTMLInputElement => el().querySelector('th mat-checkbox input') as HTMLInputElement;
+    const nombres = (): string[] =>
+      Array.from(el().querySelectorAll('tr[mat-row] a.enlace-instructor')).map(a => a.textContent!.trim());
+    const contador = (): string => el().querySelector('.contador-seleccion')?.textContent?.trim() ?? '';
+    const botonMasivo = (): HTMLButtonElement | null => el().querySelector('button.btn-prorroga-masiva');
+    const botonFila = (nombre: string): HTMLButtonElement | null => fila(nombre).querySelector('button.btn-prorroga-fila');
+    const marcar = (input: HTMLInputElement): void => {
+      input.click();
+      fixture.detectChanges();
+    };
+    const buscar = (texto: string): void => {
+      const campo = el().querySelector('input#buscar-instructor') as HTMLInputElement;
+      campo.value = texto;
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+    const cargar = (lista: InstructorDTO[]): void => {
+      mockInstructorService.getInstructores.and.returnValue(of(lista));
+      component['cargarInstructores']();
+      fixture.detectChanges();
+    };
+    let abrir: jasmine.Spy;
+    let snack: jasmine.Spy;
+    const cierraCon = (resultado: unknown): void => {
+      abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
+    };
+
+    beforeEach(() => {
+      cargar([maria, juan, ana]);
+      abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
+      snack = spyOn(component['snackBar'], 'open');
+      mockInstructorService.getInstructores.calls.reset();
+    });
+
+    describe('casillas y contador', () => {
+      it('cada fila tiene su casilla con aria-label "Seleccionar a {nombre}" y la cabecera una para todos', () => {
+        expect(casilla('María García').getAttribute('aria-label')).toBe('Seleccionar a María García');
+        expect(casilla('Juan Pérez').getAttribute('aria-label')).toBe('Seleccionar a Juan Pérez');
+        expect(casillaTodos().getAttribute('aria-label')).toBe('Seleccionar todos los instructores mostrados');
       });
 
-      it('abre el diálogo con los datos de ESA fila y su plazo', () => {
-        botonPlazo('Juan Pérez')!.click();
+      it('la columna de selección tiene <th scope="col">', () => {
+        expect(el().querySelector('th mat-checkbox')?.closest('th')?.getAttribute('scope')).toBe('col');
+      });
+
+      it('el contador es una región aria-live="polite" con singular y plural', () => {
+        expect(el().querySelector('.contador-seleccion')?.getAttribute('aria-live')).toBe('polite');
+        expect(contador()).toBe('Ningún instructor seleccionado');
+        marcar(casilla('Juan Pérez'));
+        expect(contador()).toBe('1 instructor seleccionado');
+        marcar(casilla('Ana Gómez'));
+        expect(contador()).toBe('2 instructores seleccionados');
+      });
+
+      it('"Asignar prórroga" está deshabilitado sin selección y habilitado con 1 o más', () => {
+        expect(botonMasivo()!.disabled).toBeTrue();
+        marcar(casilla('Juan Pérez'));
+        expect(botonMasivo()!.disabled).toBeFalse();
+        marcar(casilla('Juan Pérez'));
+        expect(botonMasivo()!.disabled).toBeTrue();
+      });
+
+      it('otros roles NO ven casillas, contador ni botones de prórroga', () => {
+        perfil$.next('Instructor');
+        fixture.detectChanges();
+        expect(el().querySelectorAll('mat-checkbox').length).toBe(0);
+        expect(el().querySelector('.contador-seleccion')).toBeNull();
+        expect(botonMasivo()).toBeNull();
+        expect(el().querySelectorAll('button.btn-prorroga-fila').length).toBe(0);
+      });
+    });
+
+    describe('seleccionar todos (sobre lo filtrado)', () => {
+      it('sin filtro marca todos y la casilla de cabecera queda marcada; al desmarcar limpia todos', () => {
+        marcar(casillaTodos());
+        expect(contador()).toBe('3 instructores seleccionados');
+        expect(casillaTodos().checked).toBeTrue();
+        expect(casillaTodos().indeterminate).toBeFalse();
+        marcar(casillaTodos());
+        expect(contador()).toBe('Ningún instructor seleccionado');
+      });
+
+      it('con filtro marca SOLO lo filtrado', () => {
+        buscar('garcia');
+        marcar(casillaTodos());
+        expect(contador()).toBe('1 instructor seleccionado');
+        buscar('');
+        expect(casilla('María García').checked).toBeTrue();
+        expect(casilla('Juan Pérez').checked).toBeFalse();
+        expect(casilla('Ana Gómez').checked).toBeFalse();
+      });
+
+      it('estado indeterminado cuando solo parte de lo mostrado está seleccionada', () => {
+        marcar(casilla('Juan Pérez'));
+        expect(casillaTodos().indeterminate).toBeTrue();
+        expect(casillaTodos().checked).toBeFalse();
+      });
+
+      it('desmarcar "todos" con filtro quita solo lo filtrado y conserva el resto', () => {
+        marcar(casilla('Juan Pérez'));
+        buscar('garcia');
+        marcar(casillaTodos());           // selecciona a María
+        marcar(casillaTodos());           // quita a María
+        expect(contador()).toBe('1 instructor seleccionado');
+        buscar('');
+        expect(casilla('Juan Pérez').checked).toBeTrue();
+      });
+    });
+
+    describe('la selección sobrevive a filtros y orden', () => {
+      it('un instructor seleccionado y oculto por el filtro sigue contando y vuelve marcado', () => {
+        marcar(casilla('Juan Pérez'));
+        buscar('maria');
+        expect(nombres()).toEqual(['María García']);
+        expect(contador()).toBe('1 instructor seleccionado');
+        buscar('');
+        expect(casilla('Juan Pérez').checked).toBeTrue();
+      });
+
+      it('al ordenar la selección se conserva por id', () => {
+        marcar(casilla('Juan Pérez'));
+        const th = Array.from(el().querySelectorAll('th')).find(h => h.textContent!.trim() === 'Nombre') as HTMLElement;
+        th.click();
+        fixture.detectChanges();
+        expect(nombres()).toEqual(['Ana Gómez', 'Juan Pérez', 'María García']);
+        expect(casilla('Juan Pérez').checked).toBeTrue();
+        expect(contador()).toBe('1 instructor seleccionado');
+      });
+
+      it('"Limpiar selección" la vacía', () => {
+        marcar(casilla('Juan Pérez'));
+        marcar(casilla('Ana Gómez'));
+        (el().querySelector('button.btn-limpiar-seleccion') as HTMLButtonElement).click();
+        fixture.detectChanges();
+        expect(contador()).toBe('Ningún instructor seleccionado');
+        expect(casilla('Juan Pérez').checked).toBeFalse();
+        expect(el().querySelector('button.btn-limpiar-seleccion')).toBeNull();
+      });
+
+      it('al recargar la lista se descartan los seleccionados que ya no existen', () => {
+        marcar(casilla('Juan Pérez'));
+        marcar(casilla('Ana Gómez'));
+        cargar([maria, ana]);
+        expect(contador()).toBe('1 instructor seleccionado');
+      });
+    });
+
+    describe('abrir el diálogo', () => {
+      it('"Asignar prórroga" abre el diálogo con los seleccionados (id y nombre, en el orden de la lista)', () => {
+        marcar(casilla('Ana Gómez'));
+        marcar(casilla('Juan Pérez'));
+        botonMasivo()!.click();
         expect(abrir).toHaveBeenCalledWith(
-          FormPlazoCargaComponent,
+          FormProrrogaRegistroComponent,
           jasmine.objectContaining({
-            data: { id: '2002', nombre: 'Juan Pérez', fechaActual: '2026-10-15', estado: 'PENDIENTE', plazoVencido: false, anio: 2026, periodo: 2 },
+            data: { instructores: [{ id: '2002', nombre: 'Juan Pérez' }, { id: '3003', nombre: 'Ana Gómez' }] },
           }),
         );
       });
 
-      it('Cancelar no cambia nada: ni la fila, ni el aviso, ni snackbar', () => {
-        botonPlazo('Juan Pérez')!.click();
-        fixture.detectChanges();
-        expect(textoReporte('Juan Pérez')).toBe('Pendiente · hasta 15/10/2026');
-        expect(aviso()?.textContent).toContain('3 instructores');
-        expect(snack).not.toHaveBeenCalled();
+      it('el botón de la fila abre el diálogo solo con ese instructor, con aria-label que incluye el nombre', () => {
+        const boton = botonFila('Juan Pérez')!;
+        expect(boton.getAttribute('aria-label')).toBe('Asignar prórroga a Juan Pérez');
+        expect(boton.getAttribute('type')).toBe('button');
+        boton.click();
+        expect(abrir).toHaveBeenCalledWith(
+          FormProrrogaRegistroComponent,
+          jasmine.objectContaining({ data: { instructores: [{ id: '2002', nombre: 'Juan Pérez' }] } }),
+        );
       });
 
-      it('éxito: actualiza SOLO esa fila, recalcula el aviso y muestra el snackbar con la fecha', () => {
-        cierraCon(plazo('3003', { estadoReporte: 'PENDIENTE', fechaLimite: '2026-11-01' }));
-        botonPlazo('Ana Gómez')!.click();
+      it('el botón de la fila no depende de la selección', () => {
+        marcar(casilla('Ana Gómez'));
+        botonFila('Juan Pérez')!.click();
+        expect((abrir.calls.mostRecent().args[1] as any).data.instructores.length).toBe(1);
+      });
+    });
+
+    describe('al cerrar el diálogo', () => {
+      const respuesta = (ids: string[], dias: number) =>
+        ids.map(id => ({ idInstructor: id, dias, fechaLimite: dias ? '2026-11-10' : null }));
+
+      it('éxito con varios: snackbar "Prórroga asignada a 2 instructores", selección limpia y sin recargar la lista', () => {
+        marcar(casilla('Juan Pérez'));
+        marcar(casilla('Ana Gómez'));
+        cierraCon(respuesta(['2002', '3003'], 10));
+        botonMasivo()!.click();
         fixture.detectChanges();
-        expect(textoReporte('Ana Gómez')).toBe('Pendiente · hasta 01/11/2026');
-        expect(botonPlazo('Ana Gómez')?.textContent?.trim()).toBe('Cambiar plazo');
-        expect(textoReporte('María García')).toBe('Sin plazo');
-        expect(textoReporte('Juan Pérez')).toBe('Pendiente · hasta 15/10/2026');
-        expect(aviso()?.textContent?.trim()).toBe('3 instructores aún no han generado su reporte del periodo 2026-2');   // ya sin vencidos
-        expect(snack).toHaveBeenCalledWith('Plazo asignado hasta 01/11/2026', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+        expect(snack).toHaveBeenCalledWith('Prórroga asignada a 2 instructores', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+        expect(contador()).toBe('Ningún instructor seleccionado');
         expect(mockInstructorService.getInstructores).not.toHaveBeenCalled();
-        expect(mockInstructorService.getPlazosCarga).not.toHaveBeenCalled();
       });
 
-      it('éxito: conserva el filtro vigente', () => {
-        const campo = el().querySelector('input#buscar-instructor') as HTMLInputElement;
-        campo.value = 'juan';
-        campo.dispatchEvent(new Event('input'));
-        fixture.detectChanges();
-        cierraCon(plazo('2002', { estadoReporte: 'PENDIENTE', fechaLimite: '2026-11-01' }));
-        botonPlazo('Juan Pérez')!.click();
-        fixture.detectChanges();
-        expect(nombres()).toEqual(['Juan Pérez']);
-        expect(campo.value).toBe('juan');
-        expect(textoReporte('Juan Pérez')).toBe('Pendiente · hasta 01/11/2026');
+      it('éxito con uno: singular', () => {
+        cierraCon(respuesta(['2002'], 5));
+        botonFila('Juan Pérez')!.click();
+        expect(snack).toHaveBeenCalledWith('Prórroga asignada a 1 instructor', '', jasmine.any(Object));
       });
 
-      it('éxito: conserva el orden vigente', () => {
-        const th = Array.from(el().querySelectorAll('th')).find(h => h.textContent!.trim() === 'Nombre') as HTMLElement;
-        th.click();
-        fixture.detectChanges();
-        const antes = nombres();
-        expect(antes).toEqual(['Ana Gómez', 'Eva Mora', 'Juan Pérez', 'Luis Ríos', 'María García']);
-        cierraCon(plazo('2002', { estadoReporte: 'PENDIENTE', fechaLimite: '2026-11-01' }));
-        botonPlazo('Juan Pérez')!.click();
-        fixture.detectChanges();
-        expect(nombres()).toEqual(antes);
+      it('dias = 0: "Prórroga quitada"', () => {
+        cierraCon(respuesta(['2002', '3003'], 0));
+        botonFila('Juan Pérez')!.click();
+        expect(snack).toHaveBeenCalledWith('Prórroga quitada', '', jasmine.any(Object));
       });
 
-      it('señal "ya no existe": recarga la lista y los plazos, y avisa', () => {
+      it('Cancelar: no hay snackbar y la selección se conserva', () => {
+        marcar(casilla('Juan Pérez'));
+        botonMasivo()!.click();
+        fixture.detectChanges();
+        expect(snack).not.toHaveBeenCalled();
+        expect(contador()).toBe('1 instructor seleccionado');
+      });
+
+      it('señal "ya no existe": recarga la lista, avisa y descarta a los que ya no están', () => {
+        marcar(casilla('Juan Pérez'));
+        marcar(casilla('Ana Gómez'));
+        mockInstructorService.getInstructores.and.returnValue(of([maria, ana]));
         cierraCon({ yaNoExiste: true });
-        botonPlazo('Juan Pérez')!.click();
+        botonMasivo()!.click();
+        fixture.detectChanges();
         expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(1);
-        expect(mockInstructorService.getPlazosCarga).toHaveBeenCalledTimes(1);
         expect(snack).toHaveBeenCalledWith('El instructor ya no existe', '', jasmine.objectContaining({ panelClass: 'snack-error' }));
+        expect(contador()).toBe('1 instructor seleccionado');
       });
+    });
+
+    it('el punto de entrada del diálogo viejo de plazo ya no existe en la lista', () => {
+      mockInstructorService.getPlazosCarga.and.returnValue(of([
+        { idInstructor: '2002', anio: 2026, periodo: 2, fechaLimite: '2026-10-15', estadoReporte: 'PENDIENTE', plazoVencido: false, clasesConAsistencia: 0 },
+      ]));
+      component['cargarPlazos']();
+      fixture.detectChanges();
+      expect(el().querySelectorAll('button.btn-plazo').length).toBe(0);
+      expect(fila('Juan Pérez').querySelector('.texto-reporte')?.textContent).toContain('Pendiente');   // la columna Reporte sigue
     });
   });
 

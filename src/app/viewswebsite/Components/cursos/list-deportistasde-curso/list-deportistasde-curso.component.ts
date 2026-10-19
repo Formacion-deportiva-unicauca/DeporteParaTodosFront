@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { AlumnoService } from 'src/app/services/alumno.service';
 import { ActivatedRoute } from '@angular/router';
 import { AlumnoDTO } from 'src/app/Models/DTOs/alumno-dto';
@@ -26,6 +29,13 @@ import { AsistenciaService } from 'src/app/services/asistencia.service';
 import { ClaseDTO } from 'src/app/Models/DTOs/clase-dto';
 import { AtencionDTO } from 'src/app/Models/DTOs/atencion-dto';
 import { PerfilService } from 'src/app/services/perfil.service';
+import { fechaLarga, formatearFecha } from 'src/app/shared/fecha-grupo.util';
+import {
+  FranjaDia, diasConClase, duracionManualValida, esRolSinRestriccion, franjaDelDia, hoyTexto, textoDiasDeClase,
+} from 'src/app/shared/ventana-registro.util';
+import { ConfirmarSinAsistentesComponent } from './confirmar-sin-asistentes.component';
+import { NovedadClaseService } from 'src/app/services/novedad-clase.service';
+import { NovedadClaseDto, NovedadClaseRequestDto, MOTIVOS_NOVEDAD, motivoRequiereDescripcion, motivoNombre } from 'src/app/Models/DTOs/novedad-clase-dto';
 
 @Component({
   selector: 'app-list-deportistasde-curso',
@@ -40,10 +50,8 @@ import { PerfilService } from 'src/app/services/perfil.service';
     MatIconModule,
     MatDialogModule,
     MatCheckboxModule,
-    MatSnackBarModule
-  ],
-  providers: [
-    DatePipe,
+    MatSnackBarModule,
+    ReactiveFormsModule,
   ],
   templateUrl: './list-deportistasde-curso.component.html',
   styleUrls: ['./list-deportistasde-curso.component.css'],
@@ -56,7 +64,6 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   iterable: number | null = null;
   alumnos = new MatTableDataSource<AlumnoDTO>([]);
   listaEspera: InscripcionEnEsperaDto[] = [];
-  seleccionados: any[] = [];
   rol: string = '';
   clases: ClaseDTO[] = [];
   clasesAtenciones: Record<number, AtencionDTO[]> = {};
@@ -64,7 +71,38 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   historialVisible = false;
   displayedColumns: string[] = ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia', 'Acciones'];
   displayedColumnsEspera: string[] = ['Posicion', 'Nombre', 'Correo', 'FechaInscripcion', 'Acciones'];
-  fechaActual: Date = new Date();
+
+  // ── Registro de asistencia de HOY (SCRUM-80 corregido) ────────────────────
+  // No hay calendario: la asistencia se registra siempre con la fecha de hoy y el sistema la valida con el horario
+  // del grupo. La fecha se calcula en cada uso (ver hoy), no se guarda en una propiedad.
+  estadoHorarios: 'cargando' | 'ok' | 'error' = 'cargando';
+  justificacionCtrl = new FormControl<string>('', { nonNullable: true });
+  horasCtrl = new FormControl<number | null>(null);
+  minutosCtrl = new FormControl<number | null>(null);
+  readonly maxJustificacion = 500;
+  /** El servidor exigió justificación (GC-0021) aunque no se mostró la falta de franja (p. ej. el horario no cargó). */
+  exigirFueraDeHorario = false;
+  /** Alumnos que asistieron (por id); los demás quedan con falta. */
+  asistieron = new Set<string>();
+  /** Marcas ya registradas para el día en que se cargaron: base para aplicar solo la diferencia al guardar. */
+  private marcasPrevias = new Set<string>();
+  private fechaDeMarcas = '';
+  cargandoMarcas = false;
+  guardando = false;
+  errorRegistro: string | null = null;
+  avisoRegistro: string | null = null;
+  errorNovedad: string | null = null;
+
+  // ── Novedad de clase no realizada ─────────────────────────────────────────
+  novedades: NovedadClaseDto[] = [];
+  cargandoNovedades = false;
+  mostrarFormNovedad = false;
+  motivoCtrl = new FormControl<string>('', { nonNullable: true });
+  descripcionCtrl = new FormControl<string>('', { nonNullable: true });
+  fechaNovedadCtrl = new FormControl<string>('', { nonNullable: true });
+  readonly motivos = MOTIVOS_NOVEDAD;
+  readonly motivoNombre = motivoNombre;
+  readonly maxDescripcion = 1000;
 
   grupo: GrupoDTO = {
     categoria: '',
@@ -89,10 +127,10 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     private horarioSerive: HorarioService,
     private inscripcionService: InscripcionesService,
     private perfilService: PerfilService,
-    private datepipe: DatePipe,
     private dialog: MatDialog,
     private claseService: ClaseService,
     private asistenciaService: AsistenciaService,
+    private novedadClaseService: NovedadClaseService,
     private snackBar: MatSnackBar,
   ) { }
 
@@ -111,6 +149,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
         this.iterable = Number(params.get('iterable'));
       }
     );
+    this.cargarMarcasDeHoy();
     this.cargarDatos();
   }
 
@@ -120,11 +159,15 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       (grupoTemp) => {
         this.grupo = grupoTemp;
         this.consultarInstructor(grupoTemp.idInstructor);
-        this.horarioSerive.getHorarios(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe(
-          (horario) => {
+        this.estadoHorarios = 'cargando';
+        this.horarioSerive.getHorarios(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
+          next: (horario) => {
             grupoTemp.horarios = horario;
-          }
-        );
+            this.estadoHorarios = 'ok';
+          },
+          // Si el horario no se pudo cargar no se inventa nada: no se restringe y decide el servidor.
+          error: () => { this.estadoHorarios = 'error'; },
+        });
       }
     );
 
@@ -169,7 +212,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
         if (resultado.confirmacionCreacion) {
 
           const inscripcion: InscripcionDTO = {
-            fechaInscripcion: this.FormatDate(this.fechaActual!),
+            fechaInscripcion: hoyTexto(this.ahora()),
             fechaDesvinculacion: '',
             alumnoId: resultado.idAlumno,
             categoria: this.categoria!,
@@ -187,10 +230,6 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           );
         }
       });
-  }
-
-  private FormatDate(fecha: Date): string {
-    return this.datepipe.transform(fecha, 'yyyy-MM-dd')!;
   }
 
   letraDeIterable(n: number | null): string {
@@ -232,18 +271,6 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     });
   }
 
-  toggleSelection(alumno: any, event: any) {
-    if (event.checked) {
-      this.seleccionados.push(alumno);
-    } else {
-      this.seleccionados = this.seleccionados.filter(a => a !== alumno);
-    }
-  }
-
-  isSelected(alumno: any): boolean {
-    return this.seleccionados.includes(alumno);
-  }
-
   promover(alumno: InscripcionEnEsperaDto): void {
     this.inscripcionService.promoverAlumno(alumno.alumnoId, this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
       next: () => {
@@ -262,11 +289,26 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       next: (clases) => {
         this.clases = clases;
         this.historialVisible = true;
+        this.cargarNovedades();
       },
       error: () => {
         this.snackBar.open('Error al cargar el historial de clases', 'Cerrar', {
           duration: 3000, panelClass: ['snack-error'],
         });
+      },
+    });
+  }
+
+  cargarNovedades(): void {
+    this.cargandoNovedades = true;
+    this.novedadClaseService.obtenerNovedadesGrupo(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
+      next: (novedades) => {
+        this.novedades = novedades;
+        this.cargandoNovedades = false;
+      },
+      error: () => {
+        this.cargandoNovedades = false;
+        this.novedades = [];
       },
     });
   }
@@ -319,53 +361,303 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     });
   }
 
-  registrarAsistencia() {
-    const claseData: ClaseDTO = {
+  // ── Hoy, horario y marcas ─────────────────────────────────────────────────
+
+  /** Hora de la interfaz (reloj del navegador); un solo punto, sustituible en pruebas y luego por el servidor. */
+  protected ahora(): Date {
+    return new Date();
+  }
+
+  /** Hoy en texto yyyy-MM-dd (hora local). Se calcula en cada uso: no se congela al abrir la pantalla. */
+  get hoy(): string {
+    return hoyTexto(this.ahora());
+  }
+
+  /** "jueves, 15 de octubre de 2026" */
+  get hoyLargo(): string {
+    return fechaLarga(this.hoy);
+  }
+
+  /** Solo el Coordinador puede registrar un día sin clase; el resto solo registra en los días del horario. */
+  private get restringeDias(): boolean {
+    return !esRolSinRestriccion(this.rol);
+  }
+
+  get diasDeClase(): string[] {
+    return diasConClase(this.grupo.horarios);
+  }
+
+  /** Franja del grupo para hoy (informativa; el servidor calcula la duración real). */
+  get franja(): FranjaDia | null {
+    return franjaDelDia(this.grupo.horarios, this.hoy);
+  }
+
+  /** "Este grupo tiene clases los martes y jueves" (vacío si no hay horario o aún no se cargó). */
+  get textoDiasDeClase(): string {
+    return this.estadoHorarios === 'ok' ? textoDiasDeClase(this.grupo.horarios) : '';
+  }
+
+  /** Cómo está hoy frente al horario del grupo. */
+  get situacionHoy(): 'cargando' | 'desconocida' | 'con-franja' | 'sin-horario' | 'hoy-sin-clase' | 'fuera-de-horario' {
+    if (this.estadoHorarios === 'cargando') return 'cargando';
+    if (this.estadoHorarios === 'error') return 'desconocida';
+    if (this.franja) return 'con-franja';
+    if (!this.restringeDias) return 'fuera-de-horario';
+    return this.diasDeClase.length === 0 ? 'sin-horario' : 'hoy-sin-clase';
+  }
+
+  /** Hoy no se puede registrar nada: no hay horario del grupo o hoy no es día de clase (no aplica al Coordinador). */
+  get bloqueado(): boolean {
+    const s = this.situacionHoy;
+    return s === 'sin-horario' || s === 'hoy-sin-clase';
+  }
+
+  /** Mensaje para quien no tiene clase hoy: claro, con los días en que sí hay clase. */
+  get textoHoySinClase(): string {
+    const dias = this.textoDiasDeClase;
+    return dias ? `Hoy no tienes clase asignada para este curso. ${dias}.` : 'Hoy no tienes clase asignada para este curso.';
+  }
+
+  /** Fuera de horario (solo Coordinador): hoy no hay franja, o el servidor exigió justificación. */
+  get mostrarFueraDeHorario(): boolean {
+    return !this.restringeDias && (this.situacionHoy === 'fuera-de-horario' || this.exigirFueraDeHorario);
+  }
+
+  /** Franja a mostrar como "Horario de hoy" (solo si no se pide justificación). */
+  get franjaVisible(): FranjaDia | null {
+    return this.situacionHoy === 'con-franja' && !this.mostrarFueraDeHorario ? this.franja : null;
+  }
+
+  get longitudJustificacion(): number {
+    return this.justificacionCtrl.value.length;
+  }
+
+  private get fueraDeHorarioValido(): boolean {
+    // Ya no hay campos de entrada en la sección fuera-de-horario: no hay nada que validar.
+    return true;
+  }
+
+  get puedeRegistrar(): boolean {
+    return !this.guardando && !this.cargandoMarcas && this.situacionHoy !== 'cargando' && !this.bloqueado
+      && (!this.mostrarFueraDeHorario || this.fueraDeHorarioValido);
+  }
+
+  get textoBotonRegistrar(): string {
+    return `Registrar asistencia del día ${formatearFecha(this.hoy)}`;
+  }
+
+  /** Si ya hay asistencia registrada hoy, precarga las marcas de quienes asistieron (para aplicar solo la diferencia). */
+  private cargarMarcasDeHoy(): void {
+    const fecha = this.hoy;
+    this.cargandoMarcas = true;
+    this.claseService.getClase(this.categoria!, this.titulo!, this.anio!, this.iterable!).pipe(
+      switchMap(clases => {
+        const clase = (Array.isArray(clases) ? clases : []).find(c => String(c.fecha).substring(0, 10) === fecha);
+        return clase ? this.asistenciaService.getAtencionesClase(clase.codigo) : of(null);
+      }),
+      map(atenciones => atenciones ? atenciones.filter(a => a.estaAtendido).map(a => a.idPerfil) : null),
+      // Si el historial no se puede leer no se bloquea: se registra con las marcas en blanco.
+      catchError(() => of(null)),
+    ).subscribe(marcadas => {
+      this.cargandoMarcas = false;
+      this.fechaDeMarcas = fecha;
+      if (marcadas) {
+        this.asistieron = new Set(marcadas);
+        this.marcasPrevias = new Set(marcadas);
+      }
+    });
+  }
+
+  estaMarcado(alumno: AlumnoDTO): boolean {
+    return this.asistieron.has(String(alumno.id));
+  }
+
+  alternarAsistencia(alumno: AlumnoDTO, marcado: boolean): void {
+    const copia = new Set(this.asistieron);
+    if (marcado) copia.add(String(alumno.id)); else copia.delete(String(alumno.id));
+    this.asistieron = copia;
+  }
+
+  get totalAsistieron(): number {
+    return this.alumnos.data.filter(a => this.asistieron.has(String(a.id))).length;
+  }
+
+  get textoContadores(): string {
+    const n = this.totalAsistieron;
+    return `Asistieron ${n}, Faltaron ${this.alumnos.data.length - n}`;
+  }
+
+  // ── Guardar ───────────────────────────────────────────────────────────────
+
+  registrarAsistencia(): void {
+    // `guardando` se activa de forma síncrona: una segunda pulsación no envía otra petición ni abre otra confirmación.
+    if (!this.puedeRegistrar) return;
+    if (this.asistieron.size === 0) {
+      this.guardando = true;
+      this.dialog.open(ConfirmarSinAsistentesComponent, { role: 'alertdialog' }).afterClosed().subscribe(continuar => {
+        if (continuar === true) {
+          this.ejecutarRegistro();
+        } else {
+          this.guardando = false;
+        }
+      });
+      return;
+    }
+    this.ejecutarRegistro();
+  }
+
+  private ejecutarRegistro(): void {
+    this.guardando = true;
+    this.errorRegistro = null;
+    this.avisoRegistro = null;
+
+    const fecha = this.hoy;
+    const franja = franjaDelDia(this.grupo.horarios, fecha);
+    const clase: ClaseDTO = {
       codigo: 0,
       idGrupoCategoria: this.categoria!,
       idGrupoCurso: this.titulo!,
       idGrupoAnio: this.anio!,
       idGrupoIterable: this.iterable!,
       idInstructor: this.grupo.idInstructor!,
-      fecha: this.FormatDate(this.fechaActual),
-      horas: 1,
+      fecha,
+      horas: 0,
       minutos: 0,
       observacion: '',
       eliminado: 0,
     };
+    if (franja) {
+      // Informativas: si el grupo tiene franja ese día el servidor las ignora y calcula la duración.
+      clase.horas = franja.horas;
+      clase.minutos = franja.minutos;
+    }
 
-    this.claseService.postClase(claseData).subscribe({
-      next: (clase) => {
-        const atenciones: AtencionDTO[] = this.seleccionados.map((alumno: AlumnoDTO) => ({
-          idPerfil: String(alumno.id),
-          idClase: clase.codigo,
-          estaAtendido: true,
-        }));
-
-        this.asistenciaService.registrarAsistencias(clase.codigo, atenciones).subscribe({
-          next: () => {
-            this.seleccionados = [];
-            this.snackBar.open('Asistencia registrada correctamente', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['snack-success'],
-            });
-          },
-          error: () => {
-            this.snackBar.open('Error al registrar asistencia, intente de nuevo', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['snack-error'],
-            });
-          }
-        });
+    const yaEliminadas: string[] = [];
+    this.claseService.postClase(clase).pipe(
+      switchMap(creada => this.aplicarDiferencia(creada, yaEliminadas, fecha)),
+    ).subscribe({
+      next: () => {
+        // Lo guardado pasa a ser la nueva base para el siguiente guardado.
+        this.marcasPrevias = new Set(this.asistieron);
+        this.fechaDeMarcas = fecha;
+        this.guardando = false;
+        if (yaEliminadas.length > 0) {
+          this.avisoRegistro = `La asistencia de ${yaEliminadas.join(', ')} ya estaba eliminada`;
+        }
+        this.snackBar.open('Asistencia registrada correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        if (this.historialVisible) this.cargarHistorial();
       },
-      error: () => {
-        this.snackBar.open('Error al crear la clase, intente de nuevo', 'Cerrar', {
-          duration: 3000,
-          panelClass: ['snack-error'],
-        });
-      }
+      error: (err: HttpErrorResponse) => this.manejarErrorRegistro(err),
     });
   }
 
+  /** POST solo de las marcas nuevas y DELETE solo de las desmarcadas (HE08-HU04); sin cambios no llama a nada. */
+  private aplicarDiferencia(clase: ClaseDTO, yaEliminadas: string[], fecha: string): Observable<unknown> {
+    // Las marcas previas solo sirven de base si son de este mismo día (si pasó la medianoche no se borra nada de ayer).
+    const previas = fecha === this.fechaDeMarcas ? this.marcasPrevias : new Set<string>();
+    const nuevas = [...this.asistieron].filter(id => !previas.has(id));
+    const quitadas = [...previas].filter(id => !this.asistieron.has(id));
+    const operaciones: Observable<unknown>[] = [];
+    if (nuevas.length > 0) {
+      const atenciones: AtencionDTO[] = nuevas.map(id => ({ idPerfil: id, idClase: clase.codigo, estaAtendido: true }));
+      operaciones.push(this.asistenciaService.registrarAsistencias(clase.codigo, atenciones));
+    }
+    for (const id of quitadas) {
+      operaciones.push(this.asistenciaService.eliminarAsistencia(id, clase.codigo).pipe(
+        // 409 = ya estaba eliminada: no es un fallo, solo se informa.
+        catchError((err: HttpErrorResponse) => {
+          if (err?.status === 409) {
+            yaEliminadas.push(this.getNombreAlumno(id));
+            return of(null);
+          }
+          return throwError(() => err);
+        }),
+      ));
+    }
+    return operaciones.length > 0 ? forkJoin(operaciones) : of(null);
+  }
+
+  private manejarErrorRegistro(err: HttpErrorResponse): void {
+    this.guardando = false;
+    if (err?.status === 422 && err.error?.mensaje) {
+      this.errorRegistro = err.error.mensaje;
+      // GC-0021: el servidor exige justificación; se revela la sección y se conserva lo escrito.
+      // (Solo Coordinador y Administrador: el Instructor nunca registra fuera de horario.)
+      if (err.error?.codigoError === 'GC-0021' && !this.restringeDias) this.exigirFueraDeHorario = true;
+      return;
+    }
+    this.errorRegistro = 'No se pudo registrar la asistencia. Intenta de nuevo.';
+  }
+
+  // ── Novedad de clase no realizada ─────────────────────────────────────────
+
+  get puedeRegistrarNovedad(): boolean {
+    return !this.cargandoNovedades && !this.mostrarFormNovedad;
+  }
+
+  abrirFormNovedad(fecha?: string, novedadExistente?: NovedadClaseDto): void {
+    this.motivoCtrl.setValue(novedadExistente?.motivo ?? '');
+    this.descripcionCtrl.setValue(novedadExistente?.descripcion ?? '');
+    this.fechaNovedadCtrl.setValue(fecha ?? this.hoy);
+    this.mostrarFormNovedad = true;
+  }
+
+  cerrarFormNovedad(): void {
+    this.mostrarFormNovedad = false;
+    this.motivoCtrl.setValue('');
+    this.descripcionCtrl.setValue('');
+    this.fechaNovedadCtrl.setValue('');
+  }
+
+  get descripcionObligatoria(): boolean {
+    return motivoRequiereDescripcion(this.motivoCtrl.value);
+  }
+
+  get formNovedadValido(): boolean {
+    const motivo = this.motivoCtrl.value.trim();
+    const descripcion = this.descripcionCtrl.value.trim();
+    if (!motivo) return false;
+    if (motivoRequiereDescripcion(motivo) && !descripcion) return false;
+    if (descripcion.length > this.maxDescripcion) return false;
+    return true;
+  }
+
+  registrarNovedad(): void {
+    if (!this.formNovedadValido) return;
+    this.errorNovedad = null;
+
+    const datos: NovedadClaseRequestDto = {
+      categoria: this.categoria!,
+      curso: this.titulo!,
+      anio: this.anio!,
+      iterable: this.iterable!,
+      fecha: this.fechaNovedadCtrl.value,
+      motivo: this.motivoCtrl.value.trim(),
+      descripcion: this.descripcionCtrl.value.trim() || null,
+    };
+
+    this.novedadClaseService.registrarNovedad(datos).subscribe({
+      next: () => {
+        this.snackBar.open('Novedad registrada correctamente', 'Cerrar', {
+          duration: 3000, panelClass: ['snack-success'],
+        });
+        this.cerrarFormNovedad();
+        if (this.historialVisible) this.cargarNovedades();
+      },
+      error: (err) => {
+        const msg = err?.status === 409
+          ? 'Ya existe una novedad activa para este grupo y fecha'
+          : err?.status === 422
+            ? 'Fecha no permitida o fuera de la ventana de registro'
+            : 'No se pudo registrar la novedad. Intenta de nuevo.';
+        this.snackBar.open(msg, 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
+      },
+    });
+  }
+
+  getNovedadParaFecha(fecha: string): NovedadClaseDto | null {
+    const fechaSolo = String(fecha).substring(0, 10);
+    return this.novedades.find(n => String(n.fecha).substring(0, 10) === fechaSolo) ?? null;
+  }
 
 }

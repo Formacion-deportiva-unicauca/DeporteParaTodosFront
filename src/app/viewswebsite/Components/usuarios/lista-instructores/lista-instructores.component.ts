@@ -18,10 +18,10 @@ import { PerfilService } from 'src/app/services/perfil.service';
 import { FormInscripcionesComponent } from '../form-inscripciones/form-inscripciones.component';
 import { DialogComponent } from '../../dialog/dialog.component';
 import { FormInstructorComponent, ResultadoFormInstructor } from '../form-instructor/form-instructor.component';
-import { FormPlazoCargaComponent, ResultadoFormPlazoCarga } from '../form-plazo-carga/form-plazo-carga.component';
+import { FormProrrogaRegistroComponent, InstructorElegido, ResultadoFormProrrogaRegistro } from '../form-prorroga-registro/form-prorroga-registro.component';
 import { PlazoCargaDTO } from 'src/app/Models/DTOs/plazo-carga-dto';
-import { formatearFecha } from 'src/app/shared/fecha-grupo.util';
-import { iconoReporte, textoAvisoReportes, textoBotonPlazo, textoReporte } from 'src/app/shared/plazo-carga.util';
+import { iconoReporte, textoAvisoReportes, textoReporte } from 'src/app/shared/plazo-carga.util';
+import { textoResultadoProrroga } from 'src/app/shared/prorroga-registro.util';
 
 @Component({
   selector: 'app-lista-instructores',
@@ -54,7 +54,7 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
   isButtonEnabled = false;
   checked = false;
   private readonly columnasBase = ['Identificacion', 'Nombre', 'Correo', 'Acciones'];
-  private readonly columnasCoordinador = ['Identificacion', 'Nombre', 'Correo', 'Reporte', 'Acciones'];
+  private readonly columnasCoordinador = ['Seleccion', 'Identificacion', 'Nombre', 'Correo', 'Reporte', 'Acciones'];
   displayedColumns: string[] = this.columnasBase;
 
   // Plazos de carga por instructor (solo Coordinador), unidos a la lista por idInstructor.
@@ -64,7 +64,9 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
 
   readonly textoReporte = textoReporte;
   readonly iconoReporte = iconoReporte;
-  readonly textoBotonPlazo = textoBotonPlazo;
+
+  // Selección para asignar prórroga a varios instructores; se guarda por id, así sobrevive a filtros y orden.
+  seleccionados = new Set<string>();
 
   private perfilSub: Subscription = Subscription.EMPTY;
 
@@ -117,6 +119,8 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
         this.instructores = Array.isArray(instructores) ? instructores : [];
         // Reasignar los datos conserva el filtro y el orden vigentes (también tras eliminar).
         this.dataSource.data = this.instructores;
+        // Se descartan los seleccionados que ya no están en la lista.
+        this.seleccionados = new Set([...this.seleccionados].filter(id => this.instructores.some(i => i.id === id)));
       }
     );
   }
@@ -151,31 +155,74 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
     return textoAvisoReportes(delasFilas);
   }
 
-  asignarPlazo(instructor: InstructorDTO): void {
-    const plazo = this.plazoDe(instructor.id);
-    if (!plazo) return;
-    const dialogRef = this.dialog.open(FormPlazoCargaComponent, {
-      data: {
-        id: instructor.id,
-        nombre: instructor.nombre,
-        fechaActual: plazo.fechaLimite,
-        estado: plazo.estadoReporte,
-        plazoVencido: plazo.plazoVencido,
-        anio: plazo.anio,
-        periodo: plazo.periodo,
-      },
-    });
-    dialogRef.afterClosed().subscribe((resultado?: ResultadoFormPlazoCarga) => {
+  // ── Selección ─────────────────────────────────────────────────────────────
+
+  estaSeleccionado(id: string): boolean {
+    return this.seleccionados.has(id);
+  }
+
+  alternar(id: string, marcado: boolean): void {
+    const copia = new Set(this.seleccionados);
+    if (marcado) copia.add(id); else copia.delete(id);
+    this.seleccionados = copia;
+  }
+
+  /** "Seleccionar todos" actúa solo sobre lo que muestra el filtro actual. */
+  alternarTodos(marcado: boolean): void {
+    const copia = new Set(this.seleccionados);
+    this.dataSource.filteredData.forEach(i => { if (marcado) copia.add(i.id); else copia.delete(i.id); });
+    this.seleccionados = copia;
+  }
+
+  get todosSeleccionados(): boolean {
+    const filtrados = this.dataSource.filteredData;
+    return filtrados.length > 0 && filtrados.every(i => this.seleccionados.has(i.id));
+  }
+
+  get algunosSeleccionados(): boolean {
+    const filtrados = this.dataSource.filteredData;
+    const n = filtrados.filter(i => this.seleccionados.has(i.id)).length;
+    return n > 0 && n < filtrados.length;
+  }
+
+  /** Texto para la región aria-live del contador. */
+  get textoSeleccion(): string {
+    const n = this.seleccionados.size;
+    if (n === 0) return 'Ningún instructor seleccionado';
+    return `${n} ${n === 1 ? 'instructor seleccionado' : 'instructores seleccionados'}`;
+  }
+
+  limpiarSeleccion(): void {
+    this.seleccionados = new Set();
+  }
+
+  // ── Prórroga de registro de asistencia ────────────────────────────────────
+
+  asignarProrrogaSeleccionados(): void {
+    this.abrirProrroga(this.instructores.filter(i => this.seleccionados.has(i.id)));
+  }
+
+  asignarProrrogaA(instructor: InstructorDTO): void {
+    this.abrirProrroga([instructor]);
+  }
+
+  private abrirProrroga(instructores: InstructorDTO[]): void {
+    if (instructores.length === 0) return;
+    const elegidos: InstructorElegido[] = instructores.map(i => ({ id: i.id, nombre: i.nombre }));
+    const dialogRef = this.dialog.open(FormProrrogaRegistroComponent, { data: { instructores: elegidos } });
+    dialogRef.afterClosed().subscribe((resultado?: ResultadoFormProrrogaRegistro) => {
       if (!resultado) return;
       if ('yaNoExiste' in resultado) {
+        // Nada se guardó: se recarga la lista (y se descartan de la selección los que ya no están).
         this.snackBar.open('El instructor ya no existe', '', { duration: 3000, panelClass: 'snack-error' });
         this.cargarInstructores();
-        this.cargarPlazos();
         return;
       }
-      // Solo cambia esa entrada: las filas no se vuelven a crear (se conservan filtro, orden y foco).
-      this.plazos = new Map(this.plazos).set(resultado.idInstructor, resultado);
-      this.snackBar.open(`Plazo asignado hasta ${formatearFecha(resultado.fechaLimite)}`, '', { duration: 3000, panelClass: 'snack-success' });
+      // Se quitan de la selección solo los que se acaban de procesar.
+      const copia = new Set(this.seleccionados);
+      elegidos.forEach(i => copia.delete(i.id));
+      this.seleccionados = copia;
+      this.snackBar.open(textoResultadoProrroga(resultado), '', { duration: 3000, panelClass: 'snack-success' });
     });
   }
 

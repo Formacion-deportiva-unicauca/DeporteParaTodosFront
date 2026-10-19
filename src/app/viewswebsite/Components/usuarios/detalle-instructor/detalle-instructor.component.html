@@ -13,6 +13,9 @@
           <div class="titulo-con-accion">
             <h1>{{ instructor?.nombre ?? 'Detalle del instructor' }}</h1>
             <button mat-stroked-button type="button" class="btn-editar" [disabled]="!instructor" (click)="editar()">Editar</button>
+            <button mat-stroked-button type="button" class="btn-prorroga" [disabled]="!instructor"
+                    [attr.aria-label]="'Asignar prórroga a ' + (instructor?.nombre ?? '')"
+                    (click)="asignarProrroga()">Prórroga</button>
           </div>
           <button mat-icon-button type="button" class="btn-cerrar"
                   aria-label="Cerrar y volver a la lista de instructores"

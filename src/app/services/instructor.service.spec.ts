@@ -191,4 +191,52 @@ describe('InstructorServisce', () => {
     expect(error.status).toBe(422);
     expect(error.error.mensaje).toBe('fecha pasada');
   });
+
+  // ── prórroga de registro (SCRUM-80 rediseñado) ────────────────────────────
+
+  it('getProrrogasRegistro: GET /api/v2/instructores/prorroga-registro?anio=2026&mes=10', () => {
+    const prorrogas = [{ idInstructor: 'x', dias: 10, fechaLimite: '2026-11-10' }];
+    service.getProrrogasRegistro(2026, 10).subscribe(r => expect(r).toEqual(prorrogas));
+    const req = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/prorroga-registro?anio=2026&mes=10');
+    expect(req.request.method).toBe('GET');
+    req.flush(prorrogas);
+  });
+
+  it('getProrrogasRegistro: propaga 422 (mes futuro) con su cuerpo y 403 sin cuerpo', () => {
+    let e422: any; let e403: any;
+    service.getProrrogasRegistro(2099, 1).subscribe({ next: () => fail('debería fallar'), error: e => (e422 = e) });
+    httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/prorroga-registro?anio=2099&mes=1')
+      .flush({ mensaje: 'mes futuro' }, { status: 422, statusText: 'Unprocessable Entity' });
+    expect(e422.status).toBe(422);
+    expect(e422.error.mensaje).toBe('mes futuro');
+    service.getProrrogasRegistro(2026, 10).subscribe({ next: () => fail('debería fallar'), error: e => (e403 = e) });
+    httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/prorroga-registro?anio=2026&mes=10')
+      .flush(null, { status: 403, statusText: 'Forbidden' });
+    expect(e403.status).toBe(403);
+  });
+
+  it('asignarProrrogaRegistro: PUT /api/v2/instructores/prorroga-registro con el cuerpo completo y devuelve el arreglo', () => {
+    const req = { idsInstructores: ['x', 'y'], anio: 2026, mes: 10, dias: 10 };
+    const respuesta = [
+      { idInstructor: 'x', dias: 10, fechaLimite: '2026-11-10' },
+      { idInstructor: 'y', dias: 10, fechaLimite: '2026-11-10' },
+    ];
+    service.asignarProrrogaRegistro(req).subscribe(r => expect(r).toEqual(respuesta));
+    const http = httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/prorroga-registro');
+    expect(http.request.method).toBe('PUT');
+    expect(http.request.body).toEqual(req);
+    http.flush(respuesta);
+  });
+
+  it('asignarProrrogaRegistro: propaga 404 y 422 con su cuerpo', () => {
+    const errores: any[] = [];
+    for (const [status, cuerpo] of [[404, { mensaje: 'no existe' }], [422, { mensaje: 'mes futuro' }]] as const) {
+      service.asignarProrrogaRegistro({ idsInstructores: ['x'], anio: 2026, mes: 10, dias: 0 })
+        .subscribe({ next: () => fail('debería fallar'), error: e => errores.push(e) });
+      httpMock.expectOne('http://127.0.0.1:8082/api/v2/instructores/prorroga-registro')
+        .flush(cuerpo, { status, statusText: 'x' });
+    }
+    expect(errores.map(e => e.status)).toEqual([404, 422]);
+    expect(errores[1].error.mensaje).toBe('mes futuro');
+  });
 });

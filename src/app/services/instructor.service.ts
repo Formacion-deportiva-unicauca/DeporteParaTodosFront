@@ -1,6 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { InstructorDTO, PerfilInstructor } from "../Models/DTOs/instructor-dto";
 import { PlazoCargaDTO } from "../Models/DTOs/plazo-carga-dto";
+import { ProrrogaDTO, ProrrogaRequestDTO } from "../Models/DTOs/prorroga-registro-dto";
 import { Injectable } from "@angular/core";
 import { Observable, catchError, throwError } from "rxjs";
 
@@ -48,6 +49,24 @@ export class InstructorServisce {
 
     asignarPlazoCarga(id: string, fechaLimite: string): Observable<PlazoCargaDTO> {
         return this.http.put<PlazoCargaDTO>(`${this.apiUrl}/instructor/${encodeURIComponent(id)}/plazo-carga`, { fechaLimite }).pipe(
+            catchError((error) => {
+                return throwError(error);
+            })
+        );
+    }
+
+    asignarProrrogaRegistro(req: ProrrogaRequestDTO): Observable<ProrrogaDTO[]> {
+        return this.http.put<ProrrogaDTO[]>(`${this.apiUrl}/instructores/prorroga-registro`, req).pipe(
+            catchError((error) => {
+                return throwError(error);
+            })
+        );
+    }
+
+    getProrrogasRegistro(anio: number, mes: number): Observable<ProrrogaDTO[]> {
+        return this.http.get<ProrrogaDTO[]>(
+            `${this.apiUrl}/instructores/prorroga-registro?anio=${encodeURIComponent(String(anio))}&mes=${encodeURIComponent(String(mes))}`
+        ).pipe(
             catchError((error) => {
                 return throwError(error);
             })
