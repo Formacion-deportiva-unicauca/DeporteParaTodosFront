@@ -118,7 +118,7 @@
       <mat-icon aria-hidden="true">event_busy</mat-icon>
       <span>Este grupo no tiene horario definido; pide al Coordinador que lo configure</span>
     </div>
-    <div class="aviso-horario hoy-sin-clase" *ngIf="situacionHoy === 'hoy-sin-clase'" role="alert">
+    <div id="aviso-horario" class="aviso-horario hoy-sin-clase" *ngIf="situacionHoy === 'hoy-sin-clase'" role="alert">
       <mat-icon aria-hidden="true">event_busy</mat-icon>
       <span>{{ textoHoySinClase }}</span>
     </div>
@@ -137,7 +137,7 @@
 
     <div class="btnAsistencias">
       <button mat-raised-button type="button" class="btn-primary btn-registrar"
-              [disabled]="!puedeRegistrar"
+              [disabled]="!puedeRegistrar" [attr.aria-describedby]="bloqueado ? 'aviso-horario' : null"
               (click)="registrarAsistencia()">
         {{ textoBotonRegistrar }}
       </button>
