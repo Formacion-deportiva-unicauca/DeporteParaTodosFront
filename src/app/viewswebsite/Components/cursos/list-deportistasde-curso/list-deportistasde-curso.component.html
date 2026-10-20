@@ -165,9 +165,15 @@
         </select>
       </div>
 
-      <div class="campo">
-        <label for="descripcionNovedad">{{ descripcionObligatoria ? 'Descripción (obligatoria para \'Otro motivo\')' : 'Descripción adicional (opcional)' }}</label>
-        <textarea id="descripcionNovedad" rows="3" [formControl]="descripcionCtrl" [required]="descripcionObligatoria"></textarea>
+      <div class="campo" *ngIf="descripcionObligatoria">
+        <label for="descripcionNovedad">Descripción (obligatoria para 'Otro motivo')</label>
+        <textarea id="descripcionNovedad" rows="3" [formControl]="descripcionCtrl" required></textarea>
+        <small class="pie-campo">Máximo {{ maxDescripcion }} caracteres</small>
+      </div>
+
+      <div class="campo" *ngIf="!descripcionObligatoria">
+        <label for="descripcionNovedadOpcional">Descripción adicional (opcional)</label>
+        <textarea id="descripcionNovedadOpcional" rows="3" [formControl]="descripcionCtrl"></textarea>
         <small class="pie-campo">Máximo {{ maxDescripcion }} caracteres</small>
       </div>
 
