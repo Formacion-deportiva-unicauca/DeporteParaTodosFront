@@ -1,11 +1,11 @@
-import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
-import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatDatepicker, MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -63,6 +63,9 @@ export type ResultadoFormPlazoCarga = PlazoCargaDTO | InstructorYaNoExiste;
 export class FormPlazoCargaComponent implements OnInit, OnDestroy {
   /** Date local del calendario; el texto yyyy-MM-dd se deriva de aquí (fechaTexto). */
   fechaCtrl = new FormControl<Date | null>(aDateLocal(this.data.fechaActual), [Validators.required]);
+
+  /** Referencia al calendario de Material para cerrarlo tras elegir una fecha. */
+  @ViewChild('selector') selector!: MatDatepicker<Date>;
   form = new FormGroup({ fechaLimite: this.fechaCtrl });
   /** Calendario a pantalla completa en pantallas pequeñas. */
   touchUi = false;
@@ -89,6 +92,7 @@ export class FormPlazoCargaComponent implements OnInit, OnDestroy {
   /** Fija la fecha (calendario o código); null la deja vacía. */
   alElegirFecha(fecha: Date | null): void {
     this.fechaCtrl.setValue(fecha);
+    this.selector?.close();
   }
 
   /** Fecha como texto yyyy-MM-dd con componentes locales (sin toISOString); '' si está vacía o es inválida. */

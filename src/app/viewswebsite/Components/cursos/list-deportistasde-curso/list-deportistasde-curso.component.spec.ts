@@ -401,6 +401,7 @@ describe('ListDeportistasdeCursoComponent — novedad de clase no realizada', ()
     spyOn(component['grupoService'], 'getGrupo').and.returnValue(of(mockGrupoLocal));
     spyOn(component['alumnoService'], 'getAlumnosGrupo').and.returnValue(of([]));
     spyOn(component['inscripcionService'], 'getListaEspera').and.returnValue(of([]));
+    spyOn(component['inscripcionService'], 'getDisponibilidad').and.returnValue(of({ cuposTotales: 10, cuposDisponibles: 5, tamanoListaEspera: 0 }));
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
     spyOn(component['snackBar'], 'open').and.returnValue(null as any);

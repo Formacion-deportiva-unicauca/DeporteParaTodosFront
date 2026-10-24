@@ -36,6 +36,7 @@ import {
 import { ConfirmarSinAsistentesComponent } from './confirmar-sin-asistentes.component';
 import { NovedadClaseService } from 'src/app/services/novedad-clase.service';
 import { NovedadClaseDto, NovedadClaseRequestDto, MOTIVOS_NOVEDAD, motivoRequiereDescripcion, motivoNombre } from 'src/app/Models/DTOs/novedad-clase-dto';
+import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
 
 @Component({
   selector: 'app-list-deportistasde-curso',
@@ -117,7 +118,8 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     fechaFinalizacion: '',
     fechaInscripcionApertura: '',
     fechaIncripcionCierre: ''
-  }
+  };
+  disponibilidad: DisponibilidadDTO | null = null;
 
   constructor(
     private alumnoService: AlumnoService,
@@ -167,6 +169,15 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           },
           // Si el horario no se pudo cargar no se inventa nada: no se restringe y decide el servidor.
           error: () => { this.estadoHorarios = 'error'; },
+        });
+        // Cargar disponibilidad de cupos para validar registro de asistencia y novedades
+        this.inscripcionService.getDisponibilidad(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
+          next: (disponibilidad: DisponibilidadDTO) => {
+            this.disponibilidad = disponibilidad;
+          },
+          error: () => {
+            this.disponibilidad = { cuposTotales: 0, cuposDisponibles: 0, tamanoListaEspera: 0 };
+          },
         });
       }
     );
@@ -439,7 +450,8 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
   get puedeRegistrar(): boolean {
     return !this.guardando && !this.cargandoMarcas && this.situacionHoy !== 'cargando' && !this.bloqueado
-      && (!this.mostrarFueraDeHorario || this.fueraDeHorarioValido);
+      && (!this.mostrarFueraDeHorario || this.fueraDeHorarioValido)
+      && this.hayInscritos;
   }
 
   get textoBotonRegistrar(): string {
@@ -592,7 +604,31 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   // ── Novedad de clase no realizada ─────────────────────────────────────────
 
   get puedeRegistrarNovedad(): boolean {
-    return !this.cargandoNovedades && !this.mostrarFormNovedad;
+    if (this.cargandoNovedades || this.mostrarFormNovedad) return false;
+
+    // El Instructor solo puede registrar novedades en días con horario asignado
+    if (this.rol === 'Instructor') {
+      const fecha = this.fechaNovedadCtrl.value || this.hoy;
+      if (!this.esDiaConHorarioParaFecha(fecha)) return false;
+    }
+
+    // Solo se puede registrar novedad si hay alumnos inscritos en el grupo
+    if (!this.hayInscritos) return false;
+
+    return true;
+  }
+
+  /** Indica si la fecha dada corresponde a un día con horario asignado para el grupo. */
+  private esDiaConHorarioParaFecha(fecha: string | null | undefined): boolean {
+    if (!fecha || !this.grupo.horarios) return false;
+    return franjaDelDia(this.grupo.horarios, fecha) !== null;
+  }
+
+  /** Indica si hay al menos un alumno inscrito en el grupo (cuposDisponibles < cuposTotales).
+   * Si no hay información de disponibilidad, asumimos que hay inscritos. */
+  get hayInscritos(): boolean {
+    if (!this.disponibilidad || this.disponibilidad.cuposTotales === null || this.disponibilidad.cuposTotales === 0) return true;
+    return this.disponibilidad.cuposDisponibles < this.disponibilidad.cuposTotales;
   }
 
   abrirFormNovedad(fecha?: string, novedadExistente?: NovedadClaseDto): void {
@@ -625,6 +661,21 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   registrarNovedad(): void {
     if (!this.formNovedadValido) return;
     this.errorNovedad = null;
+
+    // El Instructor solo puede registrar novedades en días con horario asignado
+    if (this.rol === 'Instructor') {
+      const fecha = this.fechaNovedadCtrl.value;
+      if (!fecha || !this.esDiaConHorarioParaFecha(fecha)) {
+        this.errorNovedad = 'No se puede registrar una novedad en un día que no tiene horario asignado para este grupo.';
+        return;
+      }
+    }
+
+    // Solo se puede registrar novedad si hay inscritos en el grupo
+    if (!this.hayInscritos) {
+      this.errorNovedad = 'No se puede registrar una novedad: el grupo no tiene alumnos inscritos.';
+      return;
+    }
 
     const datos: NovedadClaseRequestDto = {
       categoria: this.categoria!,
