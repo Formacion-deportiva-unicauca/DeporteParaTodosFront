@@ -1,5 +1,6 @@
 import { Component, Inject, OnInit, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -45,6 +46,8 @@ export class FormInscripcionesComponent implements OnInit {
   correoBusqueda = '';
   perfilEncontrado: PerfilDTO | null = null;
   buscando = false;
+  /** Error al guardar la edición; el diálogo queda abierto con lo escrito. */
+  errorEdicion: string | null = null;
 
   perfil: PerfilDTO = {
     id: 0,
@@ -67,6 +70,8 @@ export class FormInscripcionesComponent implements OnInit {
       rol?: 'Estudiante' | 'Instructor',
       modo?: 'editar' | 'inscribir',
       alumno?: AlumnoDTO,
+      /** El Instructor no puede cambiar el correo del alumno (solo el Coordinador). */
+      bloquearCorreo?: boolean,
     } | null,
   ) { }
 
@@ -82,6 +87,10 @@ export class FormInscripcionesComponent implements OnInit {
       this.isInscribirMode = true;
       this.estado = 'busqueda';
     }
+  }
+
+  get correoBloqueado(): boolean {
+    return this.isEditing && this.dialogData?.bloquearCorreo === true;
   }
 
   get esInstructor(): boolean {
@@ -126,10 +135,14 @@ export class FormInscripcionesComponent implements OnInit {
         nombre: this.perfil.nombre,
         correo: this.perfil.correo,
         tipoAlumno: this.perfil.tipoAlumno,
-      }).subscribe((response) => {
-        if (response != null) {
-          this.dialogref?.close({ actualizado: true });
-        }
+      }).subscribe({
+        next: (response) => {
+          this.errorEdicion = null;
+          if (response != null) {
+            this.dialogref?.close({ actualizado: true });
+          }
+        },
+        error: (err: HttpErrorResponse) => { this.errorEdicion = this.mensajeErrorEdicion(err); },
       });
       return;
     }
@@ -158,6 +171,12 @@ export class FormInscripcionesComponent implements OnInit {
         this.dialogref?.close({ confirmacionCreacion: true, idAlumno: response.id });
       }
     });
+  }
+
+  private mensajeErrorEdicion(err: HttpErrorResponse): string {
+    if (err?.status === 403) return 'No tiene permiso para editar a este deportista.';
+    if (err?.status === 422 && err.error?.mensaje) return err.error.mensaje;
+    return 'No se pudo actualizar al deportista. Intente de nuevo.';
   }
 
   cancelar(): void {

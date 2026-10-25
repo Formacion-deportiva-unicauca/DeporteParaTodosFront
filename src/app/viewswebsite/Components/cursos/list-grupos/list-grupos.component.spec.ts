@@ -177,6 +177,22 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     expect(routerSpy.navigate).not.toHaveBeenCalled();
   });
 
+  it('Alumno que pulsa un grupo cerrado o no abierto recibe el aviso con la fecha (no se queda sin respuesta)', () => {
+    const snack = spyOn(component['snackBar'], 'open');
+    component.perfil = 'Alumno';
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, cerrado);
+    expect(snack).toHaveBeenCalledWith('Las inscripciones de este grupo cerraron el 14/06/2026', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, noAbierto);
+    expect(snack).toHaveBeenCalledWith('Las inscripciones de este grupo abren el 01/07/2026', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+  });
+
+  it('Alumno con un grupo abierto no recibe ningún aviso', () => {
+    const snack = spyOn(component['snackBar'], 'open');
+    component.perfil = 'Alumno';
+    component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, abierto);
+    expect(snack).not.toHaveBeenCalled();
+  });
+
   it('Alumno sí navega con un grupo abierto o sin el campo (compatibilidad)', () => {
     component.perfil = 'Alumno';
     component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, abierto);

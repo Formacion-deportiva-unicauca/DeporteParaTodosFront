@@ -89,6 +89,83 @@ describe('FormInscripcionesComponent › modo editar', () => {
   });
 });
 
+// ── Modo "editar" del Instructor: el correo no se puede cambiar ───────────
+
+describe('FormInscripcionesComponent › modo editar con correo bloqueado', () => {
+  it('con bloquearCorreo el campo correo está deshabilitado y el envío conserva el correo actual', async () => {
+    const { fixture, component, alumnoSpy } = await setupTestBed({ modo: 'editar', alumno: alumnoMock, bloquearCorreo: true });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const correo = (fixture.nativeElement as HTMLElement).querySelector('input[name="correo"]') as HTMLInputElement;
+    expect(correo.disabled).toBeTrue();
+    alumnoSpy.actualizarAlumno.and.returnValue(of({ id: 5 }));
+    component.onSubmit({} as any);
+    expect(alumnoSpy.actualizarAlumno).toHaveBeenCalledWith(5, jasmine.objectContaining({ correo: 'carlos@mail.com' }));
+  });
+
+  it('sin bloquearCorreo (Coordinador) el campo correo se puede editar', async () => {
+    const { fixture } = await setupTestBed({ modo: 'editar', alumno: alumnoMock });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(((fixture.nativeElement as HTMLElement).querySelector('input[name="correo"]') as HTMLInputElement).disabled).toBeFalse();
+  });
+});
+
+// ── Modo "editar": el servidor rechaza el cambio ──────────────────────────
+
+describe('FormInscripcionesComponent › modo editar con error del servidor', () => {
+  let fixture: ComponentFixture<FormInscripcionesComponent>;
+  let component: FormInscripcionesComponent;
+  let alumnoSpy: jasmine.SpyObj<AlumnoService>;
+  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<FormInscripcionesComponent>>;
+  const alerta = (): string | null =>
+    (fixture.nativeElement as HTMLElement).querySelector('.error-edicion')?.textContent?.replace(/\s+/g, ' ').trim() ?? null;
+
+  beforeEach(async () => {
+    ({ fixture, component, alumnoSpy, dialogRefSpy } = await setupTestBed({ modo: 'editar', alumno: alumnoMock }));
+  });
+
+  it('403: muestra que no tiene permiso, deja el diálogo abierto y conserva lo escrito', () => {
+    alumnoSpy.actualizarAlumno.and.returnValue(throwError(() => ({ status: 403 })));
+    component.perfil.nombre = 'Nuevo nombre';
+    component.onSubmit({} as any);
+    fixture.detectChanges();
+    expect(alerta()).toContain('No tiene permiso para editar a este deportista');
+    expect(dialogRefSpy.close).not.toHaveBeenCalled();
+    expect(component.perfil.nombre).toBe('Nuevo nombre');
+  });
+
+  it('el aviso es un alert accesible', () => {
+    alumnoSpy.actualizarAlumno.and.returnValue(throwError(() => ({ status: 403 })));
+    component.onSubmit({} as any);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.error-edicion')?.getAttribute('role')).toBe('alert');
+  });
+
+  it('422 con mensaje del servidor: lo muestra', () => {
+    alumnoSpy.actualizarAlumno.and.returnValue(throwError(() => ({ status: 422, error: { mensaje: 'El correo no se puede cambiar' } })));
+    component.onSubmit({} as any);
+    fixture.detectChanges();
+    expect(alerta()).toContain('El correo no se puede cambiar');
+  });
+
+  it('otros errores: mensaje genérico', () => {
+    alumnoSpy.actualizarAlumno.and.returnValue(throwError(() => ({ status: 500 })));
+    component.onSubmit({} as any);
+    fixture.detectChanges();
+    expect(alerta()).toContain('No se pudo actualizar al deportista');
+  });
+
+  it('un nuevo intento correcto limpia el aviso y cierra', () => {
+    alumnoSpy.actualizarAlumno.and.returnValues(throwError(() => ({ status: 403 })), of({ id: 5 }));
+    component.onSubmit({} as any);
+    component.onSubmit({} as any);
+    fixture.detectChanges();
+    expect(alerta()).toBeNull();
+    expect(dialogRefSpy.close).toHaveBeenCalledWith({ actualizado: true });
+  });
+});
+
 // ── Modo "inscribir" ──────────────────────────────────────────────────────
 
 describe('FormInscripcionesComponent › modo inscribir', () => {

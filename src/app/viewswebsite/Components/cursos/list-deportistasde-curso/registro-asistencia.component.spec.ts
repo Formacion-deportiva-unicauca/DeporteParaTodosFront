@@ -73,6 +73,8 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
 
   const montar = async (o: Opciones = {}): Promise<void> => {
     TestBed.resetTestingModule();
+    // El Instructor de estas pruebas es el titular del grupo ('inst-1'); el caso de otro grupo está en gestion-alumnos-grupo.
+    sessionStorage.setItem('dpt_perfil_id', 'inst-1');
     ahoraFijo = o.ahora ?? JUEVES;
     // Hora de la interfaz inyectable: el componente la toma de ahora() (sin mockear el reloj global).
     const proto = ListDeportistasdeCursoComponent.prototype as any;
@@ -110,7 +112,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     fixture.detectChanges();
   };
 
-  afterEach(() => fixture?.destroy());
+  afterEach(() => { fixture?.destroy(); sessionStorage.removeItem('dpt_perfil_id'); });
 
   describe('sin calendario: la fecha es HOY', () => {
     beforeEach(() => montar());

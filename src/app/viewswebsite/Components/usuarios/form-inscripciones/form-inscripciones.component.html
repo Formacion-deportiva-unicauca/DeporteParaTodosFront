@@ -53,7 +53,7 @@
 
     <mat-form-field appearance="outline" class="form-field">
       <mat-label>Correo institucional</mat-label>
-      <input matInput placeholder="Correo institucional" [(ngModel)]="perfil.correo" name="correo" type="email" required />
+      <input matInput placeholder="Correo institucional" [(ngModel)]="perfil.correo" name="correo" type="email" required [disabled]="correoBloqueado" />
     </mat-form-field>
 
     <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
@@ -98,6 +98,8 @@
     <div *ngIf="!isEditing && esInstructor" class="tipo-fijo">
       <span class="badge bg-primary">Rol: Instructor · Tipo: Docente</span>
     </div>
+
+    <p class="error-edicion" *ngIf="errorEdicion" role="alert">{{ errorEdicion }}</p>
 
     <div class="form-buttons">
       <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>

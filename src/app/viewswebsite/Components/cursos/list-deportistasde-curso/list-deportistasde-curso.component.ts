@@ -29,7 +29,7 @@ import { AsistenciaService } from 'src/app/services/asistencia.service';
 import { ClaseDTO } from 'src/app/Models/DTOs/clase-dto';
 import { AtencionDTO } from 'src/app/Models/DTOs/atencion-dto';
 import { PerfilService } from 'src/app/services/perfil.service';
-import { fechaLarga, formatearFecha } from 'src/app/shared/fecha-grupo.util';
+import { avisoInscripcionGrupo, fechaLarga, formatearFecha } from 'src/app/shared/fecha-grupo.util';
 import {
   FranjaDia, diasConClase, duracionManualValida, esRolSinRestriccion, franjaDelDia, hoyTexto, textoDiasDeClase,
 } from 'src/app/shared/ventana-registro.util';
@@ -120,6 +120,13 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     fechaIncripcionCierre: ''
   };
   disponibilidad: DisponibilidadDTO | null = null;
+  /** El grupo ya se cargó: hasta entonces no se sabe de quién es, y no se muestra "solo consulta". */
+  grupoCargado = false;
+  /**
+   * El backend autoriza al Instructor titular a inscribir, desvincular y editar alumnos de su grupo (403 si es ajeno;
+   * el correo del alumno solo lo cambia el Coordinador). Interruptor por si hay que volver a restringirlo al Coordinador.
+   */
+  instructorGestionaDeportistas = true;
 
   constructor(
     private alumnoService: AlumnoService,
@@ -139,9 +146,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   ngOnInit(): void {
     this.perfilService.perfil$.subscribe(p => {
       this.rol = p;
-      this.displayedColumns = p === 'Coordinador'
-        ? ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia', 'Acciones']
-        : ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia'];
+      this.actualizarColumnas();
     });
     this.route.paramMap.subscribe(
       (params) => {
@@ -160,6 +165,8 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     this.grupoService.getGrupo(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe(
       (grupoTemp) => {
         this.grupo = grupoTemp;
+        this.grupoCargado = true;
+        this.actualizarColumnas();
         this.consultarInstructor(grupoTemp.idInstructor);
         this.estadoHorarios = 'cargando';
         this.horarioSerive.getHorarios(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
@@ -213,14 +220,70 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     });
   }
 
+  /** Id del perfil con sesión iniciada (lo guarda el intercambio de token). */
+  private idPerfilSesion(): string | null {
+    try { return sessionStorage.getItem('dpt_perfil_id'); } catch { return null; }
+  }
+
+  /** El Instructor con sesión es el que dicta este grupo. */
+  get esInstructorDelGrupo(): boolean {
+    const id = this.idPerfilSesion();
+    return this.rol === 'Instructor' && !!id && !!this.grupo.idInstructor && String(this.grupo.idInstructor) === id;
+  }
+
+  /** Registrar y eliminar asistencias y novedades: Coordinador en cualquier grupo; Instructor solo en el que dicta. */
+  get puedeActuarEnElGrupo(): boolean {
+    return this.rol === 'Coordinador' || this.esInstructorDelGrupo;
+  }
+
+  /** Agregar, editar y desvincular deportistas: Coordinador siempre; Instructor solo en su grupo y si ya está habilitado. */
+  get puedeGestionarAlumnos(): boolean {
+    return this.rol === 'Coordinador' || (this.instructorGestionaDeportistas && this.esInstructorDelGrupo);
+  }
+
+  /** Instructor viendo un grupo que no dicta: puede consultarlo, no registrar ni eliminar nada. */
+  get soloConsulta(): boolean {
+    return this.rol === 'Instructor' && this.grupoCargado && !this.esInstructorDelGrupo;
+  }
+
+  private actualizarColumnas(): void {
+    const base = ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia'];
+    this.displayedColumns = this.puedeGestionarAlumnos ? [...base, 'Acciones'] : base;
+  }
+
+  /** El servidor sigue siendo la autoridad; esto evita abrir diálogos a quien no corresponde. */
+  private autorizadoParaGestionar(permitido: boolean = this.puedeGestionarAlumnos): boolean {
+    if (permitido) return true;
+    const mensaje = this.esInstructorDelGrupo
+      ? 'Por ahora solo el Coordinador puede agregar, editar o desvincular deportistas'
+      : 'No puede gestionar grupos que no son de su cargo';
+    this.snackBar.open(mensaje, 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+    return false;
+  }
+
+  /** "Las inscripciones de este grupo cerraron el dd/MM/yyyy" (o abren el...); null si están abiertas o el grupo no cargó. */
+  get avisoInscripciones(): string | null {
+    return this.grupoCargado ? avisoInscripcionGrupo(this.grupo) : null;
+  }
+
   inscribirAlumno() {
+    if (!this.autorizadoParaGestionar()) return;
+    const aviso = this.avisoInscripciones;
+    if (aviso) {
+      this.snackBar.open(aviso, 'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+      return;
+    }
+    this.abrirDialogInscribir();
+  }
+
+  private abrirDialogInscribir() {
     const dialogRef = this.dialog.open(FormInscripcionesComponent, {
       data: { modo: 'inscribir' }
     });
 
     dialogRef.afterClosed().subscribe(
       (resultado) => {
-        if (resultado.confirmacionCreacion) {
+        if (resultado?.confirmacionCreacion) {
 
           const inscripcion: InscripcionDTO = {
             fechaInscripcion: hoyTexto(this.ahora()),
@@ -232,15 +295,20 @@ export class ListDeportistasdeCursoComponent implements OnInit {
             iterable: this.iterable!,
             eliminado: 0,
           }
-          this.inscripcionService.postInscripcion(inscripcion).subscribe(
-            (response) => {
+          this.inscripcionService.postInscripcion(inscripcion).subscribe({
+            next: (response) => {
               if (response != null) {
                 this.ngOnInit();
               }
-            }
-          );
+            },
+            error: (err: HttpErrorResponse) => {
+              const mensaje = err?.error?.mensaje || 'No se pudo inscribir al deportista. Intente de nuevo.';
+              this.snackBar.open(mensaje, 'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+            },
+          });
         }
-      });
+      }
+    );
   }
 
   letraDeIterable(n: number | null): string {
@@ -249,8 +317,9 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   }
 
   editarAlumno(alumno: AlumnoDTO) {
+    if (!this.autorizadoParaGestionar()) return;
     const dialogRef = this.dialog.open(FormInscripcionesComponent, {
-      data: { modo: 'editar', alumno },
+      data: { modo: 'editar', alumno, bloquearCorreo: this.rol === 'Instructor' },
     });
     dialogRef.afterClosed().subscribe((resultado) => {
       if (resultado?.actualizado) {
@@ -261,6 +330,8 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   }
 
   eliminarAlumno(alumno: AlumnoDTO) {
+    if (!this.autorizadoParaGestionar()) return;
+
     const dialogRef = this.dialog.open(DialogComponent, {
       data: {
         elemento: ' al estudiante',
@@ -277,7 +348,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
         this.cargarDatos();
         this.snackBar.open('Deportista desvinculado del grupo', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
       } else if (result?.errorStatus !== undefined) {
-        this.snackBar.open('Error al desvincular al deportista, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.snackBar.open('Error al desvincular al deportista, intente de nuevo', 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
       }
     });
   }
@@ -346,6 +417,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   }
 
   eliminarAtencion(atencion: AtencionDTO, clase: ClaseDTO): void {
+    if (!this.autorizadoParaGestionar(this.puedeActuarEnElGrupo)) return;
     const dialogRef = this.dialog.open(DialogComponent, {
       data: {
         elemento: 'la asistencia de',
@@ -365,9 +437,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           duration: 3000, panelClass: ['snack-success'],
         });
       } else if (result?.errorStatus !== undefined) {
-        this.snackBar.open('Error al eliminar la asistencia, intente de nuevo', 'Cerrar', {
-          duration: 3000, panelClass: ['snack-error'],
-        });
+        this.snackBar.open('Error al eliminar la asistencia, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
       }
     });
   }
@@ -449,7 +519,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   }
 
   get puedeRegistrar(): boolean {
-    return !this.guardando && !this.cargandoMarcas && this.situacionHoy !== 'cargando' && !this.bloqueado
+    return !this.soloConsulta && !this.guardando && !this.cargandoMarcas && this.situacionHoy !== 'cargando' && !this.bloqueado
       && (!this.mostrarFueraDeHorario || this.fueraDeHorarioValido)
       && this.hayInscritos;
   }
@@ -591,6 +661,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
   private manejarErrorRegistro(err: HttpErrorResponse): void {
     this.guardando = false;
+    this.errorRegistro = null;
     if (err?.status === 422 && err.error?.mensaje) {
       this.errorRegistro = err.error.mensaje;
       // GC-0021: el servidor exige justificación; se revela la sección y se conserva lo escrito.
@@ -604,15 +675,15 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   // ── Novedad de clase no realizada ─────────────────────────────────────────
 
   get puedeRegistrarNovedad(): boolean {
-    if (this.cargandoNovedades || this.mostrarFormNovedad) return false;
+    if (this.soloConsulta || this.cargandoNovedades || this.mostrarFormNovedad) return false;
 
     // El Instructor solo puede registrar novedades en días con horario asignado
     if (this.rol === 'Instructor') {
       const fecha = this.fechaNovedadCtrl.value || this.hoy;
-      if (!this.esDiaConHorarioParaFecha(fecha)) return false;
+      if (!fecha || !this.esDiaConHorarioParaFecha(fecha)) return false;
     }
 
-    // Solo se puede registrar novedad si hay alumnos inscritos en el grupo
+    // Solo se puede registrar novedad si hay inscritos en el grupo
     if (!this.hayInscritos) return false;
 
     return true;
@@ -659,7 +730,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   }
 
   registrarNovedad(): void {
-    if (!this.formNovedadValido) return;
+    if (this.soloConsulta || !this.formNovedadValido) return;
     this.errorNovedad = null;
 
     // El Instructor solo puede registrar novedades en días con horario asignado

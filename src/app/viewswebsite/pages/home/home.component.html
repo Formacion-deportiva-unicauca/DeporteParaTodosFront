@@ -1,5 +1,5 @@
-<!-- Coordinador: menu lateral (Home, Instructores, Reportes) con el inicio dentro. Instructor, Alumno y visitantes: la cabecera de siempre. -->
-<app-sidenav *ngIf="perfil === 'Coordinador'; else conCabecera">
+<!-- Coordinador (Home, Instructores, Reportes), Instructor y Alumno (Home, Mis cursos): menu lateral con el inicio dentro. Visitantes sin sesion: la cabecera de siempre. -->
+<app-sidenav *ngIf="perfil === 'Coordinador' || perfil === 'Instructor' || perfil === 'Alumno'; else conCabecera">
     <ng-container *ngTemplateOutlet="contenidoInicio"></ng-container>
 </app-sidenav>
 

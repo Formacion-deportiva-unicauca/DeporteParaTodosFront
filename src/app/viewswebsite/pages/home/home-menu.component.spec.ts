@@ -72,14 +72,16 @@ describe('HomeComponent › menú lateral según el rol', () => {
   });
 
   for (const rol of ['Instructor', 'Alumno']) {
-    it(`${rol}: sigue con la cabecera de siempre, sin menú lateral, y con el contenido una sola vez`, () => {
+    it(`${rol}: el inicio se muestra dentro del menú lateral (Home, Mis cursos), sin cabecera simple y sin acciones de Coordinador`, () => {
       perfil$.next(rol);
       fixture.detectChanges();
-      expect(el().querySelector('app-header')).not.toBeNull();
-      expect(el().querySelector('app-sidenav')).toBeNull();
+      expect(el().querySelector('app-sidenav')).not.toBeNull();
+      expect(el().querySelector('app-header')).toBeNull();
       expect(el().querySelectorAll('h1.title-one:not(.modal-title)').length).toBe(1);
-      expect(el().querySelectorAll('mat-card').length).toBe(2);
+      expect(el().querySelector('app-sidenav h1.title-one:not(.modal-title)')?.textContent).toContain('Deporte para todos');
+      expect(el().querySelectorAll('app-sidenav mat-card').length).toBe(2);
       expect(el().querySelector('.btnAgregar')).toBeNull();
+      expect(el().querySelector('.btn-menu')).toBeNull();
     });
   }
 
