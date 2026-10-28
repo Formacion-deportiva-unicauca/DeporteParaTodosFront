@@ -12,6 +12,10 @@
       <h1 mat-dialog-title class="title-one">Confirmar para eliminar el elemento</h1>
       <p *ngIf="data" class="texConfirmation"> ¿Está seguro que desea eliminar {{data.elemento}} con el identificador '{{
         data.nombreElemento}}'?</p>
+      <p *ngIf="data?.advertencia" class="aviso-eliminacion" role="alert">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        <span>{{ data.advertencia }}</span>
+      </p>
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">

@@ -56,6 +56,7 @@ export class DialogComponent {
       prmPerfId?: string,
       prmClsCodigo?: number,
       instructorId?: string,
+      advertencia?: string | null,
     }
   ) { }
 

@@ -192,6 +192,7 @@ export class ListGruposComponent implements OnInit {
         curso: this.titulo!,
         anio: item.anio!,
         iterable: item.iterable!,
+        advertencia: this.advertenciaEliminacion(item),
       },
     });
     dialogRef.afterClosed().subscribe((result) => {
@@ -203,6 +204,19 @@ export class ListGruposComponent implements OnInit {
       }
     });
   }
+  /** Aviso para el diálogo de eliminar: el backend cancela las inscripciones del grupo al borrarlo. */
+  private advertenciaEliminacion(item: GrupoDTO): string | null {
+    const disp = this.disponibilidad[this.dispKey(item.anio, item.iterable)];
+    if (!disp) return null;
+    const inscritos = Math.max(0, disp.cuposTotales - disp.cuposDisponibles);
+    const enEspera = Math.max(0, disp.tamanoListaEspera);
+    if (inscritos === 0 && enEspera === 0) return null;
+    const partes: string[] = [];
+    if (inscritos > 0) partes.push(`${inscritos} ${inscritos === 1 ? 'inscrito' : 'inscritos'}`);
+    if (enEspera > 0) partes.push(`${enEspera} en lista de espera`);
+    return `Este grupo tiene ${partes.join(' y ')}. Al eliminarlo se cancelarán sus inscripciones y cada alumno recuperará su cupo de curso.`;
+  }
+
   nuevoGrupo(): void {
     const dialogRef = this.dialog.open(FormGruposComponent, {
       data: { categoria: this.categoria, curso: this.titulo, anio: 0 }

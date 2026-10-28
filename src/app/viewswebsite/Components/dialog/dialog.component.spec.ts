@@ -210,4 +210,22 @@ describe('DialogComponent', () => {
       expect(mockDialogRef.close).toHaveBeenCalledWith({ confirmado: false, errorStatus: 409 });
     });
   });
+
+  describe('advertencia', () => {
+    it('muestra la advertencia cuando viene en data', () => {
+      component.data.advertencia = 'Este grupo tiene 3 inscritos. Sus inscripciones se cancelarán.';
+      fixture.detectChanges();
+
+      const aviso = fixture.nativeElement.querySelector('.aviso-eliminacion');
+      expect(aviso?.textContent).toContain('3 inscritos');
+      expect(aviso?.getAttribute('role')).toBe('alert');
+    });
+
+    it('no muestra el bloque de advertencia cuando no hay', () => {
+      component.data.advertencia = null;
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.aviso-eliminacion')).toBeNull();
+    });
+  });
 });

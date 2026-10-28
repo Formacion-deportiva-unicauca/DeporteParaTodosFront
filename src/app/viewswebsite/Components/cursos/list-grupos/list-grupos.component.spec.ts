@@ -320,6 +320,55 @@ describe('ListGruposComponent › onDelete', () => {
     );
   });
 
+  it('con inscritos y lista de espera → el dialog advierte que sus inscripciones se cancelarán', () => {
+    component.disponibilidad[component.dispKey(mockItem.anio, mockItem.iterable)] =
+      { cuposTotales: 20, cuposDisponibles: 17, tamanoListaEspera: 2 };
+    component.onDelete(mockItem);
+    const data = dialogOpenSpy.calls.mostRecent().args[1].data;
+    expect(data.advertencia).toContain('3 inscritos');
+    expect(data.advertencia).toContain('2 en lista de espera');
+    expect(data.advertencia).toContain('se cancelarán');
+  });
+
+  it('un solo inscrito y nadie en espera → singular y sin mencionar lista de espera', () => {
+    component.disponibilidad[component.dispKey(mockItem.anio, mockItem.iterable)] =
+      { cuposTotales: 20, cuposDisponibles: 19, tamanoListaEspera: 0 };
+    component.onDelete(mockItem);
+    const data = dialogOpenSpy.calls.mostRecent().args[1].data;
+    expect(data.advertencia).toContain('1 inscrito');
+    expect(data.advertencia).not.toContain('inscritos');
+    expect(data.advertencia).not.toContain('lista de espera');
+  });
+
+  it('solo hay lista de espera → advierte solo de la lista de espera', () => {
+    component.disponibilidad[component.dispKey(mockItem.anio, mockItem.iterable)] =
+      { cuposTotales: 20, cuposDisponibles: 20, tamanoListaEspera: 1 };
+    component.onDelete(mockItem);
+    const data = dialogOpenSpy.calls.mostRecent().args[1].data;
+    expect(data.advertencia).toContain('1 en lista de espera');
+    expect(data.advertencia).not.toContain('inscrito');
+  });
+
+  it('grupo sin inscritos ni lista de espera → sin advertencia', () => {
+    component.disponibilidad[component.dispKey(mockItem.anio, mockItem.iterable)] =
+      { cuposTotales: 20, cuposDisponibles: 20, tamanoListaEspera: 0 };
+    component.onDelete(mockItem);
+    expect(dialogOpenSpy.calls.mostRecent().args[1].data.advertencia).toBeNull();
+  });
+
+  it('disponibilidad aún no cargada → sin advertencia (no bloquea la eliminación)', () => {
+    component.disponibilidad = {};
+    component.onDelete(mockItem);
+    expect(dialogOpenSpy.calls.mostRecent().args[1].data.advertencia).toBeNull();
+  });
+
+  it('disponibilidad inconsistente (disponibles > totales) → no muestra cifras negativas', () => {
+    component.disponibilidad[component.dispKey(mockItem.anio, mockItem.iterable)] =
+      { cuposTotales: 5, cuposDisponibles: 9, tamanoListaEspera: 0 };
+    component.onDelete(mockItem);
+    expect(dialogOpenSpy.calls.mostRecent().args[1].data.advertencia).toBeNull();
+  });
+
   it('afterClosed null → no recarga ni muestra snackbar', () => {
     mockDialogRef.afterClosed.and.returnValue(of(null));
     spyOn<any>(component, 'loadGrupos');
