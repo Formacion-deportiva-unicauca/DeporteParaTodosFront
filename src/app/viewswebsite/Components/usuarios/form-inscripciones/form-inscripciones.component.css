@@ -25,7 +25,10 @@
 }
 
 mat-dialog-content {
-  max-height: none;
+  /* Con el contenido más alto que la pantalla (formulario completo de registro), el cuerpo se desplaza en vez de salirse.
+     max-height: none lo dejaba crecer sin límite y no había scroll para llegar a los campos ni a los botones. */
+  max-height: 75vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;

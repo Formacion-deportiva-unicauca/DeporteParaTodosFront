@@ -193,6 +193,60 @@ describe('ListDeportistasdeCursoComponent', () => {
       );
     });
 
+    describe('cargarHistorial(): interpreta la respuesta de /clasesGrupo con interpretarListado', () => {
+      const textoPantalla = (): string => (fixture.nativeElement as HTMLElement).textContent ?? '';
+      const errorHistorial = 'Error al cargar el historial de clases';
+
+      it('arreglo válido: muestra las clases y el historial queda visible', () => {
+        spyOn(component['claseService'], 'getClase').and.returnValue(of([mockClase]));
+        component.cargarHistorial();
+        fixture.detectChanges();
+        expect(component.clases).toEqual([mockClase]);
+        expect(component.historialVisible).toBeTrue();
+        expect(textoPantalla()).not.toContain('No hay clases registradas para este grupo.');
+        expect(component['novedadClaseService'].obtenerNovedadesGrupo).toHaveBeenCalled();
+      });
+
+      it('GC-0002 (grupo sin clases): historial vacío y seguro, sin dejar el objeto de error en clases ni avisar de error', () => {
+        spyOn(component['claseService'], 'getClase').and.returnValue(of({ codigoError: 'GC-0002', mensaje: 'Listado vacío', codigoHttp: 200 } as any));
+        expect(() => { component.cargarHistorial(); fixture.detectChanges(); }).not.toThrow();
+        expect(component.clases).toEqual([]);
+        expect(Array.isArray(component.clases)).toBeTrue();
+        expect(component.historialVisible).toBeTrue();
+        expect(textoPantalla()).toContain('No hay clases registradas para este grupo.');
+        expect(component['snackBar'].open).not.toHaveBeenCalledWith(errorHistorial, jasmine.anything(), jasmine.anything());
+      });
+
+      const inesperados: [string, any][] = [
+        ['otro código (GC-0099)', { codigoError: 'GC-0099', mensaje: 'x', codigoHttp: 200 }],
+        ['null', null],
+        ['una cadena', 'ok'],
+        ['un número', 7],
+        ['un objeto sin codigoError', { mensaje: 'sin código' }],
+      ];
+      for (const [nombre, cuerpo] of inesperados) {
+        it(`${nombre}: avisa del error, no lo toma por historial vacío y no deja datos incorrectos`, () => {
+          spyOn(component['claseService'], 'getClase').and.returnValue(of(cuerpo));
+          expect(() => { component.cargarHistorial(); fixture.detectChanges(); }).not.toThrow();
+          expect(component['snackBar'].open).toHaveBeenCalledWith(errorHistorial, 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+          expect(component.historialVisible).toBeFalse();
+          expect(component.clases).toEqual([]);
+          expect(textoPantalla()).not.toContain('No hay clases registradas para este grupo.');
+          expect(component['novedadClaseService'].obtenerNovedadesGrupo).not.toHaveBeenCalled();
+        });
+      }
+
+      it('si el historial ya estaba cargado y la recarga trae un cuerpo inesperado, conserva lo que se veía y avisa', () => {
+        const getClase = spyOn(component['claseService'], 'getClase').and.returnValue(of([mockClase]));
+        component.cargarHistorial();
+        getClase.and.returnValue(of({ codigoError: 'GC-0099' } as any));
+        component.cargarHistorial();
+        expect(component.clases).toEqual([mockClase]);
+        expect(component.historialVisible).toBeTrue();
+        expect(component['snackBar'].open).toHaveBeenCalledWith(errorHistorial, 'Cerrar', jasmine.any(Object));
+      });
+    });
+
     it('toggleClase(): expande la clase y carga sus atenciones', () => {
       spyOn(component['asistenciaService'], 'getAtencionesClase').and.returnValue(of([mockAtencion]));
       component.toggleClase(mockClase);

@@ -10,5 +10,6 @@ horas: number;
 minutos: number;
 observacion: string;
 justificacion?: string | null;   // 10-500 caracteres; solo para una clase fuera del horario del grupo
+asistenciaConfirmadaEn?: string | null;   // solo de salida: cuándo se confirmó la asistencia de la clase (null = pendiente o histórica)
 eliminado: number;
 }

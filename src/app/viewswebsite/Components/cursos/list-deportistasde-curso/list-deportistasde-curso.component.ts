@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { AlumnoService } from 'src/app/services/alumno.service';
 import { ActivatedRoute } from '@angular/router';
 import { AlumnoDTO } from 'src/app/Models/DTOs/alumno-dto';
@@ -28,6 +28,9 @@ import { ClaseService } from 'src/app/services/clase.service';
 import { AsistenciaService } from 'src/app/services/asistencia.service';
 import { ClaseDTO } from 'src/app/Models/DTOs/clase-dto';
 import { AtencionDTO } from 'src/app/Models/DTOs/atencion-dto';
+import { ConfirmacionAsistenciaRequestDTO } from 'src/app/Models/DTOs/confirmacion-asistencia-dto';
+import { interpretarAtenciones } from 'src/app/shared/atenciones.util';
+import { interpretarListado } from 'src/app/shared/listado-vacio.util';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { avisoInscripcionGrupo, fechaLarga, formatearFecha } from 'src/app/shared/fecha-grupo.util';
 import {
@@ -80,18 +83,23 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   justificacionCtrl = new FormControl<string>('', { nonNullable: true });
   horasCtrl = new FormControl<number | null>(null);
   minutosCtrl = new FormControl<number | null>(null);
+  readonly minJustificacion = 10;
   readonly maxJustificacion = 500;
   /** El servidor exigió justificación (GC-0021) aunque no se mostró la falta de franja (p. ej. el horario no cargó). */
   exigirFueraDeHorario = false;
   /** Alumnos que asistieron (por id); los demás quedan con falta. */
   asistieron = new Set<string>();
-  /** Marcas ya registradas para el día en que se cargaron: base para aplicar solo la diferencia al guardar. */
-  private marcasPrevias = new Set<string>();
+  /** Día (yyyy-MM-dd) al que corresponden las marcas que se ven; '' mientras no se hayan leído bien. */
   private fechaDeMarcas = '';
   cargandoMarcas = false;
+  /** No se pudo leer la asistencia ya registrada de hoy: guardar sobrescribiría lo que haya, así que se bloquea. */
+  errorMarcas = false;
+  /** Ya hay una clase de hoy (leída o recién creada): el servidor la reutiliza y no vuelve a pedir justificación ni duración. */
+  private claseDeHoyExistente = false;
+  /** La clase de hoy ya tiene su asistencia confirmada (la leyó el servidor, o se acaba de guardar). */
+  private asistenciaConfirmadaHoy = false;
   guardando = false;
   errorRegistro: string | null = null;
-  avisoRegistro: string | null = null;
   errorNovedad: string | null = null;
 
   // ── Novedad de clase no realizada ─────────────────────────────────────────
@@ -189,6 +197,18 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       }
     );
 
+    this.cargarAlumnos();
+
+    if (this.rol === 'Coordinador') {
+      this.inscripcionService.getListaEspera(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
+        next: (data) => { this.listaEspera = Array.isArray(data) ? data : []; },
+        error: () => { this.listaEspera = []; }
+      });
+    }
+  }
+
+  /** Lista de alumnos del grupo con su total de faltas (lo calcula el backend). */
+  cargarAlumnos(): void {
     this.alumnoService.getAlumnosGrupo(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe(
       {
         next: (data) => {
@@ -200,13 +220,6 @@ export class ListDeportistasdeCursoComponent implements OnInit {
         }
       }
     );
-
-    if (this.rol === 'Coordinador') {
-      this.inscripcionService.getListaEspera(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
-        next: (data) => { this.listaEspera = Array.isArray(data) ? data : []; },
-        error: () => { this.listaEspera = []; }
-      });
-    }
   }
 
   consultarInstructor(id: string | null | undefined): void {
@@ -368,17 +381,24 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
   cargarHistorial(): void {
     this.claseService.getClase(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
-      next: (clases) => {
+      next: (cuerpo) => {
+        // Lista, o GC-0002 (grupo sin clases) = historial vacío. Cualquier otro cuerpo no se puede interpretar: se avisa
+        // del error y se conserva lo que ya se veía, sin tomarlo por "no hay clases".
+        const clases = interpretarListado<ClaseDTO>(cuerpo);
+        if (clases === null) {
+          this.avisarErrorHistorial();
+          return;
+        }
         this.clases = clases;
         this.historialVisible = true;
         this.cargarNovedades();
       },
-      error: () => {
-        this.snackBar.open('Error al cargar el historial de clases', 'Cerrar', {
-          duration: 3000, panelClass: ['snack-error'],
-        });
-      },
+      error: () => this.avisarErrorHistorial(),
     });
+  }
+
+  private avisarErrorHistorial(): void {
+    this.snackBar.open('Error al cargar el historial de clases', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
   }
 
   cargarNovedades(): void {
@@ -402,13 +422,23 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     }
     this.clasesExpandidas.add(clase.codigo);
     this.asistenciaService.getAtencionesClase(clase.codigo).subscribe({
-      next: (atenciones) => { this.clasesAtenciones[clase.codigo] = atenciones; },
-      error: () => {
-        this.snackBar.open('Error al cargar las atenciones', 'Cerrar', {
-          duration: 3000, panelClass: ['snack-error'],
-        });
-      },
+      next: (atenciones) => this.guardarAtenciones(clase.codigo, atenciones),
+      error: () => this.avisarErrorAtenciones(),
     });
+  }
+
+  /** Guarda las atenciones de una clase solo si la respuesta se pudo interpretar (lista o GC-0002 = vacía); si no, avisa y no inventa datos. */
+  private guardarAtenciones(codigoClase: number, cuerpo: unknown): void {
+    const lista = interpretarAtenciones(cuerpo);
+    if (lista === null) {
+      this.avisarErrorAtenciones();
+      return;
+    }
+    this.clasesAtenciones[codigoClase] = lista;
+  }
+
+  private avisarErrorAtenciones(): void {
+    this.snackBar.open('Error al cargar las atenciones', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
   }
 
   getNombreAlumno(perfId: string): string {
@@ -430,9 +460,10 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.confirmado) {
         this.asistenciaService.getAtencionesClase(clase.codigo).subscribe({
-          next: (atenciones) => { this.clasesAtenciones[clase.codigo] = atenciones; },
-          error: () => {},
+          next: (atenciones) => this.guardarAtenciones(clase.codigo, atenciones),
+          error: () => this.avisarErrorAtenciones(),
         });
+        this.cargarAlumnos();
         this.snackBar.open('Asistencia eliminada correctamente', 'Cerrar', {
           duration: 3000, panelClass: ['snack-success'],
         });
@@ -501,7 +532,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
   /** Fuera de horario (solo Coordinador): hoy no hay franja, o el servidor exigió justificación. */
   get mostrarFueraDeHorario(): boolean {
-    return !this.restringeDias && (this.situacionHoy === 'fuera-de-horario' || this.exigirFueraDeHorario);
+    return !this.restringeDias && !this.claseDeHoyExistente && (this.situacionHoy === 'fuera-de-horario' || this.exigirFueraDeHorario);
   }
 
   /** Franja a mostrar como "Horario de hoy" (solo si no se pide justificación). */
@@ -509,18 +540,52 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     return this.situacionHoy === 'con-franja' && !this.mostrarFueraDeHorario ? this.franja : null;
   }
 
+  /** Largo de la justificación sin espacios sobrantes (lo que se envía: el servidor rechaza espacios al inicio o al final). */
   get longitudJustificacion(): number {
-    return this.justificacionCtrl.value.length;
+    return this.justificacionCtrl.value.trim().length;
   }
 
+  /** Clase fuera de horario (Coordinador): justificación de 10 a 500 caracteres y duración manual válida (mayor que 0, hasta 12 h). */
   private get fueraDeHorarioValido(): boolean {
-    // Ya no hay campos de entrada en la sección fuera-de-horario: no hay nada que validar.
-    return true;
+    return this.justificacionValida && this.duracionValida;
+  }
+
+  private get justificacionValida(): boolean {
+    const largo = this.longitudJustificacion;
+    return largo >= this.minJustificacion && largo <= this.maxJustificacion;
+  }
+
+  private get duracionValida(): boolean {
+    return duracionManualValida(this.horasCtrl.value, this.minutosCtrl.value);
+  }
+
+  /** Se pulsó "Registrar asistencia" con los datos de la clase fuera de horario incompletos: desde entonces se muestran los errores. */
+  intentoFueraDeHorario = false;
+
+  get errorJustificacion(): string | null {
+    return this.intentoFueraDeHorario && !this.justificacionValida
+      ? `La justificación es obligatoria: entre ${this.minJustificacion} y ${this.maxJustificacion} caracteres.` : null;
+  }
+
+  get errorDuracion(): string | null {
+    return this.intentoFueraDeHorario && !this.duracionValida
+      ? 'Indica la duración de la clase: mayor que 0 y de hasta 12 horas.' : null;
+  }
+
+  /**
+   * La asistencia de hoy ya quedó registrada: se bloquean el registro y la novedad y se avisa. Solo vale para el día en que se
+   * leyeron las marcas: si pasa la medianoche con la pantalla abierta el bloqueo se levanta y el siguiente clic recarga el día nuevo.
+   */
+  get asistenciaDeHoyRegistrada(): boolean {
+    return this.asistenciaConfirmadaHoy && this.fechaDeMarcas === this.hoy;
+  }
+
+  get textoAsistenciaRegistrada(): string {
+    return `La asistencia de hoy (${formatearFecha(this.hoy)}) ya fue registrada.`;
   }
 
   get puedeRegistrar(): boolean {
-    return !this.soloConsulta && !this.guardando && !this.cargandoMarcas && this.situacionHoy !== 'cargando' && !this.bloqueado
-      && (!this.mostrarFueraDeHorario || this.fueraDeHorarioValido)
+    return !this.asistenciaDeHoyRegistrada && !this.soloConsulta && !this.guardando && !this.cargandoMarcas && !this.marcasNoDisponibles && this.situacionHoy !== 'cargando' && !this.bloqueado
       && this.hayInscritos;
   }
 
@@ -528,25 +593,52 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     return `Registrar asistencia del día ${formatearFecha(this.hoy)}`;
   }
 
-  /** Si ya hay asistencia registrada hoy, precarga las marcas de quienes asistieron (para aplicar solo la diferencia). */
-  private cargarMarcasDeHoy(): void {
+  /**
+   * Las marcas que se ven deben ser las de hoy y haberse leído bien: la confirmación envía el estado COMPLETO del grupo
+   * (quien no va como presente queda ausente), así que guardar con marcas desconocidas o de otro día sobrescribiría lo registrado.
+   */
+  get marcasNoDisponibles(): boolean {
+    return this.errorMarcas;
+  }
+
+  readonly textoMarcasNoDisponibles =
+    'No se pudo leer la asistencia ya registrada de hoy. Para no sobrescribirla, vuelve a intentarlo antes de guardar.';
+
+  /** Si ya hay asistencia registrada hoy, precarga las marcas de quienes asistieron. */
+  cargarMarcasDeHoy(): void {
     const fecha = this.hoy;
     this.cargandoMarcas = true;
+    this.errorRegistro = null;
+    this.errorMarcas = false;
+    this.asistenciaConfirmadaHoy = false;
     this.claseService.getClase(this.categoria!, this.titulo!, this.anio!, this.iterable!).pipe(
       switchMap(clases => {
-        const clase = (Array.isArray(clases) ? clases : []).find(c => String(c.fecha).substring(0, 10) === fecha);
-        return clase ? this.asistenciaService.getAtencionesClase(clase.codigo) : of(null);
+        // Lista, o GC-0002 (grupo sin clases) = "no hay clase de hoy". Cualquier otra respuesta 200 no se puede interpretar:
+        // no se asume que no hay clases (se bloquea el guardado vía catchError).
+        const lista = interpretarListado<ClaseDTO>(clases);
+        if (lista === null) throw new Error('Respuesta de clases no interpretable');
+        const clase = lista.find(c => String(c.fecha).substring(0, 10) === fecha);
+        this.claseDeHoyExistente = !!clase;
+        this.asistenciaConfirmadaHoy = !!clase?.asistenciaConfirmadaEn;
+        return clase ? this.asistenciaService.getAtencionesClase(clase.codigo) : of([]);
       }),
-      map(atenciones => atenciones ? atenciones.filter(a => a.estaAtendido).map(a => a.idPerfil) : null),
-      // Si el historial no se puede leer no se bloquea: se registra con las marcas en blanco.
+      map(atenciones => {
+        // Lista, o GC-0002 (clase sin filas) = "sin marcas". Cualquier otra respuesta 200 no se puede interpretar: es un fallo.
+        const lista = interpretarAtenciones(atenciones);
+        if (lista === null) throw new Error('Respuesta de atenciones no interpretable');
+        return lista.filter(a => a.estaAtendido).map(a => a.idPerfil);
+      }),
+      // null = no se pudo leer: no se inventan marcas ni se deja guardar.
       catchError(() => of(null)),
     ).subscribe(marcadas => {
       this.cargandoMarcas = false;
-      this.fechaDeMarcas = fecha;
-      if (marcadas) {
-        this.asistieron = new Set(marcadas);
-        this.marcasPrevias = new Set(marcadas);
+      if (marcadas === null) {
+        this.errorMarcas = true;
+        this.fechaDeMarcas = '';
+        return;
       }
+      this.fechaDeMarcas = fecha;
+      this.asistieron = new Set(marcadas);
     });
   }
 
@@ -574,24 +666,37 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   registrarAsistencia(): void {
     // `guardando` se activa de forma síncrona: una segunda pulsación no envía otra petición ni abre otra confirmación.
     if (!this.puedeRegistrar) return;
+    // Si pasó la medianoche con la pantalla abierta, las marcas son del día anterior: se cargan las de hoy y se pide revisar.
+    if (this.fechaDeMarcas !== '' && this.fechaDeMarcas !== this.hoy) {
+      this.cargarMarcasDeHoy();
+      this.errorRegistro = 'Cambió el día: se cargó la asistencia de hoy. Revisa las marcas y vuelve a guardar.';
+      return;
+    }
+    // Clase fuera de horario (Coordinador): el botón está activo, pero sin justificación y duración válidas no se envía nada;
+    // se explica qué falta y se lleva el foco al primer campo incorrecto.
+    if (this.mostrarFueraDeHorario && !this.fueraDeHorarioValido) {
+      this.intentoFueraDeHorario = true;
+      document.getElementById(this.justificacionValida ? 'horasManual' : 'justificacion')?.focus();
+      return;
+    }
     if (this.asistieron.size === 0) {
       this.guardando = true;
       this.dialog.open(ConfirmarSinAsistentesComponent, { role: 'alertdialog' }).afterClosed().subscribe(continuar => {
         if (continuar === true) {
-          this.ejecutarRegistro();
+          this.ejecutarRegistro(true);
         } else {
           this.guardando = false;
         }
       });
       return;
     }
-    this.ejecutarRegistro();
+    this.ejecutarRegistro(false);
   }
 
-  private ejecutarRegistro(): void {
+  /** Crea (o reutiliza) la clase de hoy y confirma su asistencia con el estado completo del grupo, en una sola petición. */
+  private ejecutarRegistro(confirmaTodosAusentes: boolean): void {
     this.guardando = true;
     this.errorRegistro = null;
-    this.avisoRegistro = null;
 
     const fecha = this.hoy;
     const franja = franjaDelDia(this.grupo.horarios, fecha);
@@ -612,61 +717,48 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       // Informativas: si el grupo tiene franja ese día el servidor las ignora y calcula la duración.
       clase.horas = franja.horas;
       clase.minutos = franja.minutos;
+    } else if (this.mostrarFueraDeHorario) {
+      // Coordinador en un día sin clase: el servidor exige justificación (sin espacios sobrantes) y duración manual.
+      clase.justificacion = this.justificacionCtrl.value.trim();
+      clase.horas = this.horasCtrl.value ?? 0;
+      clase.minutos = this.minutosCtrl.value ?? 0;
     }
 
-    const yaEliminadas: string[] = [];
+    const cuerpo: ConfirmacionAsistenciaRequestDTO = {
+      asistencias: this.alumnos.data.map(a => ({ idPerfil: String(a.id), estaAtendido: this.asistieron.has(String(a.id)) })),
+      // Solo tras la confirmación explícita del usuario (diálogo) y cuando nadie asistió; el backend lo exige en ese caso.
+      ...(confirmaTodosAusentes ? { confirmaTodosAusentes: true } : {}),
+    };
     this.claseService.postClase(clase).pipe(
-      switchMap(creada => this.aplicarDiferencia(creada, yaEliminadas, fecha)),
+      switchMap(creada => this.asistenciaService.confirmarAsistencia(creada.codigo, cuerpo)),
     ).subscribe({
       next: () => {
-        // Lo guardado pasa a ser la nueva base para el siguiente guardado.
-        this.marcasPrevias = new Set(this.asistieron);
         this.fechaDeMarcas = fecha;
+        this.claseDeHoyExistente = true;
+        this.asistenciaConfirmadaHoy = true;
+        this.intentoFueraDeHorario = false;
         this.guardando = false;
-        if (yaEliminadas.length > 0) {
-          this.avisoRegistro = `La asistencia de ${yaEliminadas.join(', ')} ya estaba eliminada`;
-        }
         this.snackBar.open('Asistencia registrada correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        // Las faltas las calcula el backend: se vuelven a pedir con la lista.
+        this.cargarAlumnos();
         if (this.historialVisible) this.cargarHistorial();
       },
       error: (err: HttpErrorResponse) => this.manejarErrorRegistro(err),
     });
   }
 
-  /** POST solo de las marcas nuevas y DELETE solo de las desmarcadas (HE08-HU04); sin cambios no llama a nada. */
-  private aplicarDiferencia(clase: ClaseDTO, yaEliminadas: string[], fecha: string): Observable<unknown> {
-    // Las marcas previas solo sirven de base si son de este mismo día (si pasó la medianoche no se borra nada de ayer).
-    const previas = fecha === this.fechaDeMarcas ? this.marcasPrevias : new Set<string>();
-    const nuevas = [...this.asistieron].filter(id => !previas.has(id));
-    const quitadas = [...previas].filter(id => !this.asistieron.has(id));
-    const operaciones: Observable<unknown>[] = [];
-    if (nuevas.length > 0) {
-      const atenciones: AtencionDTO[] = nuevas.map(id => ({ idPerfil: id, idClase: clase.codigo, estaAtendido: true }));
-      operaciones.push(this.asistenciaService.registrarAsistencias(clase.codigo, atenciones));
-    }
-    for (const id of quitadas) {
-      operaciones.push(this.asistenciaService.eliminarAsistencia(id, clase.codigo).pipe(
-        // 409 = ya estaba eliminada: no es un fallo, solo se informa.
-        catchError((err: HttpErrorResponse) => {
-          if (err?.status === 409) {
-            yaEliminadas.push(this.getNombreAlumno(id));
-            return of(null);
-          }
-          return throwError(() => err);
-        }),
-      ));
-    }
-    return operaciones.length > 0 ? forkJoin(operaciones) : of(null);
-  }
-
   private manejarErrorRegistro(err: HttpErrorResponse): void {
     this.guardando = false;
     this.errorRegistro = null;
-    if (err?.status === 422 && err.error?.mensaje) {
-      this.errorRegistro = err.error.mensaje;
+    const mensaje: string | undefined = err?.error?.mensaje;
+    // 422 reglas de negocio, 403 grupo ajeno, 404 clase inexistente: el servidor explica el motivo.
+    if (mensaje && (err.status === 422 || err.status === 403 || err.status === 404)) {
+      this.errorRegistro = mensaje;
       // GC-0021: el servidor exige justificación; se revela la sección y se conserva lo escrito.
       // (Solo Coordinador y Administrador: el Instructor nunca registra fuera de horario.)
       if (err.error?.codigoError === 'GC-0021' && !this.restringeDias) this.exigirFueraDeHorario = true;
+      // GC-0027: la lista en pantalla ya no coincide con la del grupo.
+      if (err.error?.codigoError === 'GC-0027') this.cargarAlumnos();
       return;
     }
     this.errorRegistro = 'No se pudo registrar la asistencia. Intenta de nuevo.';
@@ -675,7 +767,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   // ── Novedad de clase no realizada ─────────────────────────────────────────
 
   get puedeRegistrarNovedad(): boolean {
-    if (this.soloConsulta || this.cargandoNovedades || this.mostrarFormNovedad) return false;
+    if (this.soloConsulta || this.asistenciaDeHoyRegistrada || this.cargandoNovedades || this.mostrarFormNovedad) return false;
 
     // El Instructor solo puede registrar novedades en días con horario asignado
     if (this.rol === 'Instructor') {

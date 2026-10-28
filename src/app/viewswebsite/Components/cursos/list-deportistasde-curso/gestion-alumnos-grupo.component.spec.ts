@@ -239,7 +239,8 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
         await montar(caso.o);
         expect(component.soloConsulta).toBeFalse();
         expect(el().querySelector('.btn-registrar')).not.toBeNull();
-        expect(el().querySelector('.btn-novedad')).not.toBeNull();
+        // El Coordinador de este caso no tiene horario cargado: está fuera de horario y no se ofrece la novedad.
+        expect(el().querySelector('.btn-novedad') !== null).toBe(caso.nombre !== 'Coordinador');
         expect(el().querySelector('.solo-consulta')).toBeNull();
         component.historialVisible = true;
         component.clases = [{ codigo: 7, fecha: '2024-08-20', horas: 1, minutos: 0 } as any];

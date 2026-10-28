@@ -297,3 +297,32 @@ table {
   color: #5c3a00;
   font-size: 0.9rem;
 }
+
+.aviso-registrada {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 12px;
+  padding: 10px 14px;
+  border-left: 4px solid #2e7d32;
+  background: #e8f5e9;
+  color: #1b4d1f;
+  border-radius: 4px;
+}
+
+.aviso-registrada mat-icon {
+  flex-shrink: 0;
+  color: #2e7d32;
+}
+
+.error-fuera-horario {
+  margin: 4px 0 0;
+  color: #b3261e;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.registro-asistencia textarea[aria-invalid='true'],
+.registro-asistencia input[aria-invalid='true'] {
+  border-color: #b3261e;
+}

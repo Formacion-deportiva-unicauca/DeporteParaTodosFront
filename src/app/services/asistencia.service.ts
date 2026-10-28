@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
 import { AtencionDTO } from '../Models/DTOs/atencion-dto';
+import { ConfirmacionAsistenciaDTO, ConfirmacionAsistenciaRequestDTO } from '../Models/DTOs/confirmacion-asistencia-dto';
 import { HttpClient } from '@angular/common/http';
 
 @Injectable({
@@ -13,6 +14,13 @@ export class AsistenciaService {
 
   registrarAsistencias(idClase: number, atenciones: AtencionDTO[]): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/atenciones?idClase=${idClase}`, atenciones).pipe(
+      catchError((error) => throwError(error))
+    );
+  }
+
+  /** Confirma la asistencia de la clase con el estado completo del grupo (idempotente). */
+  confirmarAsistencia(codigoClase: number, cuerpo: ConfirmacionAsistenciaRequestDTO): Observable<ConfirmacionAsistenciaDTO> {
+    return this.http.put<ConfirmacionAsistenciaDTO>(`${this.apiUrl}/clase/${codigoClase}/asistencia`, cuerpo).pipe(
       catchError((error) => throwError(error))
     );
   }

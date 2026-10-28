@@ -33,8 +33,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
   let fixture: ComponentFixture<ListDeportistasdeCursoComponent>;
   let perfil$: BehaviorSubject<string>;
   let postClase: jasmine.Spy;
-  let registrarAsistencias: jasmine.Spy;
-  let eliminarAsistencia: jasmine.Spy;
+  let confirmarAsistencia: jasmine.Spy;
   let getClase: jasmine.Spy;
   let getAtencionesClase: jasmine.Spy;
   let snack: jasmine.Spy;
@@ -104,10 +103,10 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     snack = spyOn(component['snackBar'], 'open').and.returnValue(null as any);
     abrirDialogo = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(true) } as any);
     postClase = spyOn(component['claseService'], 'postClase').and.callFake((c: ClaseDTO) => of({ ...c, codigo: 50 }));
-    getClase = spyOn(component['claseService'], 'getClase').and.returnValue(o.clases === 'error' ? throwError(() => err(500)) : of(o.clases ?? []));
-    registrarAsistencias = spyOn(component['asistenciaService'], 'registrarAsistencias').and.returnValue(of({}));
-    eliminarAsistencia = spyOn(component['asistenciaService'], 'eliminarAsistencia').and.returnValue(of({} as any));
-    const atenciones$ = o.atenciones === 'error' ? throwError(() => err(500)) : o.atenciones instanceof Subject ? o.atenciones : of(o.atenciones ?? []);
+    getClase = spyOn(component['claseService'], 'getClase').and.returnValue(o.clases === 'error' ? throwError(() => err(500)) : of(o.clases === undefined ? [] : o.clases));
+    confirmarAsistencia = spyOn(component['asistenciaService'], 'confirmarAsistencia')
+      .and.returnValue(of({ codigoClase: 50, confirmadaEn: '2026-10-15T12:00:00', presentes: 0, ausentes: 0 }));
+    const atenciones$ = o.atenciones === 'error' ? throwError(() => err(500)) : o.atenciones instanceof Subject ? o.atenciones : of(o.atenciones === undefined ? [] : o.atenciones);
     getAtencionesClase = spyOn(component['asistenciaService'], 'getAtencionesClase').and.returnValue(atenciones$);
     fixture.detectChanges();
   };
@@ -151,6 +150,10 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       ahoraFijo = octubre(16, 0, 0, 1);
       fixture.detectChanges();
       expect(textoQ('.fecha-hoy')).toContain('16 de octubre de 2026');
+      // Las marcas en pantalla eran del día anterior: el primer clic las recarga para el día nuevo y no guarda.
+      guardar();
+      expect(postClase).not.toHaveBeenCalled();
+      marcar('Ana');
       guardar();
       expect(postClase.calls.mostRecent().args[0].fecha).toBe('2026-10-16');
     });
@@ -276,40 +279,214 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     }
   });
 
-  describe('Coordinador: único rol que puede registrar un día sin clase', () => {
-    for (const rol of ['Coordinador']) {
-      describe(rol, () => {
-        it('hoy con franja: sin justificación y habilitado', async () => {
-          await montar({ rol, horarios: [franja('JUEVES')] });
-          expect(q('section.fuera-de-horario')).toBeNull();
-          expect(guardarBtn().disabled).toBeFalse();
-          expect(textoQ('.horario-del-dia')).toContain('Horario de hoy');
-        });
+  describe('Coordinador: único rol que puede registrar un día sin clase (con justificación y duración manual)', () => {
+    const rol = 'Coordinador';
+    const justificacionValida = 'Clase de reposición por el partido del sábado';
+    const claseHoy: ClaseDTO = {
+      codigo: 50, idGrupoCategoria: 'Futbol', idGrupoCurso: 'Avanzado', idGrupoAnio: 2024, idGrupoIterable: 1,
+      idInstructor: 'inst-1', fecha: '2026-10-15', horas: 1, minutos: 0, observacion: '', eliminado: 0,
+    };
+    const completar = (justificacion = justificacionValida, horas = '1', minutos = '30'): void => {
+      escribirEn('textarea#justificacion', justificacion);
+      escribirEn('input#horasManual', horas);
+      escribirEn('input#minutosManual', minutos);
+    };
+    /** Pulsa "Registrar asistencia" y dice si se llegó a registrar la clase (es decir, si los datos fueron aceptados). */
+    const intentar = (): boolean => {
+      postClase.calls.reset();
+      guardarBtn().click();
+      fixture.detectChanges();
+      return postClase.calls.count() > 0;
+    };
+    const errores = (): string[] => Array.from(el().querySelectorAll('.error-fuera-horario')).map(e => e.textContent!.replace(/\s+/g, ' ').trim());
+    const enfocado = (): string => (document.activeElement as HTMLElement | null)?.id ?? '';
 
-        it('hoy sin franja: aparece "Clase fuera de horario" y el botón queda habilitado', async () => {
-          await montar({ rol, horarios: [franja('MARTES')] });
-          expect(textoQ('section.fuera-de-horario h3')).toBe('Clase fuera de horario');
-          expect(guardarBtn().disabled).toBeFalse();
-          expect(q('.hoy-sin-clase')).toBeNull();
-        });
+    it('hoy con franja: sin justificación ni duración y habilitado', async () => {
+      await montar({ rol, horarios: [franja('JUEVES')] });
+      expect(q('section.fuera-de-horario')).toBeNull();
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(textoQ('.horario-del-dia')).toContain('Horario de hoy');
+    });
 
-        it('sin justificación ni duración registra la asistencia (sin campos fuera de horario)', async () => {
-          await montar({ rol, horarios: [franja('MARTES')] });
-          marcar('Ana');
-          guardar();
-          const enviado: ClaseDTO = postClase.calls.mostRecent().args[0];
-          expect(enviado.justificacion).toBeUndefined();
-          expect(enviado.horas).toBe(0);
-          expect(enviado.minutos).toBe(0);
-        });
+    it('hoy sin franja: aparece "Clase fuera de horario" con los campos y el botón "Registrar asistencia" está habilitado', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      expect(textoQ('section.fuera-de-horario h3')).toBe('Clase fuera de horario');
+      expect(q('textarea#justificacion')).not.toBeNull();
+      expect(q('input#horasManual')).not.toBeNull();
+      expect(q('input#minutosManual')).not.toBeNull();
+      expect(q('.hoy-sin-clase')).toBeNull();
+      expect(guardarBtn().disabled).toBeFalse();
+    });
 
-        it('sin horario cargado: sin el aviso "sin horario" (es solo del Instructor) y con la sección', async () => {
-          await montar({ rol, horarios: [] });
-          expect(q('.sin-horario')).toBeNull();
-          expect(q('section.fuera-de-horario')).not.toBeNull();
-        });
-      });
-    }
+    it('los campos tienen etiqueta asociada y la ayuda de los límites', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      for (const id of ['justificacion', 'horasManual', 'minutosManual']) {
+        expect(q(`label[for="${id}"]`)).withContext(id).not.toBeNull();
+      }
+      expect(textoQ('section.fuera-de-horario')).toContain('entre 10 y 500 caracteres');
+      expect(textoQ('.contador-justificacion')).toBe('0/500');
+    });
+
+    it('fuera de horario NO se ofrece "Registrar novedad de clase no realizada" (solo el registro de la asistencia)', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      expect(q('button.btn-novedad')).toBeNull();
+      expect(q('button.btn-registrar')).not.toBeNull();
+    });
+
+    it('con franja hoy la novedad sigue disponible para el Coordinador', async () => {
+      await montar({ rol, horarios: [franja('JUEVES')] });
+      expect(q('button.btn-novedad')).not.toBeNull();
+    });
+
+    it('si el servidor exige justificación (horario no cargado) también se oculta la novedad', async () => {
+      await montar({ rol, horarios: 'error' });
+      expect(q('button.btn-novedad')).not.toBeNull();
+      marcar('Ana');
+      postClase.and.returnValue(throwError(() => err422('GC-0021', 'La justificación es requerida')));
+      guardar();
+      expect(q('button.btn-novedad')).toBeNull();
+    });
+
+    it('Instructor y Administrador conservan el botón de novedad (la sección fuera de horario no es suya)', async () => {
+      for (const otro of ['Instructor', 'Administrador']) {
+        await montar({ rol: otro, horarios: [franja('JUEVES')] });
+        expect(q('button.btn-novedad')).withContext(otro).not.toBeNull();
+      }
+    });
+
+    it('con campos vacíos al pulsar no se registra nada y se explica qué falta, con el foco en la justificación', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      marcar('Ana');
+      expect(errores()).toEqual([]);                 // antes de pulsar no se muestran errores
+      expect(intentar()).toBeFalse();
+      expect(confirmarAsistencia).not.toHaveBeenCalled();
+      expect(errores()).toEqual([
+        'La justificación es obligatoria: entre 10 y 500 caracteres.',
+        'Indica la duración de la clase: mayor que 0 y de hasta 12 horas.',
+      ]);
+      expect(q('.error-fuera-horario')?.getAttribute('role')).toBe('alert');
+      expect(enfocado()).toBe('justificacion');
+      expect(casilla('Ana').checked).toBeTrue();     // las marcas no se pierden
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(abrirDialogo).not.toHaveBeenCalled();
+    });
+
+    it('si la justificación es válida y falta la duración, el error es solo el de la duración y el foco va a las horas', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      escribirEn('textarea#justificacion', justificacionValida);
+      expect(intentar()).toBeFalse();
+      expect(errores()).toEqual(['Indica la duración de la clase: mayor que 0 y de hasta 12 horas.']);
+      expect(enfocado()).toBe('horasManual');
+    });
+
+    it('los campos inválidos se marcan con aria-invalid y apuntan a su mensaje; al corregirlos los errores se actualizan', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      intentar();
+      expect(q('textarea#justificacion')?.getAttribute('aria-invalid')).toBe('true');
+      expect(q('input#horasManual')?.getAttribute('aria-invalid')).toBe('true');
+      completar();
+      expect(errores()).toEqual([]);
+      expect(q('textarea#justificacion')?.getAttribute('aria-invalid')).toBeNull();
+      expect(intentar()).toBeTrue();
+    });
+
+    it('con "ninguno marcado" y datos incompletos primero se piden los datos, no la confirmación de todos ausentes', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      expect(intentar()).toBeFalse();
+      expect(abrirDialogo).not.toHaveBeenCalled();
+    });
+
+    it('con justificación (10 a 500) y duración válida registra y envía la justificación sin espacios sobrantes y la duración manual', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      completar(`  ${justificacionValida}  `, '1', '30');
+      marcar('Ana');
+      guardar();
+      const enviado: ClaseDTO = postClase.calls.mostRecent().args[0];
+      expect(enviado.justificacion).toBe(justificacionValida);
+      expect([enviado.horas, enviado.minutos]).toEqual([1, 30]);
+      expect(confirmarAsistencia).toHaveBeenCalledTimes(1);
+    });
+
+    it('justificación inválida (corta, solo espacios, vacía) no se acepta', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      for (const texto of ['', 'corta', '         ', '   corta   ']) {
+        completar(texto);
+        expect(intentar()).withContext(`"${texto}"`).toBeFalse();
+      }
+    });
+
+    it('justificación: 10 y 500 caracteres son válidos; 9 y 501 no (el contador cuenta el texto sin espacios sobrantes)', async () => {
+      for (const [largo, valida] of [[9, false], [10, true], [500, true], [501, false]] as [number, boolean][]) {
+        await montar({ rol, horarios: [franja('MARTES')] });
+        completar('a'.repeat(largo));
+        expect(intentar()).withContext(`${largo}`).toBe(valida);
+      }
+      await montar({ rol, horarios: [franja('MARTES')] });
+      completar('a'.repeat(500));
+      expect(textoQ('.contador-justificacion')).toBe('500/500');
+    });
+
+    it('duración: horas 0-12, minutos 0-59, total mayor que 0 y hasta 12 horas', async () => {
+      const casos: [string, string, boolean][] = [
+        ['1', '0', true], ['0', '1', true], ['12', '0', true], ['2', '59', true],
+        ['0', '0', false], ['12', '1', false], ['13', '0', false], ['0', '60', false], ['-1', '30', false], ['', '', false], ['1.5', '0', false],
+      ];
+      for (const [h, m, valida] of casos) {
+        await montar({ rol, horarios: [franja('MARTES')] });
+        completar(justificacionValida, h, m);
+        expect(intentar()).withContext(`${h}h ${m}min`).toBe(valida);
+      }
+    });
+
+    it('si ya existe la clase de hoy no se vuelve a pedir justificación ni duración (el servidor la reutiliza)', async () => {
+      await montar({ rol, horarios: [franja('MARTES')], clases: [claseHoy], atenciones: [{ idPerfil: '1', idClase: 50, estaAtendido: true }] });
+      expect(q('section.fuera-de-horario')).toBeNull();
+      expect(guardarBtn().disabled).toBeFalse();
+    });
+
+    it('tras guardar con éxito la clase ya existe: la sección de justificación desaparece y el registro queda bloqueado', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      completar();
+      marcar('Ana');
+      guardar();
+      expect(q('section.fuera-de-horario')).toBeNull();
+      expect(guardarBtn().disabled).toBeTrue();
+      expect(textoQ('.aviso-registrada')).toContain('ya fue registrada');
+    });
+
+    it('el error del servidor se muestra, conserva lo escrito y las marcas, y permite corregir', async () => {
+      await montar({ rol, horarios: [franja('MARTES')] });
+      completar();
+      marcar('Ana');
+      postClase.and.returnValue(throwError(() => err422('GC-0022', 'La duración de la clase no es válida')));
+      guardar();
+      expect(textoQ('.error-registro')).toBe('La duración de la clase no es válida');
+      expect((q('textarea#justificacion') as HTMLTextAreaElement).value).toBe(justificacionValida);
+      expect(casilla('Ana').checked).toBeTrue();
+      postClase.and.callFake((c: ClaseDTO) => of({ ...c, codigo: 50 }));
+      completar(justificacionValida, '2', '0');
+      guardar();
+      expect([postClase.calls.mostRecent().args[0].horas, postClase.calls.mostRecent().args[0].minutos]).toEqual([2, 0]);
+    });
+
+    it('sin horario cargado (lista vacía): sin el aviso "sin horario" (es solo del Instructor) y con la sección', async () => {
+      await montar({ rol, horarios: [] });
+      expect(q('.sin-horario')).toBeNull();
+      expect(q('section.fuera-de-horario')).not.toBeNull();
+    });
+
+    it('si hay franja hoy, no se envía justificación aunque se hubiera escrito antes de que cambiara el día', async () => {
+      await montar({ rol, horarios: [franja('MARTES'), franja('JUEVES')], ahora: octubre(14) });   // miércoles: sin franja
+      completar();
+      ahoraFijo = JUEVES;                                                                          // pasa a jueves: con franja
+      fixture.detectChanges();
+      marcar('Ana');
+      guardarBtn().click();    // primer clic: recarga marcas del día nuevo
+      fixture.detectChanges();
+      marcar('Ana');
+      guardar();
+      expect(postClase.calls.mostRecent().args[0].justificacion).toBeUndefined();
+    });
   });
 
   describe('día sin clase: Instructor y Administrador no pueden subir asistencias ni faltas', () => {
@@ -428,18 +605,27 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(postClase.calls.mostRecent().args[0].justificacion).toBeUndefined();
     });
 
-    it('ante GC-0021 se muestra la sección fuera de horario y se puede reintentar sin justificación', () => {
+    it('ante GC-0021 se muestra la sección con los campos y se reintenta con la justificación y la duración', () => {
       marcar('Ana');
       postClase.and.returnValue(throwError(() => err422('GC-0021', 'La justificación es requerida para una clase fuera de horario')));
       guardar();
       expect(q('section.fuera-de-horario')).not.toBeNull();
+      expect(q('textarea#justificacion')).not.toBeNull();
       expect(textoQ('.error-registro')).toBe('La justificación es requerida para una clase fuera de horario');
       expect(casilla('Ana').checked).toBeTrue();
-      // Reintentar sin justificación (ya no hay campos de entrada)
+      expect(guardarBtn().disabled).toBeFalse();
+      postClase.calls.reset();
+      guardarBtn().click();                       // con los campos vacíos no se envía
+      fixture.detectChanges();
+      expect(postClase).not.toHaveBeenCalled();
       postClase.and.callFake((c: ClaseDTO) => of({ ...c, codigo: 50 }));
+      escribirEn('textarea#justificacion', 'Clase de reposición por el partido del sábado');
+      escribirEn('input#horasManual', '2');
+      escribirEn('input#minutosManual', '0');
       guardar();
       const enviado: ClaseDTO = postClase.calls.mostRecent().args[0];
-      expect(enviado.justificacion).toBeUndefined();
+      expect(enviado.justificacion).toBe('Clase de reposición por el partido del sábado');
+      expect([enviado.horas, enviado.minutos]).toEqual([2, 0]);
     });
 
     it('ante error de duración se muestra el mensaje y se puede reintentar', () => {
@@ -458,7 +644,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
   describe('guardar', () => {
     beforeEach(() => montar());
 
-    it('con alumnos marcados: crea el registro del día con los datos del grupo y luego /atenciones solo de los marcados', () => {
+    it('con alumnos marcados: crea el registro del día y confirma con la lista completa (presentes y ausentes)', () => {
       marcar('Ana');
       marcar('Caro');
       guardar();
@@ -466,11 +652,20 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(clase.fecha).toBe('2026-10-15');
       expect([clase.idGrupoCategoria, clase.idGrupoCurso, clase.idGrupoAnio, clase.idGrupoIterable, clase.idInstructor])
         .toEqual(['Futbol', 'Avanzado', 2024, 1, 'inst-1']);
-      expect(registrarAsistencias).toHaveBeenCalledOnceWith(50, [
-        { idPerfil: '1', idClase: 50, estaAtendido: true },
-        { idPerfil: '3', idClase: 50, estaAtendido: true },
-      ]);
+      expect(confirmarAsistencia).toHaveBeenCalledOnceWith(50, {
+        asistencias: [
+          { idPerfil: '1', estaAtendido: true },
+          { idPerfil: '2', estaAtendido: false },
+          { idPerfil: '3', estaAtendido: true },
+        ],
+      });
       expect(abrirDialogo).not.toHaveBeenCalled();
+    });
+
+    it('con alguien presente NO se envía confirmaTodosAusentes', () => {
+      marcar('Ana');
+      guardar();
+      expect('confirmaTodosAusentes' in confirmarAsistencia.calls.mostRecent().args[1]).toBeFalse();
     });
 
     it('éxito: snackbar de éxito', () => {
@@ -485,18 +680,24 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(postClase).toHaveBeenCalledTimes(1);
     });
 
-    it('ninguno marcado y confirma: registra el día y NO llama a /atenciones', () => {
+    it('ninguno marcado y confirma: todos ausentes y confirmaTodosAusentes en true (confirmación explícita del usuario)', () => {
       guardar();
       expect(postClase).toHaveBeenCalledTimes(1);
-      expect(registrarAsistencias).not.toHaveBeenCalled();
-      expect(eliminarAsistencia).not.toHaveBeenCalled();
+      expect(confirmarAsistencia).toHaveBeenCalledOnceWith(50, {
+        asistencias: [
+          { idPerfil: '1', estaAtendido: false },
+          { idPerfil: '2', estaAtendido: false },
+          { idPerfil: '3', estaAtendido: false },
+        ],
+        confirmaTodosAusentes: true,
+      });
     });
 
-    it('ninguno marcado y "Volver": no se registra nada', () => {
+    it('ninguno marcado y "Volver": no se registra ni confirma nada', () => {
       abrirDialogo.and.returnValue({ afterClosed: () => of(false) } as any);
       guardar();
       expect(postClase).not.toHaveBeenCalled();
-      expect(registrarAsistencias).not.toHaveBeenCalled();
+      expect(confirmarAsistencia).not.toHaveBeenCalled();
       expect(guardarBtn().disabled).toBeFalse();
     });
 
@@ -510,11 +711,38 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(guardarBtn().disabled).toBeTrue();
     });
 
+    it('doble clic mientras la confirmación está en curso no envía un segundo PUT', () => {
+      confirmarAsistencia.and.returnValue(new Subject<any>());
+      marcar('Ana');
+      guardarBtn().click();
+      guardarBtn().click();
+      expect(confirmarAsistencia).toHaveBeenCalledTimes(1);
+      fixture.detectChanges();
+      expect(guardarBtn().disabled).toBeTrue();
+    });
+
     it('doble clic con la confirmación abierta tampoco abre dos', () => {
       abrirDialogo.and.returnValue({ afterClosed: () => new Subject<boolean>() } as any);
       guardarBtn().click();
       guardarBtn().click();
       expect(abrirDialogo).toHaveBeenCalledTimes(1);
+    });
+
+    it('tras guardar, la lista de alumnos se recarga (para actualizar las faltas)', () => {
+      const getAlumnos = component['alumnoService'].getAlumnosGrupo as jasmine.Spy;
+      getAlumnos.calls.reset();
+      marcar('Ana');
+      guardar();
+      expect(getAlumnos).toHaveBeenCalledTimes(1);
+    });
+
+    it('si el guardado falla, la lista de alumnos no se recarga', () => {
+      const getAlumnos = component['alumnoService'].getAlumnosGrupo as jasmine.Spy;
+      getAlumnos.calls.reset();
+      confirmarAsistencia.and.returnValue(throwError(() => err422('GC-0019', 'Plazo vencido')));
+      marcar('Ana');
+      guardar();
+      expect(getAlumnos).not.toHaveBeenCalled();
     });
   });
 
@@ -539,19 +767,41 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       });
     }
 
-    it('error al registrar las atenciones (con el día ya creado): mensaje, conserva marcas y se puede reintentar', () => {
-      registrarAsistencias.and.returnValue(throwError(() => err422('GC-0019', 'Plazo vencido')));
+    it('error al confirmar la asistencia (con el día ya creado): mensaje, conserva marcas y se puede reintentar', () => {
+      confirmarAsistencia.and.returnValue(throwError(() => err422('GC-0019', 'Plazo vencido')));
       guardar();
       expect(textoQ('.error-registro')).toBe('Plazo vencido');
       expect(casilla('Ana').checked).toBeTrue();
-      registrarAsistencias.and.returnValue(of({}));
+      confirmarAsistencia.and.returnValue(of({ codigoClase: 50, confirmadaEn: '2026-10-15T12:00:00', presentes: 1, ausentes: 2 }));
       guardar();
       expect(snack).toHaveBeenCalledWith('Asistencia registrada correctamente', 'Cerrar', jasmine.any(Object));
       expect(q('.error-registro')).toBeNull();
     });
 
+    for (const [status, mensaje] of [[403, 'El Instructor no tiene a cargo el grupo de esta clase'], [404, 'La clase no existe o está eliminada']] as [number, string][]) {
+      it(`${status} con mensaje del servidor: lo muestra y conserva las marcas`, () => {
+        confirmarAsistencia.and.returnValue(throwError(() => err(status, { mensaje })));
+        guardar();
+        expect(textoQ('.error-registro')).toBe(mensaje);
+        expect(casilla('Ana').checked).toBeTrue();
+      });
+    }
+
+    it('GC-0027 (alumno fuera del grupo): muestra el mensaje y recarga la lista de alumnos', () => {
+      const getAlumnos = component['alumnoService'].getAlumnosGrupo as jasmine.Spy;
+      getAlumnos.calls.reset();
+      confirmarAsistencia.and.returnValue(throwError(() => err422('GC-0027', 'El alumno 3 no tiene una inscripción activa en el grupo de esta clase')));
+      guardar();
+      expect(textoQ('.error-registro')).toContain('no tiene una inscripción activa');
+      expect(getAlumnos).toHaveBeenCalledTimes(1);
+    });
+
     it('errores sin cuerpo (500, 403): mensaje genérico', () => {
       postClase.and.returnValue(throwError(() => err(500)));
+      guardar();
+      expect(textoQ('.error-registro')).toContain('No se pudo registrar la asistencia');
+      postClase.and.callFake((c: ClaseDTO) => of({ ...c, codigo: 50 }));
+      confirmarAsistencia.and.returnValue(throwError(() => err(403)));
       guardar();
       expect(textoQ('.error-registro')).toContain('No se pudo registrar la asistencia');
     });
@@ -566,7 +816,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     });
   });
 
-  describe('asistencia de hoy ya registrada (HE08-HU04)', () => {
+  describe('asistencia de hoy ya registrada', () => {
     const claseExistente: ClaseDTO = {
       codigo: 50, idGrupoCategoria: 'Futbol', idGrupoCurso: 'Avanzado', idGrupoAnio: 2024, idGrupoIterable: 1,
       idInstructor: 'inst-1', fecha: '2026-10-15', horas: 2, minutos: 0, observacion: '', eliminado: 0,
@@ -575,6 +825,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       { idPerfil: '1', idClase: 50, estaAtendido: true },
       { idPerfil: '2', idClase: 50, estaAtendido: false },
     ];
+    const avisoMarcas = (): string => textoQ('.error-marcas');
 
     it('al abrir la pantalla precarga las marcas de hoy: asistió = marcado; faltó o sin registro = sin marcar', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
@@ -590,6 +841,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       await montar({ clases: [{ ...claseExistente, fecha: '2026-10-14' }], atenciones: previas });
       expect(getAtencionesClase).not.toHaveBeenCalled();
       expect(textoQ('.contadores-asistencia')).toBe('Asistieron 0, Faltaron 3');
+      expect(guardarBtn().disabled).toBeFalse();
     });
 
     it('mientras carga las marcas avisa y no deja guardar contra una base incompleta', async () => {
@@ -603,45 +855,44 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(guardarBtn().disabled).toBeFalse();
     });
 
-    it('al guardar aplica SOLO la diferencia: POST de las marcas nuevas y DELETE de las desmarcadas', async () => {
+    it('al guardar envía el estado completo: nuevos presentes, desmarcados como ausentes y el resto igual', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
       marcar('Ana');    // desmarca (estaba asistida)
       marcar('Caro');   // marca nueva
       guardar();
-      expect(registrarAsistencias).toHaveBeenCalledOnceWith(50, [{ idPerfil: '3', idClase: 50, estaAtendido: true }]);
-      expect(eliminarAsistencia).toHaveBeenCalledOnceWith('1', 50);
+      expect(confirmarAsistencia).toHaveBeenCalledOnceWith(50, {
+        asistencias: [
+          { idPerfil: '1', estaAtendido: false },
+          { idPerfil: '2', estaAtendido: false },
+          { idPerfil: '3', estaAtendido: true },
+        ],
+      });
     });
 
-    it('sin cambios no llama a /atenciones ni a DELETE', async () => {
+    it('sin cambios reenvía el mismo estado (idempotente): nadie pasa a ausente por omisión', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
       guardar();
-      expect(registrarAsistencias).not.toHaveBeenCalled();
-      expect(eliminarAsistencia).not.toHaveBeenCalled();
+      expect(confirmarAsistencia).toHaveBeenCalledOnceWith(50, {
+        asistencias: [
+          { idPerfil: '1', estaAtendido: true },
+          { idPerfil: '2', estaAtendido: false },
+          { idPerfil: '3', estaAtendido: false },
+        ],
+      });
     });
 
-    it('desmarcar a todos los que estaban: confirma y luego solo DELETE', async () => {
+    it('desmarcar a todos los que estaban: pide confirmación y envía confirmaTodosAusentes', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
       marcar('Ana');
       guardar();
       expect(abrirDialogo).toHaveBeenCalledWith(ConfirmarSinAsistentesComponent, jasmine.any(Object));
-      expect(eliminarAsistencia).toHaveBeenCalledOnceWith('1', 50);
-      expect(registrarAsistencias).not.toHaveBeenCalled();
+      expect(confirmarAsistencia.calls.mostRecent().args[1].confirmaTodosAusentes).toBeTrue();
+      expect(confirmarAsistencia.calls.mostRecent().args[1].asistencias.every((a: any) => a.estaAtendido === false)).toBeTrue();
     });
 
-    it('un 409 al borrar se informa como "ya estaba eliminada" y no rompe el guardado', async () => {
+    it('un error al confirmar (422) muestra el mensaje del servidor y conserva el formulario', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
-      eliminarAsistencia.and.returnValue(throwError(() => err(409)));
-      marcar('Ana');
-      marcar('Caro');
-      guardar();
-      expect(textoQ('.aviso-registro')).toBe('La asistencia de Ana ya estaba eliminada');
-      expect(q('.aviso-registro')?.getAttribute('aria-live')).toBe('polite');
-      expect(snack).toHaveBeenCalledWith('Asistencia registrada correctamente', 'Cerrar', jasmine.any(Object));
-    });
-
-    it('un error al borrar (422) muestra el mensaje del servidor y conserva el formulario', async () => {
-      await montar({ clases: [claseExistente], atenciones: previas });
-      eliminarAsistencia.and.returnValue(throwError(() => err422('GC-0019', 'Plazo vencido para el Instructor')));
+      confirmarAsistencia.and.returnValue(throwError(() => err422('GC-0019', 'Plazo vencido para el Instructor')));
       marcar('Ana');
       marcar('Caro');
       guardar();
@@ -649,46 +900,276 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(casilla('Caro').checked).toBeTrue();
     });
 
-    it('si el historial no se pudo consultar no bloquea: marcas en blanco y se puede registrar', async () => {
+    it('si el historial de clases no se pudo consultar BLOQUEA guardar (evita sobrescribir lo ya registrado) y avisa', async () => {
       await montar({ clases: 'error' });
-      expect(guardarBtn().disabled).toBeFalse();
-      marcar('Ana');
-      guardar();
-      expect(registrarAsistencias).toHaveBeenCalledOnceWith(50, [{ idPerfil: '1', idClase: 50, estaAtendido: true }]);
+      expect(guardarBtn().disabled).toBeTrue();
+      expect(avisoMarcas()).toContain('No se pudo leer la asistencia ya registrada de hoy');
+      expect(q('.error-marcas')?.getAttribute('role')).toBe('alert');
+      expect(casilla('Ana').disabled).toBeTrue();
+      guardarBtn().click();
+      expect(postClase).not.toHaveBeenCalled();
+      expect(confirmarAsistencia).not.toHaveBeenCalled();
     });
 
-    it('si no se pueden leer las atenciones de la clase, no bloquea y no inventa marcas', async () => {
+    it('si las clases se leen pero no las atenciones de la clase de hoy, también bloquea', async () => {
       await montar({ clases: [claseExistente], atenciones: 'error' });
+      expect(guardarBtn().disabled).toBeTrue();
+      expect(avisoMarcas()).toContain('No se pudo leer la asistencia ya registrada de hoy');
       expect(casilla('Ana').checked).toBeFalse();
-      expect(guardarBtn().disabled).toBeFalse();
     });
 
-    it('después de guardar, lo guardado es la nueva base (un segundo guardado no repite nada)', async () => {
+    it('"Reintentar" vuelve a leer las marcas y, si salen bien, habilita el guardado con lo ya registrado', async () => {
+      await montar({ clases: 'error' });
+      getClase.and.returnValue(of([claseExistente]));
+      getAtencionesClase.and.returnValue(of(previas));
+      q<HTMLButtonElement>('.btn-reintentar-marcas')!.click();
+      fixture.detectChanges();
+      expect(q('.error-marcas')).toBeNull();
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(casilla('Ana').checked).toBeTrue();
+    });
+
+    it('clase de hoy sin ninguna fila (200 con GC-0002, listado vacío): sin marcas y sin bloqueo', async () => {
+      await montar({ clases: [claseExistente], atenciones: { codigoError: 'GC-0002', mensaje: 'Listado vacío', codigoHttp: 200 } as any });
+      expect(q('.error-marcas')).toBeNull();
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(textoQ('.contadores-asistencia')).toBe('Asistieron 0, Faltaron 3');
+    });
+
+    describe('respuesta 200 de las atenciones que no es una lista ni GC-0002: error de lectura, no lista vacía', () => {
+      const invalidas: [string, any][] = [
+        ['otro código (GC-0099)', { codigoError: 'GC-0099', mensaje: 'x', codigoHttp: 200 }],
+        ['null', null],
+        ['una cadena', 'ok'],
+        ['un objeto sin codigoError', { mensaje: 'sin código' }],
+      ];
+      for (const [nombre, cuerpo] of invalidas) {
+        it(`${nombre}: bloquea el guardado, avisa con "Reintentar" y no envía nada`, async () => {
+          await montar({ clases: [claseExistente], atenciones: cuerpo });
+          expect(guardarBtn().disabled).toBeTrue();
+          expect(textoQ('.error-marcas')).toContain('No se pudo leer la asistencia ya registrada de hoy');
+          expect(q('.error-marcas')?.getAttribute('role')).toBe('alert');
+          expect(q('.btn-reintentar-marcas')).not.toBeNull();
+          expect(casilla('Ana').disabled).toBeTrue();
+          expect(casilla('Ana').checked).toBeFalse();
+          guardarBtn().click();
+          expect(postClase).not.toHaveBeenCalled();
+          expect(confirmarAsistencia).not.toHaveBeenCalled();
+        });
+      }
+
+      it('"Reintentar" con una lectura correcta desbloquea y carga las marcas reales', async () => {
+        await montar({ clases: [claseExistente], atenciones: { codigoError: 'GC-0099' } as any });
+        getAtencionesClase.and.returnValue(of(previas));
+        q<HTMLButtonElement>('.btn-reintentar-marcas')!.click();
+        fixture.detectChanges();
+        expect(q('.error-marcas')).toBeNull();
+        expect(guardarBtn().disabled).toBeFalse();
+        expect(casilla('Ana').checked).toBeTrue();
+      });
+
+      it('"Reintentar" con GC-0002 desbloquea con las marcas en blanco', async () => {
+        await montar({ clases: [claseExistente], atenciones: 'error' });
+        getAtencionesClase.and.returnValue(of({ codigoError: 'GC-0002' } as any));
+        q<HTMLButtonElement>('.btn-reintentar-marcas')!.click();
+        fixture.detectChanges();
+        expect(q('.error-marcas')).toBeNull();
+        expect(guardarBtn().disabled).toBeFalse();
+      });
+    });
+
+    it('grupo sin clases (200 con GC-0002, listado vacío): sin marcas y sin bloqueo', async () => {
+      await montar({ clases: { codigoError: 'GC-0002', mensaje: 'Listado vacío', codigoHttp: 200 } as any });
+      expect(q('.error-marcas')).toBeNull();
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(getAtencionesClase).not.toHaveBeenCalled();
+    });
+
+    describe('respuesta 200 de /clasesGrupo que no es una lista ni GC-0002: error de lectura, no "no hay clases"', () => {
+      const invalidas: [string, any][] = [
+        ['otro código (GC-0099)', { codigoError: 'GC-0099', mensaje: 'x', codigoHttp: 200 }],
+        ['el código anterior GC-0001', { codigoError: 'GC-0001', mensaje: 'Listado vacío' }],
+        ['null', null],
+        ['una cadena', 'ok'],
+        ['un objeto sin codigoError', { mensaje: 'sin código' }],
+      ];
+      for (const [nombre, cuerpo] of invalidas) {
+        it(`${nombre}: bloquea el guardado, avisa con "Reintentar" y no envía nada`, async () => {
+          await montar({ clases: cuerpo });
+          expect(guardarBtn().disabled).toBeTrue();
+          expect(textoQ('.error-marcas')).toContain('No se pudo leer la asistencia ya registrada de hoy');
+          expect(q('.error-marcas')?.getAttribute('role')).toBe('alert');
+          expect(q('.btn-reintentar-marcas')).not.toBeNull();
+          expect(casilla('Ana').disabled).toBeTrue();
+          guardarBtn().click();
+          expect(postClase).not.toHaveBeenCalled();
+          expect(confirmarAsistencia).not.toHaveBeenCalled();
+          expect(getAtencionesClase).not.toHaveBeenCalled();
+        });
+      }
+
+      it('"Reintentar" con una lectura correcta desbloquea y carga las marcas reales', async () => {
+        await montar({ clases: { codigoError: 'GC-0099' } as any });
+        getClase.and.returnValue(of([claseExistente]));
+        getAtencionesClase.and.returnValue(of(previas));
+        q<HTMLButtonElement>('.btn-reintentar-marcas')!.click();
+        fixture.detectChanges();
+        expect(q('.error-marcas')).toBeNull();
+        expect(guardarBtn().disabled).toBeFalse();
+        expect(casilla('Ana').checked).toBeTrue();
+      });
+
+      it('"Reintentar" con GC-0002 desbloquea con las marcas en blanco', async () => {
+        await montar({ clases: 'error' });
+        getClase.and.returnValue(of({ codigoError: 'GC-0002' } as any));
+        q<HTMLButtonElement>('.btn-reintentar-marcas')!.click();
+        fixture.detectChanges();
+        expect(q('.error-marcas')).toBeNull();
+        expect(guardarBtn().disabled).toBeFalse();
+      });
+    });
+
+    it('tras guardar, un segundo clic no reenvía nada (el registro queda bloqueado)', async () => {
       await montar();
       marcar('Ana');
       guardar();
-      registrarAsistencias.calls.reset();
       guardar();
-      expect(registrarAsistencias).not.toHaveBeenCalled();
+      expect(confirmarAsistencia).toHaveBeenCalledTimes(1);
+      expect(postClase).toHaveBeenCalledTimes(1);
     });
 
-    it('si pasó la medianoche, las marcas de ayer no sirven de base para el día nuevo (no se borra nada de ayer)', async () => {
+    it('si pasó la medianoche, las marcas en pantalla son del día anterior: el clic las recarga, avisa y NO guarda; el siguiente guarda el día nuevo', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
       ahoraFijo = octubre(16, 0, 0, 1);
       fixture.detectChanges();
+      expect(guardarBtn().disabled).toBeFalse();
+      getClase.calls.reset();
+      guardar();
+      expect(getClase).toHaveBeenCalledTimes(1);
+      expect(postClase).not.toHaveBeenCalled();
+      expect(confirmarAsistencia).not.toHaveBeenCalled();
+      expect(textoQ('.error-registro')).toContain('Cambió el día');
+      expect(casilla('Ana').checked).toBeFalse();   // las marcas de ayer no pasan al día nuevo
       marcar('Caro');
       guardar();
-      expect(eliminarAsistencia).not.toHaveBeenCalled();
       expect(postClase.calls.mostRecent().args[0].fecha).toBe('2026-10-16');
+      expect(confirmarAsistencia.calls.mostRecent().args[1].asistencias.find((a: any) => a.idPerfil === '1').estaAtendido).toBeFalse();
+      expect(q('.error-registro')).toBeNull();
     });
   });
 
-  describe('GC-0024 (día fuera de horario) también al registrar las atenciones', () => {
+  describe('asistencia de hoy ya registrada: botones bloqueados y mensaje', () => {
+    const confirmada: ClaseDTO = {
+      codigo: 50, idGrupoCategoria: 'Futbol', idGrupoCurso: 'Avanzado', idGrupoAnio: 2024, idGrupoIterable: 1,
+      idInstructor: 'inst-1', fecha: '2026-10-15', horas: 2, minutos: 0, observacion: '', eliminado: 0,
+      asistenciaConfirmadaEn: '2026-10-15T09:00:00',
+    };
+    const pendiente: ClaseDTO = { ...confirmada, asistenciaConfirmadaEn: null };
+    const filas: AtencionDTO[] = [
+      { idPerfil: '1', idClase: 50, estaAtendido: true },
+      { idPerfil: '2', idClase: 50, estaAtendido: false },
+      { idPerfil: '3', idClase: 50, estaAtendido: false },
+    ];
+    const novedadBtn = (): HTMLButtonElement => q<HTMLButtonElement>('button.btn-novedad')!;
+    const aviso = (): string => textoQ('.aviso-registrada');
+
+    for (const rol of ['Instructor', 'Coordinador']) {
+      describe(rol, () => {
+        it('al abrir la pantalla con la asistencia de hoy ya confirmada: bloquea ambos botones y las casillas y avisa', async () => {
+          await montar({ rol, clases: [confirmada], atenciones: filas });
+          expect(guardarBtn().disabled).toBeTrue();
+          expect(novedadBtn().disabled).toBeTrue();
+          expect(casilla('Ana').disabled).toBeTrue();
+          expect(aviso()).toContain('La asistencia de hoy (15/10/2026) ya fue registrada');
+          expect(q('.aviso-registrada')?.getAttribute('role')).toBe('status');
+          expect(textoQ('.contadores-asistencia')).toBe('Asistieron 1, Faltaron 2');   // el resumen sigue visible
+          expect(q('.ayuda-asistencia')).toBeNull();                                    // ya no hay nada que marcar
+        });
+
+        it('al registrar la asistencia: bloquea ambos botones y las casillas y muestra el mensaje, sin recargar la página', async () => {
+          await montar({ rol });
+          expect(q('.aviso-registrada')).toBeNull();
+          marcar('Ana');
+          guardar();
+          expect(guardarBtn().disabled).toBeTrue();
+          expect(novedadBtn().disabled).toBeTrue();
+          expect(casilla('Ana').disabled).toBeTrue();
+          expect(aviso()).toContain('La asistencia de hoy (15/10/2026) ya fue registrada');
+        });
+
+        it('los botones apuntan al mensaje con aria-describedby', async () => {
+          await montar({ rol, clases: [confirmada], atenciones: filas });
+          const id = q('.aviso-registrada')!.id;
+          expect(id).not.toBe('');
+          expect(guardarBtn().getAttribute('aria-describedby')).toBe(id);
+          expect(novedadBtn().getAttribute('aria-describedby')).toBe(id);
+        });
+
+        it('aunque se invoque, no vuelve a enviar nada', async () => {
+          await montar({ rol, clases: [confirmada], atenciones: filas });
+          component.registrarAsistencia();
+          expect(postClase).not.toHaveBeenCalled();
+          expect(confirmarAsistencia).not.toHaveBeenCalled();
+          expect(component.puedeRegistrarNovedad).toBeFalse();
+        });
+      });
+    }
+
+    it('clase de hoy sin confirmar (pendiente o histórica): no se bloquea ni se avisa', async () => {
+      await montar({ rol: 'Instructor', clases: [pendiente], atenciones: filas });
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(novedadBtn().disabled).toBeFalse();
+      expect(q('.aviso-registrada')).toBeNull();
+    });
+
+    it('clase de hoy sin el campo de confirmación (backend anterior): no se bloquea', async () => {
+      const { asistenciaConfirmadaEn, ...sinCampo } = confirmada;
+      await montar({ rol: 'Instructor', clases: [sinCampo as ClaseDTO], atenciones: filas });
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(q('.aviso-registrada')).toBeNull();
+    });
+
+    it('sin clase de hoy: sin bloqueo ni aviso', async () => {
+      await montar({ rol: 'Instructor', clases: [{ ...confirmada, fecha: '2026-10-14' }] });
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(novedadBtn().disabled).toBeFalse();
+      expect(q('.aviso-registrada')).toBeNull();
+    });
+
+    it('un guardado fallido no bloquea nada', async () => {
+      await montar({ rol: 'Instructor' });
+      confirmarAsistencia.and.returnValue(throwError(() => err422('GC-0019', 'Plazo vencido')));
+      marcar('Ana');
+      guardar();
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(q('.aviso-registrada')).toBeNull();
+    });
+
+    it('si pasa la medianoche el bloqueo del día anterior se levanta: el siguiente clic recarga las marcas del día nuevo', async () => {
+      await montar({ rol: 'Instructor', clases: [confirmada], atenciones: filas });
+      expect(guardarBtn().disabled).toBeTrue();
+      ahoraFijo = octubre(16, 0, 0, 1);
+      fixture.detectChanges();
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(novedadBtn().disabled).toBeFalse();
+      expect(q('.aviso-registrada')).toBeNull();
+    });
+
+    it('la pista para corregir desde el historial solo aparece donde existe el historial (Coordinador e Instructor)', async () => {
+      await montar({ rol: 'Instructor', clases: [confirmada], atenciones: filas });
+      expect(aviso()).toContain('historial de clases');
+      await montar({ rol: 'Administrador', clases: [confirmada], atenciones: filas });
+      expect(aviso()).toContain('ya fue registrada');
+      expect(aviso()).not.toContain('historial de clases');
+    });
+  });
+
+  describe('GC-0024 (día fuera de horario) también al confirmar la asistencia', () => {
     for (const rol of ['Instructor', 'Administrador']) {
-      it(`${rol}: el 422 de POST /atenciones muestra el mensaje del servidor, sin revelar justificación y conservando las marcas`, async () => {
+      it(`${rol}: el 422 de PUT /clase/{codigo}/asistencia muestra el mensaje del servidor, sin revelar justificación y conservando las marcas`, async () => {
         await montar({ rol });
         marcar('Ana');
-        registrarAsistencias.and.returnValue(throwError(() => err422('GC-0024', 'Solo puedes registrar asistencia en los días de clase del grupo')));
+        confirmarAsistencia.and.returnValue(throwError(() => err422('GC-0024', 'Solo puedes registrar asistencia en los días de clase del grupo')));
         guardar();
         expect(textoQ('.error-registro')).toBe('Solo puedes registrar asistencia en los días de clase del grupo');
         expect(q('.error-registro')?.getAttribute('role')).toBe('alert');

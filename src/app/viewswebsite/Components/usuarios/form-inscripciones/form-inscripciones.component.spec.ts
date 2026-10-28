@@ -166,6 +166,44 @@ describe('FormInscripcionesComponent › modo editar con error del servidor', ()
   });
 });
 
+// ── Desplazamiento del formulario: el contenido largo debe poder recorrerse con scroll ──
+
+describe('FormInscripcionesComponent › scroll del formulario', () => {
+  const contenido = (fixture: ComponentFixture<FormInscripcionesComponent>): HTMLElement =>
+    (fixture.nativeElement as HTMLElement).querySelector('mat-dialog-content') as HTMLElement;
+
+  async function conFormularioCompleto(data: any) {
+    const r = await setupTestBed(data);
+    // Modo inscribir con un correo no encontrado: se muestra el formulario completo de registro (el más largo).
+    if (data?.modo === 'inscribir') r.component.estado = 'no_encontrado';
+    r.fixture.detectChanges();
+    return r;
+  }
+
+  for (const [nombre, data] of [
+    ['inscribir (formulario completo de registro)', { modo: 'inscribir' }],
+    ['registro de usuario', null],
+    ['editar', { modo: 'editar', alumno: alumnoMock }],
+  ] as [string, any][]) {
+    it(`${nombre}: el contenido tiene una altura máxima menor que la pantalla y desplazamiento vertical`, async () => {
+      const { fixture } = await conFormularioCompleto(data);
+      const estilo = getComputedStyle(contenido(fixture));
+      expect(estilo.maxHeight).withContext('max-height').not.toBe('none');
+      expect(parseFloat(estilo.maxHeight)).withContext('max-height en px').toBeLessThanOrEqual(window.innerHeight * 0.9);
+      expect(['auto', 'scroll']).withContext('overflow-y').toContain(estilo.overflowY);
+    });
+  }
+
+  it('si el formulario es más alto que ese límite, queda desplazable (se puede llegar a los botones)', async () => {
+    const { fixture } = await conFormularioCompleto({ modo: 'inscribir' });
+    const el = contenido(fixture);
+    el.style.maxHeight = '150px';        // simula una pantalla baja
+    expect(el.scrollHeight).toBeGreaterThan(el.clientHeight);
+    el.scrollTop = el.scrollHeight;
+    expect(el.scrollTop).toBeGreaterThan(0);
+  });
+});
+
 // ── Modo "inscribir" ──────────────────────────────────────────────────────
 
 describe('FormInscripcionesComponent › modo inscribir', () => {
