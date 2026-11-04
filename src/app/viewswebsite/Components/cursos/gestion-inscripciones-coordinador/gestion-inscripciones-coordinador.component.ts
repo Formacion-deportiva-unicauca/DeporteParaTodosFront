@@ -124,7 +124,7 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
    */
   alCambiarFiltro(): void {
     const f = this.filtros;
-    this.router.navigate([], {
+    void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
         categoria: f.categoria || null,
