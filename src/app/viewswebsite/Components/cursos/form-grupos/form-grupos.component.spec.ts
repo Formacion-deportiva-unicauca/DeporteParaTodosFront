@@ -24,7 +24,7 @@ describe('FormGruposComponent', () => {
   const mockGrupo: GrupoDTO = {
     categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1,
     imagenGrupo: null, idInstructor: 'inst-1', nombreInstructor: 'Juan',
-    cupos: 20, fechaCreacion: '2024-01-01',
+    cupos: 20, fechaCreacion: '2024-01-01', fechaIncripcionCierre: '2024-12-31',
   };
 
   beforeEach(async () => {
@@ -79,6 +79,7 @@ describe('FormGruposComponent', () => {
     const crearSpy  = spyOn<any>(component, 'crearGrupo');
     component.isEditing = false;
     component.grupo.fechaInscripcionApertura = '2026-03-01';
+    component.grupo.fechaIncripcionCierre = '2026-12-31';
     component.onSubmit({} as NgForm);
     expect(crearSpy).toHaveBeenCalledTimes(1);
     expect(updateSpy).not.toHaveBeenCalled();
@@ -396,12 +397,12 @@ describe('FormGruposComponent', () => {
     expect(grupoServiceSpy.updateGrupo).toHaveBeenCalledTimes(1);
   });
 
-  it('creación con campos opcionales vacíos (todo menos la apertura) es válido', () => {
+  it('creación con campos opcionales vacíos (todo menos apertura y cierre) es válido', () => {
     component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
     component.ngOnInit();
     component.grupo.fechaFinalizacion = '';
     component.grupo.fechaInscripcionApertura = '2026-03-01';
-    component.grupo.fechaIncripcionCierre = '';
+    component.grupo.fechaIncripcionCierre = '2026-12-31';
     component.grupo.fechaCreacion = '';
     fixture.detectChanges();
     expect(component.fechasValidas).toBeTrue();
@@ -493,13 +494,50 @@ describe('FormGruposComponent', () => {
   });
 
   it('cierre: ayuda accesible (aria-describedby) "no se cierra por fecha"', () => {
-    expect(hintDe('fechaIncripcionCierre')).toContain('Si lo dejas vacío, el grupo no se cierra por fecha. El último día es inclusivo');
+    expect(hintDe('fechaIncripcionCierre')).toContain('Obligatorio. El último día es inclusivo');
+  });
+
+  // Fase 3: el cierre de inscripciones es obligatorio (un grupo sin cierre quedaba abierto para siempre).
+  it('el cierre de inscripciones es obligatorio: vacío bloquea el formulario y lo explica', () => {
+    component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
+    component.ngOnInit();
+    component.grupo.fechaIncripcionCierre = '';
+    fixture.detectChanges();
+    expect(component.errorCierreObligatorio).toBe('El cierre de inscripciones es obligatorio');
+    expect(component.formularioValido).toBeFalse();
+    expect(((fixture.nativeElement as HTMLElement).querySelector('button.aceptar') as HTMLButtonElement).disabled).toBeTrue();
+    expect((fixture.nativeElement as HTMLElement).querySelector('#error-cierre-obligatorio')?.textContent)
+      .toContain('obligatorio');
+  });
+
+  it('con cierre elegido el formulario se puede guardar y el aviso desaparece', () => {
+    component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
+    component.ngOnInit();
+    component.alElegirFecha('fechaIncripcionCierre', new Date(2026, 11, 31));
+    fixture.detectChanges();
+    expect(component.errorCierreObligatorio).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('#error-cierre-obligatorio')).toBeNull();
+  });
+
+  it('el cierre no se puede quitar con la X (es obligatorio)', () => {
+    component.alElegirFecha('fechaIncripcionCierre', new Date(2026, 11, 31));
+    expect(component.puedeLimpiar('fechaIncripcionCierre')).toBeFalse();
+  });
+
+  it('onSubmit() sin cierre no llama al backend', () => {
+    component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
+    component.ngOnInit();
+    component.grupo.fechaIncripcionCierre = '';
+    grupoServiceSpy.createGrupo.calls.reset();
+    component.onSubmit({} as any);
+    expect(grupoServiceSpy.createGrupo).not.toHaveBeenCalled();
   });
 
   it('creación sin apertura ya NO se bloquea (apertura null = abierto desde siempre)', () => {
     component.data = { categoria: 'F', curso: 'A', anio: 0, iterable: 0 };
     component.ngOnInit();
     component.grupo.fechaInscripcionApertura = '';
+    component.grupo.fechaIncripcionCierre = '2026-12-31';
     fixture.detectChanges();
     expect(component.formularioValido).toBeTrue();
     expect(((fixture.nativeElement as HTMLElement).querySelector('button.aceptar') as HTMLButtonElement).disabled).toBeFalse();

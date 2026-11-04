@@ -79,20 +79,45 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
+    <!-- Tipo de vínculo: select temporal (SCRUM-160) — cuando TIC responda se autocompletará.
+         Para instructores el tipo viene fijo como Docente; el select solo aplica a deportistas.
+         Va antes de los datos que dependen de él (código, facultad, programa, dependencia). -->
+    <mat-form-field *ngIf="!isEditing && !esInstructor" appearance="outline" class="form-field">
+      <mat-label>Tipo de vínculo</mat-label>
+      <mat-select [(ngModel)]="perfil.tipoAlumno" name="tipoAlumno" required (selectionChange)="onTipoChange()">
+        <mat-option *ngFor="let tipo of tiposAlumno" [value]="tipo">{{ tipo }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="pideCodigo" appearance="outline" class="form-field">
       <mat-label>Código institucional</mat-label>
       <input matInput placeholder="Código institucional" [(ngModel)]="perfil.alumnoCodigo" name="codigo" required />
     </mat-form-field>
 
-
-    <!-- Tipo de usuario: select temporal (SCRUM-160) — cuando TIC responda se autocompletará.
-         Para instructores el tipo viene fijo como Docente; el select solo aplica a deportistas. -->
-    <mat-form-field *ngIf="!isEditing && !esInstructor" appearance="outline" class="form-field">
-      <mat-label>Tipo de usuario</mat-label>
-      <mat-select [(ngModel)]="perfil.tipoAlumno" name="tipoAlumno" required>
-        <mat-option *ngFor="let tipo of tiposAlumno" [value]="tipo">{{ tipo }}</mat-option>
+    <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="form-field">
+      <mat-label>Facultad</mat-label>
+      <mat-select [(ngModel)]="perfil.facultad" name="facultad" required (selectionChange)="onFacultadChange($event.value)">
+        <mat-option *ngFor="let f of facultades" [value]="f">{{ f }}</mat-option>
       </mat-select>
     </mat-form-field>
+
+    <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="form-field">
+      <mat-label>Programa académico</mat-label>
+      <mat-select [(ngModel)]="perfil.programa" name="programa" required>
+        <mat-option *ngFor="let p of programas" [value]="p">{{ p }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <p class="error-edicion" *ngIf="pideFacultadYPrograma && sinProgramas" role="status">
+      Esta facultad aún no tiene programas cargados.
+    </p>
+
+    <mat-form-field *ngIf="pideDependencia" appearance="outline" class="form-field">
+      <mat-label>Dependencia, oficina o unidad</mat-label>
+      <input matInput placeholder="Dependencia, oficina o unidad" [(ngModel)]="perfil.dependencia" name="dependencia" maxlength="150" required />
+    </mat-form-field>
+
+    <p class="error-edicion" *ngIf="errorCatalogo" role="alert">{{ errorCatalogo }}</p>
 
     <!-- Instructor: rol fijo, sin select -->
     <div *ngIf="!isEditing && esInstructor" class="tipo-fijo">
@@ -100,6 +125,7 @@
     </div>
 
     <p class="error-edicion" *ngIf="errorEdicion" role="alert">{{ errorEdicion }}</p>
+    <p class="error-edicion" *ngIf="errorRegistro" role="alert">{{ errorRegistro }}</p>
 
     <div class="form-buttons">
       <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>

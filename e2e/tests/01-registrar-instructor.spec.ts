@@ -29,7 +29,7 @@ test.describe('SCRUM-137 — Registrar instructor', () => {
     await page.locator('button.btnAgregar').click();
 
     await expect(page.locator('mat-dialog-content')).toBeVisible();
-    await expect(page.locator('mat-dialog-content header')).toContainText('Registro de usuario');
+    await expect(page.locator('mat-dialog-content header')).toContainText('Registrar instructor');
 
     // Campos de texto
     await page.fill('input[name="nombre"]', TEST_INSTRUCTOR_BASE.nombre);

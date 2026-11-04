@@ -17,6 +17,8 @@ import { FormInscripcionesComponent } from '../../usuarios/form-inscripciones/fo
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
 import * as bootstrap from 'bootstrap';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
+import { claseEstadoInscripciones, textoEstadoInscripciones } from 'src/app/shared/estado-inscripciones';
+import { FILTROS_PUBLICO, FiltroPublico, etiquetaPublico, filtrarPorPublico } from 'src/app/shared/publico-curso';
 import { GestionInscripcionesComponent } from '../gestion-inscripciones/gestion-inscripciones.component';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
@@ -55,6 +57,8 @@ export class CursosDeportivosComponent implements OnInit {
   public colsize = 3;
   public isMobile: boolean = false;
   public cursos: CursoDTO[] = [];
+  readonly filtrosPublico = FILTROS_PUBLICO;
+  filtroPublico: FiltroPublico = 'TODOS';
   public cursoSeleccionado: CursoDTO | null = null;
   public titulo: string | null = null;
   perfil?: string;
@@ -91,6 +95,27 @@ export class CursosDeportivosComponent implements OnInit {
       }
     });
   }
+
+  /** Quien gestiona cursos (no el Alumno) puede filtrar por a quién van dirigidos. */
+  get mostrarFiltroPublico(): boolean {
+    return !!this.perfil && this.perfil !== 'Alumno';
+  }
+
+  get cursosVisibles(): CursoDTO[] {
+    return filtrarPorPublico(this.cursos, this.filtroPublico);
+  }
+
+  cambiarFiltroPublico(valor: string): void {
+    this.filtroPublico = FILTROS_PUBLICO.some(f => f.valor === valor) ? (valor as FiltroPublico) : 'TODOS';
+  }
+
+  textoPublico(valor?: string | null): string {
+    return etiquetaPublico(valor);
+  }
+
+  // El estado de inscripciones del curso lo calcula el backend con sus grupos.
+  readonly textoEstadoInscripciones = textoEstadoInscripciones;
+  readonly claseEstadoInscripciones = claseEstadoInscripciones;
 
   private loadCursos(categoria: any): void {
     const request$ = this.perfil === 'Coordinador'
@@ -204,21 +229,6 @@ export class CursosDeportivosComponent implements OnInit {
       },
       error: () => {
         this.snackBar.open('Error al cambiar el estado del curso', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
-      },
-    });
-  }
-
-  toggleInscripciones(item: CursoDTO): void {
-    if (!this.titulo) return;
-    const nuevoEstado = item.estadoInscripciones === 'ABIERTO' ? 'CERRADO' : 'ABIERTO';
-    this.cursoService.cambiarEstadoInscripciones(this.titulo, item.nombre, nuevoEstado).subscribe({
-      next: (updated) => {
-        item.estadoInscripciones = updated.estadoInscripciones;
-        const accion = updated.estadoInscripciones === 'ABIERTO' ? 'abiertas' : 'cerradas';
-        this.snackBar.open(`Inscripciones ${accion} correctamente`, 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
-      },
-      error: () => {
-        this.snackBar.open('Error al cambiar el estado de inscripciones', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
       },
     });
   }

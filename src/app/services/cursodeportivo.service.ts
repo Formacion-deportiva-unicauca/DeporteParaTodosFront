@@ -70,13 +70,4 @@ export class CursodeportivoService {
       catchError((error) => throwError(error))
     );
   }
-
-  cambiarEstadoInscripciones(categoria: string, curso: string, estado: 'ABIERTO' | 'CERRADO'): Observable<CursoDTO> {
-    return this.http.patch<CursoDTO>(
-      `${this.apiUrl}/curso/inscripciones?prmCategoria=${encodeURIComponent(categoria)}&prmCurso=${encodeURIComponent(curso)}&prmEstado=${estado}`,
-      null
-    ).pipe(
-      catchError((error) => throwError(error))
-    );
-  }
 }

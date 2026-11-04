@@ -17,8 +17,8 @@
                curso.estadoCurso === 'INACTIVO' ? 'Inactivo' : 'Cerrado' }}
         </span>
         <span class="badge ms-2" *ngIf="curso.estadoInscripciones"
-            [ngClass]="curso.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : 'bg-warning text-dark'">
-            {{ curso.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : 'Curso: inscripciones cerradas' }}
+            [ngClass]="curso.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : curso.estadoInscripciones === 'SIN_GRUPOS' ? 'bg-secondary' : 'bg-warning text-dark'">
+            {{ curso.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : curso.estadoInscripciones === 'SIN_GRUPOS' ? 'Curso: sin grupos' : 'Curso: inscripciones cerradas' }}
         </span>
     </div>
 
@@ -59,6 +59,12 @@
                             <button mat-menu-item (click)="onUpdate(item.anio!, item.iterable!)">
                                 <mat-icon>edit</mat-icon>
                                 <span>Actualizar</span>
+                            </button>
+
+                            <button mat-menu-item *ngIf="accionCierreInscripciones(item) as accion" class="accion-cierre"
+                                (click)="toggleCierreInscripciones(item)">
+                                <mat-icon>{{ item.inscripcionesCerradasManual ? 'lock_open' : 'lock' }}</mat-icon>
+                                <span>{{ accion }}</span>
                             </button>
 
                             <button mat-menu-item (click)="gestionarHorarios(item)">

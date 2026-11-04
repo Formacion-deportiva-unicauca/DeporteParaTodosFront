@@ -12,7 +12,7 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Deporte</mat-label>
+      <mat-label>Línea deportiva</mat-label>
       <input type="text" matInput [matAutocomplete]="auto" [(ngModel)]="curso.deporte" name="deporte" required="este campo es requerido"
         (ngModelChange)="filtrarDeportes($event)" />
 
@@ -28,17 +28,12 @@
       <input matInput placeholder="Descripción" name="descripcion" [(ngModel)]="curso.descripcion" required>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Horario</mat-label>
-      <input matInput placeholder="Ej: Lunes y Miércoles 8:00 - 10:00" name="horario" [(ngModel)]="curso.horario">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Estado de inscripciones</mat-label>
-      <mat-select [(ngModel)]="curso.estadoInscripciones" name="estadoInscripciones">
-        <mat-option value="ABIERTO">Abierto</mat-option>
-        <mat-option value="CERRADO">Cerrado</mat-option>
+    <mat-form-field appearance="outline" class="form-field" subscriptSizing="dynamic">
+      <mat-label>Dirigido a</mat-label>
+      <mat-select [(ngModel)]="curso.publico" name="publico" required>
+        <mat-option *ngFor="let p of publicos" [value]="p.valor">{{ p.etiqueta }}</mat-option>
       </mat-select>
+      <mat-hint>{{ descripcionPublicoElegido }}</mat-hint>
     </mat-form-field>
 
     <div class="form-field buttonImage">

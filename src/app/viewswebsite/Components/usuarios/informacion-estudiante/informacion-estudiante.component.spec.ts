@@ -256,3 +256,50 @@ describe('InformacionEstudianteComponent', () => {
     });
   });
 });
+
+describe('InformacionEstudianteComponent › vínculo del alumno', () => {
+  let fixture: ComponentFixture<InformacionEstudianteComponent>;
+  let component: InformacionEstudianteComponent;
+
+  const montar = async (datos: object) => {
+    sessionStorage.setItem('dpt_perfil', JSON.stringify({ id: '1', nombre: 'Ana Ruiz', role: 'Alumno', ...datos }));
+    await TestBed.configureTestingModule({
+      imports: [InformacionEstudianteComponent, NoopAnimationsModule],
+      providers: [
+        { provide: PerfilService, useValue: { perfil$: new BehaviorSubject<string>('Alumno').asObservable() } },
+        { provide: InscripcionesService, useValue: { getMisCursos: () => of([]) } },
+        { provide: InstructorServisce, useValue: { getInstructores: () => of([]) } },
+        { provide: AuthService, useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'getProfile', 'isAuthenticated', 'verificarUsuario']) },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(InformacionEstudianteComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    return (fixture.nativeElement as HTMLElement).querySelector('.info-text')!.textContent!;
+  };
+
+  afterEach(() => sessionStorage.removeItem('dpt_perfil'));
+
+  it('Estudiante o Docente: muestra tipo de vínculo, facultad y programa', async () => {
+    const texto = await montar({ tipoAlumno: 'Docente', facultad: 'Facultad de Ingeniería Civil', programa: 'Ingeniería Civil' });
+    expect(texto).toContain('Docente');
+    expect(texto).toContain('Facultad de Ingeniería Civil');
+    expect(texto).toContain('Ingeniería Civil');
+    expect(texto).not.toContain('Dependencia');
+  });
+
+  it('Administrativo o Contratista: muestra tipo de vínculo y dependencia, sin facultad ni programa', async () => {
+    const texto = await montar({ tipoAlumno: 'Contratista', dependencia: 'Oficina de Planeación' });
+    expect(texto).toContain('Contratista');
+    expect(texto).toContain('Oficina de Planeación');
+    expect(texto).not.toContain('Facultad');
+    expect(texto).not.toContain('Programa');
+  });
+
+  it('sin datos de vínculo en la sesión no muestra esas filas y no falla', async () => {
+    const texto = await montar({});
+    expect(texto).not.toContain('Tipo de vínculo');
+    expect(texto).not.toContain('Facultad');
+    expect(texto).not.toContain('Dependencia');
+  });
+});

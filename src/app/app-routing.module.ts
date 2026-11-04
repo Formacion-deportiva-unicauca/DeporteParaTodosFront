@@ -12,6 +12,7 @@ import { ListGruposComponent } from './viewswebsite/Components/cursos/list-grupo
 import { InformacinInstructorComponent } from './viewswebsite/Components/usuarios/informacion-instructor/informacion-instructor.component';
 import { ListaInstructoresComponent } from './viewswebsite/Components/usuarios/lista-instructores/lista-instructores.component';
 import { ReportesComponent } from './viewswebsite/Components/estadisticas/reportes/reportes.component';
+import { GestionInscripcionesCoordinadorComponent } from './viewswebsite/Components/cursos/gestion-inscripciones-coordinador/gestion-inscripciones-coordinador.component';
 import { InformacionEstudianteComponent } from './viewswebsite/Components/usuarios/informacion-estudiante/informacion-estudiante.component';
 import { FormAlertaComponent } from './viewswebsite/Components/usuarios/form-alerta/form-alerta.component';
 import { CompletarPerfilComponent } from './viewswebsite/pages/completar-perfil/completar-perfil.component';
@@ -33,6 +34,7 @@ const routes: Routes = [
   {path: 'lista-instructores', component: ListaInstructoresComponent},
   {path: 'lista-instructores/:id', component: DetalleInstructorComponent},
   {path: 'reportes', component:ReportesComponent},
+  {path: 'gestion-inscripciones', component: GestionInscripcionesCoordinadorComponent},
   {path: 'info-estudiante', component: InformacionEstudianteComponent},
   {path: 'notificacion', component: FormAlertaComponent},
   {path: 'completar-perfil', component: CompletarPerfilComponent},

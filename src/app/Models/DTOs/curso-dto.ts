@@ -16,7 +16,11 @@ export interface CursoDTO {
 
   horario?: string | null;
 
-  estadoInscripciones?: 'ABIERTO' | 'CERRADO';
+  /** Solo de SALIDA: el backend lo calcula con los grupos del curso (ya no se elige ni se envía). */
+  estadoInscripciones?: 'ABIERTO' | 'CERRADO' | 'SIN_GRUPOS';
+
+  /** A quién va dirigido el curso; ausente = toda la comunidad. */
+  publico?: 'ESTUDIANTE' | 'FUNCIONARIO' | 'MIXTO' | null;
 
   imagenBase64?: string | null;
 

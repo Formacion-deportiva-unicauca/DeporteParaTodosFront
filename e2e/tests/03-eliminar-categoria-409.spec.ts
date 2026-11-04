@@ -1,5 +1,5 @@
 import { test, expect, APIRequestContext } from '@playwright/test';
-import { injectPerfil } from '../support/auth-setup';
+import { authHeaders, injectPerfil } from '../support/auth-setup';
 import { API_BASE } from '../support/test-data';
 
 // SCRUM-141: eliminar categoría y verificar manejo de 409.
@@ -27,7 +27,7 @@ test.describe('SCRUM-141 — Eliminar categoría con manejo de 409', () => {
     categoriaNombre = `CategoriaE2E${Date.now()}`;
 
     // Sin baseURL: URLs absolutas completas para evitar que /api/v2 sea descartado
-    apiContext = await playwright.request.newContext();
+    apiContext = await playwright.request.newContext({ extraHTTPHeaders: authHeaders() });
     // imagenId: 201 es obligatorio (todas las categorías existentes lo usan)
     const res = await apiContext.post(`${API_BASE}/categoria`, {
       data: { titulo: categoriaNombre, descripcion: 'Categoría creada por Playwright E2E', imagenId: 201 },
@@ -38,7 +38,7 @@ test.describe('SCRUM-141 — Eliminar categoría con manejo de 409', () => {
   });
 
   test.afterAll(async () => {
-    await apiContext.dispose();
+    await apiContext?.dispose();
   });
 
   test.beforeEach(async ({ page }) => {
@@ -68,7 +68,8 @@ test.describe('SCRUM-141 — Eliminar categoría con manejo de 409', () => {
     // La tarjeta ya no existe en el DOM. Se llama directamente al backend para
     // verificar que el sistema responde 409 en un segundo intento de eliminación.
     const resp = await page.request.delete(
-      `${API_BASE}/categoria?titulo=${encodeURIComponent(categoriaNombre)}`
+      `${API_BASE}/categoria?titulo=${encodeURIComponent(categoriaNombre)}`,
+      { headers: authHeaders() }
     );
     expect(resp.status()).toBe(409);
   });

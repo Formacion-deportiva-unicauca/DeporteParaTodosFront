@@ -19,4 +19,6 @@ export interface GrupoDTO {
   // Solo de SALIDA (calculados por el backend); nunca se envían en POST/PUT /grupo
   inscripcionesAbiertas?: boolean;
   motivoInscripcion?: 'ABIERTAS' | 'NO_ABIERTAS' | 'CERRADAS';
+  /** true si el Coordinador cerró a mano las inscripciones del grupo (solo de salida; se cambia con PATCH /grupo/inscripciones). */
+  inscripcionesCerradasManual?: boolean;
 }

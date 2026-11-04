@@ -1,0 +1,131 @@
+<app-sidenav>
+  <div class="contenedor" *ngIf="esCoordinador; else sinAcceso">
+    <h2>Gestión de inscripciones</h2>
+    <p class="text-muted">Abre las inscripciones de todo un periodo a la vez: elige los grupos, define las fechas y revisa la vista previa antes de aplicar.</p>
+
+    <div class="filtros">
+      <div>
+        <label for="filtro-categoria">Categoría</label>
+        <select id="filtro-categoria" class="form-select" [ngModel]="filtros.categoria" (ngModelChange)="alCambiarCategoria($event)">
+          <option value="">Todas</option>
+          <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+      <div>
+        <label for="filtro-curso">Curso</label>
+        <select id="filtro-curso" class="form-select" [ngModel]="filtros.curso" (ngModelChange)="filtros.curso = $event; alCambiarFiltro()">
+          <option value="">Todos</option>
+          <option *ngFor="let c of cursos" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+      <div>
+        <label for="filtro-publico">Público</label>
+        <select id="filtro-publico" class="form-select" [ngModel]="filtros.publico" (ngModelChange)="filtros.publico = $event; alCambiarFiltro()">
+          <option value="">Todos</option>
+          <option value="ESTUDIANTE">Estudiantes</option>
+          <option value="FUNCIONARIO">Funcionarios</option>
+          <option value="MIXTO">Mixto</option>
+        </select>
+      </div>
+      <div>
+        <label for="filtro-nivel">Ocupación</label>
+        <select id="filtro-nivel" class="form-select" [ngModel]="filtros.nivel" (ngModelChange)="filtros.nivel = $event; alCambiarFiltro()">
+          <option value="">Todas</option>
+          <option value="LLENO">Llenos</option>
+          <option value="POR_LLENAR">Por llenar (80% o más)</option>
+          <option value="CON_CUPO">Con cupo</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="cargando" id="cargando">Cargando grupos…</p>
+    <div *ngIf="errorCarga" id="error-carga" class="error-campo">
+      No se pudo cargar la ocupación.
+      <button type="button" mat-button (click)="cargar()">Reintentar</button>
+    </div>
+
+    <div class="table-responsive" *ngIf="!cargando && !errorCarga">
+      <table class="tabla-ocupacion" id="tabla-ocupacion">
+        <thead>
+          <tr>
+            <th>
+              <input type="checkbox" aria-label="Seleccionar todos los grupos visibles"
+                     [checked]="todosSeleccionados" (change)="alternarTodos()">
+            </th>
+            <th>Curso</th>
+            <th>Grupo</th>
+            <th>Público</th>
+            <th>Ocupación</th>
+            <th>Inscripciones</th>
+            <th>Apertura</th>
+            <th>Cierre actual</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let g of filtrados">
+            <td>
+              <input type="checkbox" [attr.aria-label]="'Seleccionar ' + g.curso + ' ' + g.anio + '-' + g.iterable"
+                     [checked]="estaSeleccionado(g)" (change)="alternarSeleccion(g)">
+            </td>
+            <td><a class="enlace-curso" [routerLink]="['/list-grupos', g.categoria, g.curso]">{{ g.curso }}</a><br><small class="text-muted">{{ g.categoria }}</small></td>
+            <td><a class="enlace-grupo" [routerLink]="['/listaDeportistasCurso', g.categoria, g.curso, g.anio, g.iterable]">{{ g.anio }}-{{ g.iterable }}</a></td>
+            <td>{{ textoPublico(g.publico) }}</td>
+            <td>
+              <span class="badge" [ngClass]="claseNivel(g.nivel)">{{ textoNivel(g.nivel) }}</span>
+              <div>{{ g.inscritos }}/{{ g.cupos ?? 'sin límite' }}<span *ngIf="g.enEspera"> · {{ g.enEspera }} en espera</span></div>
+              <div class="barra" aria-hidden="true"><span [style.width.%]="porcentaje(g)"></span></div>
+            </td>
+            <td>{{ textoVentana(g) }}</td>
+            <td>{{ g.fechaApertura ? formatearFecha(g.fechaApertura) : 'Sin fecha' }}</td>
+            <td>{{ g.fechaCierre ? formatearFecha(g.fechaCierre) : 'Sin fecha' }}</td>
+            <td>
+              <button type="button" mat-stroked-button class="accion-extender" (click)="extender(g)">Extender cierre</button>
+            </td>
+          </tr>
+          <tr *ngIf="filtrados.length === 0">
+            <td colspan="9" class="text-center text-muted">No hay grupos con estos filtros.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="panel-periodo" aria-labelledby="titulo-periodo">
+      <h3 id="titulo-periodo">Periodo de inscripciones</h3>
+      <p class="text-muted">Se aplica a los {{ seleccionados.length }} grupo(s) seleccionado(s). Si dejas la apertura vacía, cada grupo conserva la suya. Los grupos cerrados a mano no se reabren.</p>
+      <div class="campos-periodo">
+        <div>
+          <label for="fecha-apertura">Apertura (opcional)</label>
+          <input id="fecha-apertura" type="date" class="form-control" [(ngModel)]="fechaApertura">
+        </div>
+        <div>
+          <label for="fecha-cierre">Cierre</label>
+          <input id="fecha-cierre" type="date" class="form-control" [(ngModel)]="fechaCierre" required>
+          <div id="error-periodo" class="error-campo" *ngIf="errorPeriodo">{{ errorPeriodo }}</div>
+        </div>
+      </div>
+
+      <div id="vista-previa" class="vista-previa" *ngIf="seleccionados.length > 0">
+        <h4>Vista previa</h4>
+        <ul>
+          <li *ngFor="let g of seleccionados">
+            <strong>{{ g.curso }}</strong> {{ g.anio }}-{{ g.iterable }}:
+            cierre {{ g.fechaCierre ? formatearFecha(g.fechaCierre) : 'sin fecha' }}
+            →
+            <strong>{{ fechaCierre ? formatearFecha(fechaCierre) : '—' }}</strong>
+            <span *ngIf="g.cerradaManual" class="text-muted"> (seguirá cerrado a mano)</span>
+            <button type="button" class="btn btn-link btn-sm quitar" (click)="alternarSeleccion(g)">Quitar</button>
+          </li>
+        </ul>
+      </div>
+
+      <button type="button" mat-flat-button color="primary" id="btn-aplicar" [disabled]="!puedeAplicar" (click)="aplicar()">
+        Aplicar a {{ seleccionados.length }} {{ seleccionados.length === 1 ? 'grupo' : 'grupos' }}
+      </button>
+    </section>
+  </div>
+
+  <ng-template #sinAcceso>
+    <div class="aviso-acceso">Solo el Coordinador puede gestionar las inscripciones.</div>
+  </ng-template>
+</app-sidenav>

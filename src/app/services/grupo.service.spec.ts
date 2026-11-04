@@ -234,4 +234,81 @@ describe('GrupoService', () => {
     httpMock.expectOne(`${API}/grupo/instructor?idInstructor=NO`).flush({ mensaje: 'x' }, { status: 404, statusText: 'Not Found' });
     expect(err.status).toBe(404);
   });
+
+  // Fase 3: cierre manual de inscripciones por grupo
+  it('cambiarCierreInscripciones: PATCH /grupo/inscripciones con los 4 params y cerradas=true', () => {
+    service.cambiarCierreInscripciones('Acuáticos', 'Natación', 2026, 1, true).subscribe(resp => {
+      expect(resp.inscripcionesCerradasManual).toBeTrue();
+    });
+    const req = httpMock.expectOne(
+      `${API}/grupo/inscripciones?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1&cerradas=true`
+    );
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toBeNull();
+    req.flush({ ...grupoDummy, inscripcionesCerradasManual: true });
+  });
+
+  it('cambiarCierreInscripciones: cerradas=false reabre', () => {
+    service.cambiarCierreInscripciones('Acuáticos', 'Natación', 2026, 1, false).subscribe();
+    const req = httpMock.expectOne(
+      `${API}/grupo/inscripciones?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&anio=2026&iterable=1&cerradas=false`
+    );
+    expect(req.request.method).toBe('PATCH');
+    req.flush({ ...grupoDummy, inscripcionesCerradasManual: false });
+  });
+
+  it('cambiarCierreInscripciones: propaga el 422 (no se puede reabrir con la fecha de cierre vencida)', () => {
+    let errorCapturado: any;
+    service.cambiarCierreInscripciones('Acuáticos', 'Natación', 2026, 1, false).subscribe({
+      next: () => fail('debería haber fallado'),
+      error: err => (errorCapturado = err),
+    });
+    const req = httpMock.expectOne(r => r.url.startsWith(`${API}/grupo/inscripciones`));
+    req.flush({ mensaje: 'La fecha de cierre ya pasó' }, { status: 422, statusText: 'Unprocessable Entity' });
+    expect(errorCapturado.status).toBe(422);
+  });
+
+  // ── Fase 4: tablero de ocupación y periodo de inscripciones ──
+
+  it('getOcupacion: sin filtros pide /grupo/ocupacion sin parámetros', () => {
+    let resultado: any;
+    service.getOcupacion().subscribe(r => (resultado = r));
+    const req = httpMock.expectOne(`${API}/grupo/ocupacion`);
+    expect(req.request.method).toBe('GET');
+    req.flush([{ categoria: 'Acuáticos', curso: 'Natación', nivel: 'LLENO' }]);
+    expect(resultado.length).toBe(1);
+  });
+
+  it('getOcupacion: con filtros los manda codificados', () => {
+    service.getOcupacion({ categoria: 'Acuáticos', curso: 'Natación', publico: 'ESTUDIANTE' }).subscribe();
+    const req = httpMock.expectOne(
+      `${API}/grupo/ocupacion?categoria=Acu%C3%A1ticos&curso=Nataci%C3%B3n&publico=ESTUDIANTE`
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
+  it('aplicarPeriodo: PATCH /grupo/periodo con el cuerpo tal cual', () => {
+    const body = {
+      fechaApertura: '2026-07-01',
+      fechaCierre: '2026-08-01',
+      grupos: [{ categoria: 'Acuáticos', curso: 'Natación', anio: 2026, iterable: 1 }],
+    };
+    service.aplicarPeriodo(body).subscribe();
+    const req = httpMock.expectOne(`${API}/grupo/periodo`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual(body);
+    req.flush([grupoDummy]);
+  });
+
+  it('aplicarPeriodo: propaga el 422 de fechas inválidas', () => {
+    let errorCapturado: any;
+    service.aplicarPeriodo({ fechaApertura: null, fechaCierre: '2020-01-01', grupos: [] }).subscribe({
+      next: () => fail('debería haber fallado'),
+      error: err => (errorCapturado = err),
+    });
+    httpMock.expectOne(`${API}/grupo/periodo`)
+      .flush({ mensaje: 'ya pasó' }, { status: 422, statusText: 'Unprocessable Entity' });
+    expect(errorCapturado.status).toBe(422);
+  });
 });

@@ -19,8 +19,8 @@
            cursoInfo.estadoCurso === 'INACTIVO' ? 'Inactivo' : 'Cerrado' }}
       </span>
       <span class="badge ms-2" *ngIf="cursoInfo.estadoInscripciones"
-        [ngClass]="cursoInfo.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : 'bg-warning text-dark'">
-        {{ cursoInfo.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : 'Curso: inscripciones cerradas' }}
+        [ngClass]="cursoInfo.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : cursoInfo.estadoInscripciones === 'SIN_GRUPOS' ? 'bg-secondary' : 'bg-warning text-dark'">
+        {{ cursoInfo.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : cursoInfo.estadoInscripciones === 'SIN_GRUPOS' ? 'Curso: sin grupos' : 'Curso: inscripciones cerradas' }}
       </span>
     </div>
 

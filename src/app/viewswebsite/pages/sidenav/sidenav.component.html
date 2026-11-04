@@ -17,6 +17,10 @@
           <span class="text-body-small-r opcion-espaciado-p">Instructores</span>
         </a>
 
+        <a mat-list-item (click)="redirectionTo('gestion-inscripciones')" class="nav-item" *ngIf="perfil === 'Coordinador'" >
+          <mat-icon>event_available</mat-icon>
+          <span class="text-body-small-r opcion-espaciado-p">Inscripciones</span>
+        </a>
         <a mat-list-item (click)="redirectionTo('reportes')" class="nav-item" *ngIf="perfil === 'Coordinador'" >
           <mat-icon>tune</mat-icon>
           <span class="text-body-small-r opcion-espaciado-p">Reportes</span>

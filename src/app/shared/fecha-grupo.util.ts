@@ -30,6 +30,8 @@ export function inscripcionesAbiertasDeGrupo(g: Pick<GrupoDTO, 'inscripcionesAbi
 /** Etiqueta corta para la tarjeta; null si el grupo está abierto. */
 export function etiquetaInscripcionGrupo(g: GrupoDTO | null | undefined): string | null {
   if (inscripcionesAbiertasDeGrupo(g)) return null;
+  // Cerrado a mano: la fecha de cierre puede ser futura, así que no se muestra como "Cerraron el ...".
+  if (g?.inscripcionesCerradasManual) return 'Cerradas por el Coordinador';
   if (g?.motivoInscripcion === 'NO_ABIERTAS') {
     const desde = formatearFecha(g.fechaInscripcionApertura);
     return desde ? `Abren el ${desde}` : 'Inscripciones aún no abiertas';
@@ -41,6 +43,7 @@ export function etiquetaInscripcionGrupo(g: GrupoDTO | null | undefined): string
 /** Aviso completo para la pantalla de inscripción; null si el grupo está abierto. */
 export function avisoInscripcionGrupo(g: GrupoDTO | null | undefined): string | null {
   if (inscripcionesAbiertasDeGrupo(g)) return null;
+  if (g?.inscripcionesCerradasManual) return 'Las inscripciones de este grupo fueron cerradas por el Coordinador';
   if (g?.motivoInscripcion === 'NO_ABIERTAS') {
     const desde = formatearFecha(g.fechaInscripcionApertura);
     return desde ? `Las inscripciones de este grupo abren el ${desde}` : 'Las inscripciones de este grupo aún no están abiertas';

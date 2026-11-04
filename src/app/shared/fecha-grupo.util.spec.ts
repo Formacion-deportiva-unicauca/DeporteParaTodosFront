@@ -104,4 +104,27 @@ describe('fecha-grupo.util', () => {
       expect(fechaLarga('xx')).toBe('');
     });
   });
+
+  describe('cierre manual del Coordinador (Fase 3)', () => {
+    const manual = g({
+      inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS', inscripcionesCerradasManual: true,
+      fechaIncripcionCierre: '2026-12-31',
+    });
+
+    it('la etiqueta dice que lo cerró el Coordinador, no una fecha de cierre que aún no llega', () => {
+      expect(etiquetaInscripcionGrupo(manual)).toBe('Cerradas por el Coordinador');
+    });
+
+    it('el aviso al Alumno dice que las inscripciones fueron cerradas por el Coordinador', () => {
+      expect(avisoInscripcionGrupo(manual)).toBe('Las inscripciones de este grupo fueron cerradas por el Coordinador');
+    });
+
+    it('un grupo cerrado por fecha (sin cierre manual) sigue diciendo "Cerraron el ..."', () => {
+      const porFecha = g({
+        inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS', inscripcionesCerradasManual: false,
+        fechaIncripcionCierre: '2026-06-14',
+      });
+      expect(etiquetaInscripcionGrupo(porFecha)).toBe('Cerraron el 14/06/2026');
+    });
+  });
 });

@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { GrupoDTO } from '../Models/DTOs/grupo-dto';
 import { MiGrupoInstructorDTO } from '../Models/DTOs/mis-cursos-dto';
+import { OcupacionGrupoDTO, PeriodoInscripcionRequestDTO, PublicoCurso } from '../Models/DTOs/ocupacion-grupo-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -35,6 +36,35 @@ export class GrupoService {
           return throwError(error);
         })
       );
+  }
+
+  /** Cierra (cerradas=true) o reabre (false) a mano las inscripciones de un grupo. Solo el Coordinador. */
+  cambiarCierreInscripciones(categoria: string, curso: string, anio: number, iterable: number, cerradas: boolean): Observable<GrupoDTO> {
+    return this.http.patch<GrupoDTO>(
+      `${this.apiUrl}/grupo/inscripciones?categoria=${encodeURIComponent(categoria)}&curso=${encodeURIComponent(curso)}&anio=${anio}&iterable=${iterable}&cerradas=${cerradas}`,
+      null
+    ).pipe(
+      catchError((error) => throwError(error))
+    );
+  }
+
+  /** Tablero de ocupación de los grupos (solo Coordinador). Los filtros son opcionales. */
+  getOcupacion(filtros: { categoria?: string; curso?: string; publico?: PublicoCurso } = {}): Observable<OcupacionGrupoDTO[]> {
+    const partes: string[] = [];
+    if (filtros.categoria) partes.push(`categoria=${encodeURIComponent(filtros.categoria)}`);
+    if (filtros.curso) partes.push(`curso=${encodeURIComponent(filtros.curso)}`);
+    if (filtros.publico) partes.push(`publico=${filtros.publico}`);
+    const query = partes.length ? `?${partes.join('&')}` : '';
+    return this.http.get<OcupacionGrupoDTO[]>(`${this.apiUrl}/grupo/ocupacion${query}`).pipe(
+      catchError((error) => throwError(error))
+    );
+  }
+
+  /** Aplica un periodo de inscripciones a varios grupos, todo o nada (solo Coordinador). */
+  aplicarPeriodo(body: PeriodoInscripcionRequestDTO): Observable<GrupoDTO[]> {
+    return this.http.patch<GrupoDTO[]>(`${this.apiUrl}/grupo/periodo`, body).pipe(
+      catchError((error) => throwError(error))
+    );
   }
 
   updateGrupo(categoria: string, curso: string, anio: number, iterable: number, grupo: GrupoDTO): Observable<GrupoDTO> {

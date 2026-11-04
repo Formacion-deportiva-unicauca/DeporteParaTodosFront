@@ -237,10 +237,46 @@ export class ListGruposComponent implements OnInit {
     return etiquetaInscripcionGrupo(grupo);
   }
 
-  /** Solo el Coordinador: cómo reabrir un grupo cerrado por su fecha de cierre. */
+  /** Solo el Coordinador: cómo reabrir un grupo cerrado por su fecha de cierre (el cerrado a mano se reabre desde el menú). */
   pistaReabrir(grupo: GrupoDTO): string | null {
-    return this.perfil === 'Coordinador' && !inscripcionesAbiertasDeGrupo(grupo) && grupo.motivoInscripcion === 'CERRADAS'
+    return this.perfil === 'Coordinador' && !inscripcionesAbiertasDeGrupo(grupo)
+      && grupo.motivoInscripcion === 'CERRADAS' && !grupo.inscripcionesCerradasManual
       ? 'Para reabrir, cambia la fecha de cierre en Actualizar' : null;
+  }
+
+  /**
+   * Acción del menú del Coordinador para el cierre manual: "Cerrar" si el grupo está abierto, "Reabrir" si lo cerró él.
+   * Un grupo cerrado por fecha o que aún no abre no tiene acción: se cambia con las fechas en Actualizar.
+   */
+  accionCierreInscripciones(grupo: GrupoDTO): string | null {
+    if (grupo.inscripcionesCerradasManual) return 'Reabrir inscripciones';
+    return inscripcionesAbiertasDeGrupo(grupo) ? 'Cerrar inscripciones' : null;
+  }
+
+  toggleCierreInscripciones(item: GrupoDTO): void {
+    const cerrar = !item.inscripcionesCerradasManual;
+    this.grupoService.cambiarCierreInscripciones(this.categoria!, this.titulo!, item.anio!, item.iterable!, cerrar).subscribe({
+      next: (actualizado) => {
+        item.inscripcionesCerradasManual = actualizado.inscripcionesCerradasManual;
+        item.inscripcionesAbiertas = actualizado.inscripcionesAbiertas;
+        item.motivoInscripcion = actualizado.motivoInscripcion;
+        this.snackBar.open(cerrar ? 'Inscripciones del grupo cerradas' : 'Inscripciones del grupo reabiertas', 'Cerrar',
+          { duration: 3000, panelClass: ['snack-success'] });
+        this.actualizarEstadoDelCurso();
+      },
+      error: (err) => {
+        this.snackBar.open(err?.error?.mensaje ?? 'No se pudo cambiar el estado de inscripciones del grupo, intente de nuevo',
+          'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+      },
+    });
+  }
+
+  /** El estado del curso depende de sus grupos: tras cerrar o reabrir uno se vuelve a pedir. */
+  private actualizarEstadoDelCurso(): void {
+    this.cursodeportivoService.getCurso(this.categoria!, this.titulo!).subscribe({
+      next: (curso) => { this.curso = curso; },
+      error: () => { /* el estado del curso se refresca en la próxima carga */ },
+    });
   }
 
   inscripcionAbierta(grupo: GrupoDTO): boolean {

@@ -10,6 +10,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
+import { OpcionPublico, PUBLICOS_CURSO, descripcionPublico } from 'src/app/shared/publico-curso';
 import { DeporteService } from 'src/app/services/deporte.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import {
@@ -53,6 +54,7 @@ export class FormCursoDeportiviComponent implements OnInit {
   deportes: DeporteDTO[] = [];
   deporteFiltrado: DeporteDTO[] = [];
   private nombreCategoria: string = '';
+  readonly publicos: OpcionPublico[] = PUBLICOS_CURSO;
 
   curso: CursoDTO = {
     nombre: '',
@@ -60,8 +62,7 @@ export class FormCursoDeportiviComponent implements OnInit {
     categoriaCurso: '',
     descripcion: '',
     idImagen: null,
-    horario: '',
-    estadoInscripciones: 'ABIERTO',
+    publico: 'MIXTO',
   }
 
   constructor(
@@ -89,6 +90,10 @@ export class FormCursoDeportiviComponent implements OnInit {
     this.cursodeportivoserce.getCurso(this.nombreCategoria, nombre).subscribe(
       (curso) => {
         this.curso = curso;
+        // Un curso que llega sin público (backend anterior) se edita como toda la comunidad.
+        if (!curso.publico) {
+          curso.publico = 'MIXTO';
+        }
         if (curso.idImagen != null) {
           this.imagenService.getimagen(curso.idImagen).subscribe(
             (imagenData) => {
@@ -106,6 +111,10 @@ export class FormCursoDeportiviComponent implements OnInit {
         console.error('Se produjo un error al tratar cargar el curso seleccionado', error);
       }
     );
+  }
+
+  get descripcionPublicoElegido(): string {
+    return descripcionPublico(this.curso.publico);
   }
 
   onSubmit(form: NgForm): void {
@@ -139,8 +148,7 @@ export class FormCursoDeportiviComponent implements OnInit {
             categoriaCurso: this.data.tituloCategoria,
             descripcion: this.curso.descripcion,
             idImagen: idImagen,
-            horario: this.curso.horario,
-            estadoInscripciones: this.curso.estadoInscripciones,
+            publico: this.curso.publico ?? 'MIXTO',
           };
           this.cursodeportivoserce.crearCurso(nuevoCurso).subscribe(
             (response) => {
@@ -162,8 +170,7 @@ export class FormCursoDeportiviComponent implements OnInit {
         deporte: this.curso.deporte,
         categoriaCurso: this.data.tituloCategoria,
         descripcion: this.curso.descripcion,
-        horario: this.curso.horario,
-        estadoInscripciones: this.curso.estadoInscripciones,
+            publico: this.curso.publico ?? 'MIXTO',
       };
       this.cursodeportivoserce.crearCurso(nuevoCurso).subscribe(
         (response) => {
@@ -189,8 +196,7 @@ export class FormCursoDeportiviComponent implements OnInit {
             categoriaCurso: this.data.tituloCategoria,
             descripcion: this.curso.descripcion,
             idImagen: idImagen,
-            horario: this.curso.horario,
-            estadoInscripciones: this.curso.estadoInscripciones,
+            publico: this.curso.publico ?? 'MIXTO',
           };
 
           this.cursodeportivoserce.updateCurso(this.data.tituloCategoria, this.data.nombrecurso, nuevoCurso).subscribe(
@@ -216,8 +222,7 @@ export class FormCursoDeportiviComponent implements OnInit {
         categoriaCurso: this.data.tituloCategoria,
         descripcion: this.curso.descripcion,
         idImagen: this.curso.idImagen,
-        horario: this.curso.horario,
-        estadoInscripciones: this.curso.estadoInscripciones,
+            publico: this.curso.publico ?? 'MIXTO',
       };
 
       this.cursodeportivoserce.updateCurso(this.data.tituloCategoria, this.data.nombrecurso, nuevoCurso).subscribe(

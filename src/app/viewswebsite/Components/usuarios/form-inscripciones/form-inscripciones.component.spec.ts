@@ -6,6 +6,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FormInscripcionesComponent } from './form-inscripciones.component';
 import { AlumnoService } from 'src/app/services/alumno.service';
 import { PerfilService } from 'src/app/services/perfil.service';
+import { CatalogoService } from 'src/app/services/catalogo.service';
 import { PerfilDTO } from 'src/app/Models/DTOs/perfil-tdo';
 
 const mockPerfil: PerfilDTO = {
@@ -23,6 +24,9 @@ async function setupTestBed(data: any = null) {
   const alumnoSpy = jasmine.createSpyObj('AlumnoService', ['buscarPorCorreo', 'actualizarAlumno']);
   const perfilSpy = jasmine.createSpyObj('PerfilService', ['registrarPerfil', 'registrarInstructor']);
   const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
+  const catalogoSpy = jasmine.createSpyObj('CatalogoService', ['getFacultades', 'getProgramas']);
+  catalogoSpy.getFacultades.and.returnValue(of(['Facultad de Ingeniería Civil']));
+  catalogoSpy.getProgramas.and.returnValue(of(['Ingeniería Civil']));
 
   await TestBed.configureTestingModule({
     imports: [FormInscripcionesComponent, NoopAnimationsModule],
@@ -30,6 +34,7 @@ async function setupTestBed(data: any = null) {
       { provide: AlumnoService,  useValue: alumnoSpy },
       { provide: PerfilService,  useValue: perfilSpy },
       { provide: MatDialogRef,   useValue: dialogRefSpy },
+      { provide: CatalogoService, useValue: catalogoSpy },
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: Router, useValue: jasmine.createSpyObj('Router', ['navigate']) },
     ],
@@ -38,7 +43,7 @@ async function setupTestBed(data: any = null) {
   const fixture: ComponentFixture<FormInscripcionesComponent> = TestBed.createComponent(FormInscripcionesComponent);
   const component = fixture.componentInstance;
   fixture.detectChanges();
-  return { fixture, component, alumnoSpy, perfilSpy, dialogRefSpy };
+  return { fixture, component, alumnoSpy, perfilSpy, dialogRefSpy, catalogoSpy };
 }
 
 // ── Modo por defecto (creación normal) ────────────────────────────────────
@@ -286,5 +291,137 @@ describe('FormInscripcionesComponent › modo inscribir', () => {
     component.onSubmit({} as any);
     expect(perfilSpy.registrarPerfil).toHaveBeenCalled();
     expect(dialogRefSpy.close).toHaveBeenCalledWith({ confirmacionCreacion: true, idAlumno: 55 });
+  });
+});
+
+// ── Datos según el tipo de vínculo (registro) ──────────────────────────────
+
+describe('FormInscripcionesComponent › vínculo del deportista', () => {
+  let component: FormInscripcionesComponent;
+  let fixture: ComponentFixture<FormInscripcionesComponent>;
+  let perfilSpy: jasmine.SpyObj<PerfilService>;
+  let catalogoSpy: jasmine.SpyObj<CatalogoService>;
+  const FAC = 'Facultad de Ingeniería Civil';
+
+  const campo = (nombre: string): Element | null => fixture.nativeElement.querySelector(`[name="${nombre}"]`);
+  const elegir = (tipo: string): void => {
+    component.perfil.tipoAlumno = tipo;
+    component.onTipoChange();
+    fixture.detectChanges();
+  };
+  const enviado = (): PerfilDTO => perfilSpy.registrarPerfil.calls.mostRecent().args[0];
+
+  beforeEach(async () => {
+    ({ component, fixture, perfilSpy, catalogoSpy } = await setupTestBed(null) as any);
+    perfilSpy.registrarPerfil.and.returnValue(of({ ...mockPerfil, id: 55 } as any));
+  });
+
+  it('ofrece los cuatro tipos de vínculo', () => {
+    expect(component.tiposAlumno).toEqual(['Estudiante', 'Docente', 'Administrativo', 'Contratista']);
+  });
+
+  it('carga las facultades al iniciar', () => {
+    expect(catalogoSpy.getFacultades).toHaveBeenCalled();
+    expect(component.facultades).toEqual([FAC]);
+  });
+
+  it('Estudiante (por defecto): pide código, facultad y programa', () => {
+    expect(campo('codigo')).not.toBeNull();
+    expect(campo('facultad')).not.toBeNull();
+    expect(campo('programa')).not.toBeNull();
+    expect(campo('dependencia')).toBeNull();
+  });
+
+  it('Docente: sin código, con facultad y programa', () => {
+    elegir('Docente');
+    expect(campo('codigo')).toBeNull();
+    expect(campo('facultad')).not.toBeNull();
+    expect(campo('dependencia')).toBeNull();
+  });
+
+  it('Administrativo y Contratista: solo dependencia', () => {
+    ['Administrativo', 'Contratista'].forEach(tipo => {
+      elegir(tipo);
+      expect(campo('dependencia')).not.toBeNull();
+      expect(campo('codigo')).toBeNull();
+      expect(campo('facultad')).toBeNull();
+    });
+  });
+
+  it('al elegir una facultad carga sus programas y reinicia el programa', () => {
+    component.perfil.programa = 'Otro';
+    component.onFacultadChange(FAC);
+    expect(catalogoSpy.getProgramas).toHaveBeenCalledWith(FAC);
+    expect(component.programas).toEqual(['Ingeniería Civil']);
+    expect(component.perfil.programa).toBe('');
+  });
+
+  it('una facultad sin programas cargados lo avisa', () => {
+    catalogoSpy.getProgramas.and.returnValue(of([]));
+    component.onFacultadChange('Facultad de Artes');
+    expect(component.sinProgramas).toBeTrue();
+  });
+
+  it('al cambiar de tipo se limpian los datos que ya no corresponden', () => {
+    Object.assign(component.perfil, { alumnoCodigo: '104612', facultad: FAC, programa: 'Ingeniería Civil' });
+    elegir('Administrativo');
+    expect(component.perfil.alumnoCodigo).toBe('');
+    expect(component.perfil.facultad).toBe('');
+    expect(component.perfil.programa).toBe('');
+  });
+
+  it('registra un Docente con facultad y programa, sin código', () => {
+    elegir('Docente');
+    Object.assign(component.perfil, { alumnoCodigo: '999', facultad: FAC, programa: 'Ingeniería Civil' });
+    component.onSubmit({} as any);
+    expect(enviado().alumnoCodigo).toBe('');
+    expect(enviado().facultad).toBe(FAC);
+    expect(enviado().programa).toBe('Ingeniería Civil');
+  });
+
+  it('registra un Administrativo con su dependencia y sin facultad', () => {
+    elegir('Administrativo');
+    Object.assign(component.perfil, { dependencia: 'Oficina de Planeación', facultad: FAC });
+    component.onSubmit({} as any);
+    expect(enviado().dependencia).toBe('Oficina de Planeación');
+    expect(enviado().facultad).toBe('');
+    expect(enviado().programa).toBe('');
+  });
+
+  it('un 422 del backend se muestra dentro del diálogo y no lo cierra', () => {
+    perfilSpy.registrarPerfil.and.returnValue(throwError(() => ({ status: 422, error: { mensaje: 'La dependencia es obligatoria' } })));
+    component.onSubmit({} as any);
+    fixture.detectChanges();
+    expect(component.errorRegistro).toBe('La dependencia es obligatoria');
+    expect(fixture.nativeElement.querySelector('.error-edicion')?.textContent).toContain('La dependencia es obligatoria');
+  });
+
+  it('un error sin mensaje muestra un texto genérico', () => {
+    perfilSpy.registrarPerfil.and.returnValue(throwError(() => ({ status: 500 })));
+    component.onSubmit({} as any);
+    expect(component.errorRegistro).toContain('No se pudo registrar');
+  });
+});
+
+describe('FormInscripcionesComponent › vínculo del instructor y edición', () => {
+  it('el registro de un Instructor no cambia: conserva el código y no envía facultad, programa ni dependencia', async () => {
+    const { component, fixture, perfilSpy } = await setupTestBed({ rol: 'Instructor' });
+    perfilSpy.registrarInstructor.and.returnValue(of({ ...mockPerfil, id: 7 } as any));
+    expect(fixture.nativeElement.querySelector('[name="codigo"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[name="facultad"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[name="dependencia"]')).toBeNull();
+    component.perfil.alumnoCodigo = '123';
+    component.onSubmit({} as any);
+    const payload: PerfilDTO = perfilSpy.registrarInstructor.calls.mostRecent().args[0];
+    expect(payload.alumnoCodigo).toBe('123');
+    expect(payload.tipoAlumno).toBe('Docente');
+    expect([payload.facultad, payload.programa, payload.dependencia]).toEqual(['', '', '']);
+  });
+
+  it('al editar se puede elegir Contratista y no aparecen campos de vínculo', async () => {
+    const { component, fixture } = await setupTestBed({ modo: 'editar', alumno: alumnoMock });
+    expect(component.tiposAlumno).toContain('Contratista');
+    ['codigo', 'facultad', 'programa', 'dependencia'].forEach(n =>
+      expect(fixture.nativeElement.querySelector(`[name="${n}"]`)).toBeNull());
   });
 });

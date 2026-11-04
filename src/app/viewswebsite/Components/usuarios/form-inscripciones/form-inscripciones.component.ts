@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, Optional } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -14,6 +14,15 @@ import { PerfilService } from 'src/app/services/perfil.service';
 import { PerfilDTO } from 'src/app/Models/DTOs/perfil-tdo';
 import { AlumnoService } from 'src/app/services/alumno.service';
 import { AlumnoDTO } from 'src/app/Models/DTOs/alumno-dto';
+import { CatalogoService } from 'src/app/services/catalogo.service';
+import { Subscription } from 'rxjs';
+import {
+  TIPOS_VINCULO,
+  datosSegunTipo,
+  requiereCodigo,
+  requiereDependencia,
+  requiereFacultadYPrograma,
+} from 'src/app/shared/tipo-vinculo';
 
 type EstadoBusqueda = 'busqueda' | 'encontrado' | 'no_encontrado' | 'rol_invalido';
 
@@ -34,13 +43,21 @@ type EstadoBusqueda = 'busqueda' | 'encontrado' | 'no_encontrado' | 'rol_invalid
   templateUrl: './form-inscripciones.component.html',
   styleUrls: ['./form-inscripciones.component.css'],
 })
-export class FormInscripcionesComponent implements OnInit {
+export class FormInscripcionesComponent implements OnInit, OnDestroy {
   isEditing = false;
   isInscribirMode = false;
   tipoDocumento: string[] = ['CC', 'TI', 'CE', 'PP', 'PEP', 'DIE'];
   sexo: string[] = ['M', 'F'];
   // TODO (SCRUM-160): lista temporal — cuando TIC responda, el tipo se autocompleta desde su servicio
-  tiposAlumno: string[] = ['Estudiante', 'Docente', 'Administrativo'];
+  tiposAlumno: string[] = TIPOS_VINCULO;
+  facultades: string[] = [];
+  programas: string[] = [];
+  /** La facultad elegida no tiene programas cargados en el catálogo. */
+  sinProgramas = false;
+  errorCatalogo: string | null = null;
+  /** Error al registrar al deportista; el diálogo queda abierto con lo escrito. */
+  errorRegistro: string | null = null;
+  private programasSub = Subscription.EMPTY;
 
   estado: EstadoBusqueda = 'busqueda';
   correoBusqueda = '';
@@ -59,12 +76,15 @@ export class FormInscripcionesComponent implements OnInit {
     tipoAlumno: 'Estudiante',
     role: '',
     alumnoCodigo: '',
+    programa: '',
+    dependencia: '',
   }
 
   constructor(
     private router: Router,
     private perfilService: PerfilService,
     private alumnoService: AlumnoService,
+    private catalogoService: CatalogoService,
     @Optional() private dialogref: MatDialogRef<FormInscripcionesComponent> | null,
     @Optional() @Inject(MAT_DIALOG_DATA) public dialogData: {
       rol?: 'Estudiante' | 'Instructor',
@@ -87,6 +107,56 @@ export class FormInscripcionesComponent implements OnInit {
       this.isInscribirMode = true;
       this.estado = 'busqueda';
     }
+    if (!this.isEditing && !this.esInstructor) {
+      this.catalogoService.getFacultades().subscribe({
+        next: facultades => (this.facultades = facultades),
+        error: () => (this.errorCatalogo = 'No se pudieron cargar las facultades.'),
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.programasSub.unsubscribe();
+  }
+
+  // El Instructor se registra con el código y sin facultad, programa ni dependencia (no cambia).
+  get pideCodigo(): boolean {
+    return !this.isEditing && (this.esInstructor || requiereCodigo(this.perfil.tipoAlumno));
+  }
+
+  get pideFacultadYPrograma(): boolean {
+    return !this.isEditing && !this.esInstructor && requiereFacultadYPrograma(this.perfil.tipoAlumno);
+  }
+
+  get pideDependencia(): boolean {
+    return !this.isEditing && !this.esInstructor && requiereDependencia(this.perfil.tipoAlumno);
+  }
+
+  /** Al cambiar el tipo de vínculo se descartan los datos que ya no le corresponden. */
+  onTipoChange(): void {
+    const { alumnoCodigo, facultad, programa, dependencia } = datosSegunTipo(this.perfil);
+    Object.assign(this.perfil, { alumnoCodigo, facultad, programa, dependencia });
+    if (!requiereFacultadYPrograma(this.perfil.tipoAlumno)) {
+      this.programasSub.unsubscribe();
+      this.programas = [];
+      this.sinProgramas = false;
+    }
+  }
+
+  onFacultadChange(facultad: string): void {
+    this.programasSub.unsubscribe();
+    this.perfil.programa = '';
+    this.programas = [];
+    this.sinProgramas = false;
+    this.errorCatalogo = null;
+    if (!facultad) return;
+    this.programasSub = this.catalogoService.getProgramas(facultad).subscribe({
+      next: programas => {
+        this.programas = programas;
+        this.sinProgramas = programas.length === 0;
+      },
+      error: () => (this.errorCatalogo = 'No se pudieron cargar los programas.'),
+    });
   }
 
   get correoBloqueado(): boolean {
@@ -147,30 +217,45 @@ export class FormInscripcionesComponent implements OnInit {
       return;
     }
 
-    const perfil: PerfilDTO = {
+    const datos: PerfilDTO = {
       id: this.perfil.id,
       nombre: this.perfil.nombre,
       correo: this.perfil.correo,
       tipoId: this.perfil.tipoId,
       sexo: this.perfil.sexo,
-      facultad: '',
+      facultad: this.perfil.facultad,
       // TODO (SCRUM-160): tipoAlumno es temporal — el select lo elige el Coordinador hasta que
       // la integración con el servicio de identidad de la División de TIC esté disponible.
       // Cuando ese servicio responda, este campo debería autocompletarse con el dato real de TIC.
       tipoAlumno: this.esInstructor ? 'Docente' : this.perfil.tipoAlumno,
       role: this.esInstructor ? 'Instructor' : '',
       alumnoCodigo: this.perfil.alumnoCodigo,
+      programa: this.perfil.programa,
+      dependencia: this.perfil.dependencia,
     };
+    // El Instructor no envía facultad, programa ni dependencia; el deportista solo los datos de su tipo de vínculo.
+    const perfil: PerfilDTO = this.esInstructor
+      ? { ...datos, facultad: '', programa: '', dependencia: '' }
+      : datosSegunTipo(datos);
 
+    this.errorRegistro = null;
     const peticion$ = this.esInstructor
       ? this.perfilService.registrarInstructor(perfil)
       : this.perfilService.registrarPerfil(perfil);
 
-    peticion$.subscribe((response) => {
-      if (response != null) {
-        this.dialogref?.close({ confirmacionCreacion: true, idAlumno: response.id });
-      }
+    peticion$.subscribe({
+      next: (response) => {
+        if (response != null) {
+          this.dialogref?.close({ confirmacionCreacion: true, idAlumno: response.id });
+        }
+      },
+      error: (err: HttpErrorResponse) => { this.errorRegistro = this.mensajeErrorRegistro(err); },
     });
+  }
+
+  private mensajeErrorRegistro(err: HttpErrorResponse): string {
+    if ((err?.status === 422 || err?.status === 409) && err.error?.mensaje) return err.error.mensaje;
+    return 'No se pudo registrar al deportista. Intente de nuevo.';
   }
 
   private mensajeErrorEdicion(err: HttpErrorResponse): string {

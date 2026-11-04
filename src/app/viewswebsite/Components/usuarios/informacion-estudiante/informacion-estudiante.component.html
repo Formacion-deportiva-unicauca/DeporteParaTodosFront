@@ -18,6 +18,22 @@
             <th scope="row">Rol:</th>
             <td>{{ perfil }}</td>
           </tr>
+          <tr *ngIf="tipoVinculo">
+            <th scope="row">Tipo de vínculo:</th>
+            <td>{{ tipoVinculo }}</td>
+          </tr>
+          <tr *ngIf="facultadAlumno">
+            <th scope="row">Facultad:</th>
+            <td>{{ facultadAlumno }}</td>
+          </tr>
+          <tr *ngIf="programaAlumno">
+            <th scope="row">Programa:</th>
+            <td>{{ programaAlumno }}</td>
+          </tr>
+          <tr *ngIf="dependenciaAlumno">
+            <th scope="row">Dependencia:</th>
+            <td>{{ dependenciaAlumno }}</td>
+          </tr>
         </table>
       </div>
       <div class="profile-pic">

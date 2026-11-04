@@ -42,6 +42,10 @@ export class InformacionEstudianteComponent implements OnInit, OnDestroy {
   courses = new MatTableDataSource<FilaMisCursos>([]);
   nombreAlumno: string | null = null;
   codigoAlumno: string | null = null;
+  tipoVinculo: string | null = null;
+  facultadAlumno: string | null = null;
+  programaAlumno: string | null = null;
+  dependenciaAlumno: string | null = null;
   private perfilSub: Subscription = Subscription.EMPTY;
   private codigosInstructor: Map<string, string> | null = null;
 
@@ -70,12 +74,20 @@ export class InformacionEstudianteComponent implements OnInit, OnDestroy {
   cargarInfoAlumno(): void {
     this.nombreAlumno = null;
     this.codigoAlumno = null;
+    this.tipoVinculo = null;
+    this.facultadAlumno = null;
+    this.programaAlumno = null;
+    this.dependenciaAlumno = null;
     const raw = sessionStorage.getItem('dpt_perfil');
     if (!raw) return;
     try {
       const datos = JSON.parse(raw) as Partial<PerfilDTO>;
       this.nombreAlumno = datos.nombre ?? null;
       this.codigoAlumno = datos.id === null || datos.id === undefined ? null : String(datos.id);
+      this.tipoVinculo = datos.tipoAlumno || null;
+      this.facultadAlumno = datos.facultad || null;
+      this.programaAlumno = datos.programa || null;
+      this.dependenciaAlumno = datos.dependencia || null;
     } catch {
       sessionStorage.removeItem('dpt_perfil');
     }

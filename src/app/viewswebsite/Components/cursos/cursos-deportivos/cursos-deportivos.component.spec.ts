@@ -27,7 +27,7 @@ describe('CursosDeportivosComponent', () => {
 
   beforeEach(async () => {
     cursoSpy  = jasmine.createSpyObj('CursodeportivoService', [
-      'getCursos', 'getTodosCursosDeCategoria', 'cambiarEstadoCurso', 'cambiarEstadoInscripciones',
+      'getCursos', 'getTodosCursosDeCategoria', 'cambiarEstadoCurso',
     ]);
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
     perfilSubject = new BehaviorSubject<string>('');
@@ -105,13 +105,125 @@ describe('CursosDeportivosComponent', () => {
     );
   });
 
-  it('toggleInscripciones(): actualiza estadoInscripciones y muestra snackbar de éxito', () => {
-    const item = { ...mockCurso, estadoInscripciones: 'CERRADO' };
-    cursoSpy.cambiarEstadoInscripciones.and.returnValue(of({ ...item, estadoInscripciones: 'ABIERTO' } as any));
-    component.toggleInscripciones(item as any);
-    expect(item.estadoInscripciones).toBe('ABIERTO');
-    expect(snackOpen).toHaveBeenCalledWith(
-      jasmine.stringContaining('abiertas'), 'Cerrar', jasmine.any(Object)
-    );
+  // Fase 3: el estado de inscripciones del curso se deriva de sus grupos; ya no hay botón para cambiarlo a mano.
+  it('ya no existe toggleInscripciones (cerrar o abrir se hace por grupo)', () => {
+    expect((component as any).toggleInscripciones).toBeUndefined();
+  });
+
+  describe('estado de inscripciones derivado', () => {
+    const badges = (): string[] =>
+      Array.from(fixture.nativeElement.querySelectorAll('.badge-inscripciones') as NodeListOf<HTMLElement>)
+        .map(e => (e.textContent ?? '').trim());
+
+    it('cada tarjeta muestra Inscripciones abiertas / cerradas / Sin grupos según el estado derivado', () => {
+      component.cursos = [
+        { ...mockCurso, nombre: 'A', estadoInscripciones: 'ABIERTO' },
+        { ...mockCurso, nombre: 'B', estadoInscripciones: 'CERRADO' },
+        { ...mockCurso, nombre: 'C', estadoInscripciones: 'SIN_GRUPOS' },
+      ] as any;
+      fixture.detectChanges();
+      expect(badges()).toEqual(['Inscripciones abiertas', 'Inscripciones cerradas', 'Sin grupos']);
+    });
+  });
+
+  describe('público del curso', () => {
+    const cursosConPublico = [
+      { ...mockCurso, nombre: 'ParaEstudiantes', publico: 'ESTUDIANTE' },
+      { ...mockCurso, nombre: 'ParaFuncionarios', publico: 'FUNCIONARIO' },
+      { ...mockCurso, nombre: 'ParaTodos', publico: 'MIXTO' },
+      { ...mockCurso, nombre: 'SinPublico' },
+    ];
+
+    const nombresVisibles = (): string[] => component.cursosVisibles.map(c => c.nombre);
+
+    function cargarComo(rol: string): void {
+      cursoSpy.getTodosCursosDeCategoria.and.returnValue(of(cursosConPublico.map(c => ({ ...c })) as any));
+      cursoSpy.getCursos.and.returnValue(of(cursosConPublico.map(c => ({ ...c })) as any));
+      perfilSubject.next(rol);
+      fixture.detectChanges();
+    }
+
+    const filtro = (): HTMLSelectElement | null => fixture.nativeElement.querySelector('#filtro-publico');
+    const chips = (): string[] =>
+      Array.from(fixture.nativeElement.querySelectorAll('.badge-publico') as NodeListOf<HTMLElement>)
+        .map(e => (e.textContent ?? '').trim());
+
+    it('sin filtro ("Cualquiera") se ven todos los cursos', () => {
+      cargarComo('Coordinador');
+      expect(component.filtroPublico).toBe('TODOS');
+      expect(nombresVisibles()).toEqual(['ParaEstudiantes', 'ParaFuncionarios', 'ParaTodos', 'SinPublico']);
+    });
+
+    it('el filtro por Estudiantes muestra solo los cursos para estudiantes', () => {
+      cargarComo('Coordinador');
+      component.cambiarFiltroPublico('ESTUDIANTE');
+      expect(nombresVisibles()).toEqual(['ParaEstudiantes']);
+    });
+
+    it('el filtro por Funcionarios muestra solo los cursos para funcionarios', () => {
+      cargarComo('Coordinador');
+      component.cambiarFiltroPublico('FUNCIONARIO');
+      expect(nombresVisibles()).toEqual(['ParaFuncionarios']);
+    });
+
+    it('el filtro por toda la comunidad incluye a los cursos sin público', () => {
+      cargarComo('Coordinador');
+      component.cambiarFiltroPublico('MIXTO');
+      expect(nombresVisibles()).toEqual(['ParaTodos', 'SinPublico']);
+    });
+
+    it('volver a "Cualquiera" quita el filtro', () => {
+      cargarComo('Coordinador');
+      component.cambiarFiltroPublico('ESTUDIANTE');
+      component.cambiarFiltroPublico('TODOS');
+      expect(nombresVisibles().length).toBe(4);
+    });
+
+    it('un valor de filtro desconocido se toma como "Cualquiera"', () => {
+      cargarComo('Coordinador');
+      component.cambiarFiltroPublico('DOCENTES');
+      expect(component.filtroPublico).toBe('TODOS');
+      expect(nombresVisibles().length).toBe(4);
+    });
+
+    it('el Coordinador, el Instructor y el Administrador ven el selector de filtro; el Alumno no', () => {
+      for (const rol of ['Coordinador', 'Instructor', 'Administrador']) {
+        cargarComo(rol);
+        expect(filtro()).withContext(rol).not.toBeNull();
+      }
+      cargarComo('Alumno');
+      expect(filtro()).withContext('Alumno').toBeNull();
+    });
+
+    it('cada tarjeta indica a quién va dirigido el curso', () => {
+      cargarComo('Coordinador');
+      expect(chips()).toEqual([
+        'Dirigido a: Estudiantes',
+        'Dirigido a: Funcionarios',
+        'Dirigido a: Toda la comunidad',
+        'Dirigido a: Toda la comunidad',
+      ]);
+    });
+
+    it('el Alumno también ve a quién va dirigido cada curso', () => {
+      cargarComo('Alumno');
+      expect(chips().length).toBe(4);
+    });
+
+    it('si el filtro no deja ningún curso, lo avisa', () => {
+      cursoSpy.getTodosCursosDeCategoria.and.returnValue(of([{ ...mockCurso, nombre: 'Solo', publico: 'MIXTO' }] as any));
+      perfilSubject.next('Coordinador');
+      component.cambiarFiltroPublico('ESTUDIANTE');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Ningún curso coincide con el filtro');
+    });
+
+    it('sin cursos en la categoría no muestra el aviso del filtro', () => {
+      cursoSpy.getTodosCursosDeCategoria.and.returnValue(of([] as any));
+      perfilSubject.next('Coordinador');
+      component.cambiarFiltroPublico('ESTUDIANTE');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Ningún curso coincide con el filtro');
+    });
   });
 });

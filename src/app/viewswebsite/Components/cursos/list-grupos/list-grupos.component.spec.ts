@@ -51,8 +51,11 @@ describe('ListGruposComponent › alumnosGrupo', () => {
   let fixture: ComponentFixture<ListGruposComponent>;
   let routerSpy: jasmine.SpyObj<Router>;
   let perfilSubject: BehaviorSubject<string>;
+  let grupoSpy: jasmine.SpyObj<GrupoService>;
 
   beforeEach(async () => {
+    grupoSpy = jasmine.createSpyObj('GrupoService', ['getGrupos', 'cambiarCierreInscripciones']);
+    grupoSpy.getGrupos.and.returnValue(of([]));
     routerSpy     = jasmine.createSpyObj('Router', ['navigate']);
     perfilSubject = new BehaviorSubject<string>('');
 
@@ -64,7 +67,7 @@ describe('ListGruposComponent › alumnosGrupo', () => {
         { provide: AuthService,  useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'isAuthenticated', 'getProfile']) },
         { provide: TokenInterchangeService, useValue: {} },
         { provide: OAuthService, useValue: { configure: () => {}, setupAutomaticSilentRefresh: () => {}, events: of(), loadDiscoveryDocumentAndTryLogin: () => Promise.resolve(), getIdentityClaims: () => null, hasValidAccessToken: () => false, hasValidIdToken: () => false } },
-        { provide: GrupoService,  useValue: { getGrupos: jasmine.createSpy().and.returnValue(of([])) } },
+        { provide: GrupoService,  useValue: grupoSpy },
         { provide: CursodeportivoService, useValue: { getCurso: jasmine.createSpy().and.returnValue(of({ nombre: 'Test', deporte: 'F', categoriaCurso: 'C', descripcion: 'D', estadoCurso: 'ACTIVO', estadoInscripciones: 'ABIERTO' } as CursoDTO)) } },
         { provide: ImagenService, useValue: { getimagen: jasmine.createSpy().and.returnValue(of({})) } },
         { provide: InstructorServisce, useValue: { getInstructor: jasmine.createSpy().and.returnValue(of({})) } },
@@ -153,6 +156,86 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     component.curso = { ...component.curso!, estadoInscripciones: 'CERRADO' };
     fixture.detectChanges();
     expect(badge()).toBe('Curso: inscripciones cerradas');
+  });
+
+  // ── Fase 3: cierre manual de inscripciones por grupo (solo Coordinador) ───────────────────────
+
+  const cerradoAMano: GrupoDTO = {
+    ...grupoBase, inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS',
+    inscripcionesCerradasManual: true, fechaIncripcionCierre: '2026-12-31',
+  };
+
+  it('el badge del curso muestra "Curso: sin grupos" cuando aún no tiene grupos', () => {
+    component.curso = { ...component.curso!, estadoInscripciones: 'SIN_GRUPOS' };
+    fixture.detectChanges();
+    const badge = (fixture.nativeElement as HTMLElement).querySelector('.estado-info .badge.ms-2')?.textContent?.trim();
+    expect(badge).toBe('Curso: sin grupos');
+  });
+
+  it('accionCierreInscripciones(): "Cerrar inscripciones" si está abierto, "Reabrir inscripciones" si lo cerró el Coordinador', () => {
+    expect(component.accionCierreInscripciones(abierto)).toBe('Cerrar inscripciones');
+    expect(component.accionCierreInscripciones(cerradoAMano)).toBe('Reabrir inscripciones');
+  });
+
+  it('accionCierreInscripciones(): sin acción si el grupo está cerrado por fecha o aún no abre (se cambia con las fechas)', () => {
+    expect(component.accionCierreInscripciones(cerrado)).toBeNull();
+    expect(component.accionCierreInscripciones(noAbierto)).toBeNull();
+  });
+
+  it('toggleCierreInscripciones(): cierra un grupo abierto, actualiza la tarjeta y avisa', () => {
+    const snack = spyOn(component['snackBar'], 'open');
+    const item: GrupoDTO = { ...abierto };
+    grupoSpy.cambiarCierreInscripciones.and.returnValue(of({
+      ...item, inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS', inscripcionesCerradasManual: true,
+    }));
+    component.toggleCierreInscripciones(item);
+    expect(grupoSpy.cambiarCierreInscripciones).toHaveBeenCalledWith('Recreativo', 'Natacion', 2026, 1, true);
+    expect(item.inscripcionesCerradasManual).toBeTrue();
+    expect(item.inscripcionesAbiertas).toBeFalse();
+    expect(snack).toHaveBeenCalledWith(
+      'Inscripciones del grupo cerradas', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-success'] }));
+  });
+
+  it('toggleCierreInscripciones(): reabre un grupo cerrado por el Coordinador', () => {
+    const snack = spyOn(component['snackBar'], 'open');
+    const item: GrupoDTO = { ...cerradoAMano };
+    grupoSpy.cambiarCierreInscripciones.and.returnValue(of({
+      ...item, inscripcionesAbiertas: true, motivoInscripcion: 'ABIERTAS', inscripcionesCerradasManual: false,
+    }));
+    component.toggleCierreInscripciones(item);
+    expect(grupoSpy.cambiarCierreInscripciones).toHaveBeenCalledWith('Recreativo', 'Natacion', 2026, 1, false);
+    expect(item.inscripcionesCerradasManual).toBeFalse();
+    expect(item.inscripcionesAbiertas).toBeTrue();
+    expect(snack).toHaveBeenCalledWith(
+      'Inscripciones del grupo reabiertas', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-success'] }));
+  });
+
+  it('toggleCierreInscripciones(): muestra el mensaje del backend si no se puede (422) y no cambia la tarjeta', () => {
+    const snack = spyOn(component['snackBar'], 'open');
+    const item: GrupoDTO = { ...cerradoAMano };
+    grupoSpy.cambiarCierreInscripciones.and.returnValue(
+      throwError(() => ({ status: 422, error: { mensaje: 'No se pueden reabrir las inscripciones: la fecha de cierre ya pasó' } })));
+    component.toggleCierreInscripciones(item);
+    expect(item.inscripcionesCerradasManual).toBeTrue();
+    expect(snack).toHaveBeenCalledWith(
+      'No se pueden reabrir las inscripciones: la fecha de cierre ya pasó', 'Cerrar',
+      jasmine.objectContaining({ panelClass: ['snack-error'] }));
+  });
+
+  it('toggleCierreInscripciones(): mensaje genérico si el error no trae mensaje', () => {
+    const snack = spyOn(component['snackBar'], 'open');
+    grupoSpy.cambiarCierreInscripciones.and.returnValue(throwError(() => ({ status: 500 })));
+    component.toggleCierreInscripciones({ ...abierto });
+    expect(snack).toHaveBeenCalledWith(
+      jasmine.stringContaining('No se pudo cambiar'), 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+  });
+
+  it('un grupo cerrado a mano no muestra la pista de cambiar la fecha: se reabre desde el menú', () => {
+    component.perfil = 'Coordinador';
+    component.grupos = [cerradoAMano];
+    fixture.detectChanges();
+    expect(pista()).toBeNull();
+    expect(etiqueta()).toBe('Cerradas por el Coordinador');
   });
 
   it('etiqueta "Abren el dd/MM/yyyy" para NO_ABIERTAS', () => {

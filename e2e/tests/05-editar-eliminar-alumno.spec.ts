@@ -1,5 +1,5 @@
 import { test, expect, APIRequestContext } from '@playwright/test';
-import { injectPerfil } from '../support/auth-setup';
+import { authHeaders, injectPerfil } from '../support/auth-setup';
 import { TEST_GROUP, API_BASE } from '../support/test-data';
 
 // SCRUM-66: editar datos de un alumno y eliminar/desvincular otro desde listaDeportistasCurso.
@@ -19,7 +19,7 @@ test.describe('SCRUM-66 — Editar y eliminar alumno del grupo', () => {
     const { categoria, curso, anio, iterable } = TEST_GROUP;
     // Sin baseURL: se usan URLs absolutas completas para evitar que el /api/v2
     // sea descartado por la resolución estándar de URLs con paths que inician en '/'
-    apiContext = await playwright.request.newContext();
+    apiContext = await playwright.request.newContext({ extraHTTPHeaders: authHeaders() });
 
     // Obtener la lista actual de alumnos del grupo
     const res = await apiContext.get(
@@ -55,7 +55,7 @@ test.describe('SCRUM-66 — Editar y eliminar alumno del grupo', () => {
         },
       });
     }
-    await apiContext.dispose();
+    await apiContext?.dispose();
   });
 
   test.beforeEach(async ({ page }) => {

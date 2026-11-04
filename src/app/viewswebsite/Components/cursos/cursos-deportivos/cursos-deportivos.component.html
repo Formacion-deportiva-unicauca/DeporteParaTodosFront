@@ -12,6 +12,16 @@
                 </div>
             </div>
 
+            <div class="col-lg-4 d-flex justify-content-center" *ngIf="mostrarFiltroPublico">
+                <div class="col-lg-7">
+                    <label for="filtro-publico" class="form-label small mb-1">Dirigido a</label>
+                    <select id="filtro-publico" class="form-select"
+                        (change)="cambiarFiltroPublico($any($event.target).value)">
+                        <option *ngFor="let f of filtrosPublico" [value]="f.valor" [selected]="f.valor === filtroPublico">{{ f.etiqueta }}</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="col-lg-4 d-flex justify-content-center" *ngIf=" perfil === 'Coordinador'">
                 <button class="btnAgregar" (click)="registroDeporte()">
                     Agregar curso +
@@ -28,9 +38,13 @@
         <h1 class="title-one text-center ">Categoría seleccionada: {{titulo}}</h1>
     </div>
 
+    <p class="text-center text-muted" role="status" *ngIf="cursos.length > 0 && cursosVisibles.length === 0">
+        Ningún curso coincide con el filtro.
+    </p>
+
     <div class="content-tarjet">
         <mat-grid-list [cols]="colsize" rowHeight="430"><!-- gutterSize="20px" gutterSize="20px"-->
-            <mat-grid-tile *ngFor="let item of cursos" [colspan]="1" [rowspan]="1">
+            <mat-grid-tile *ngFor="let item of cursosVisibles" [colspan]="1" [rowspan]="1">
                 <mat-card class="mycard shadow fixed-card">
 
                     <div class="img-container" (click)="gruposCurso(item.categoriaCurso, item.nombre)">
@@ -58,10 +72,6 @@
                                 <mat-icon>{{ item.estadoCurso === 'ACTIVO' ? 'block' : 'check_circle' }}</mat-icon>
                                 <span>{{ item.estadoCurso === 'ACTIVO' ? 'Deshabilitar' : 'Habilitar' }}</span>
                             </button>
-                            <button mat-menu-item (click)="toggleInscripciones(item)">
-                                <mat-icon>{{ item.estadoInscripciones === 'ABIERTO' ? 'lock' : 'lock_open' }}</mat-icon>
-                                <span>{{ item.estadoInscripciones === 'ABIERTO' ? 'Cerrar Inscripciones' : 'Abrir Inscripciones' }}</span>
-                            </button>
                             <button mat-menu-item (click)="onDelete(item.nombre)">
                                 <mat-icon>delete</mat-icon>
                                 <span>Eliminar</span>
@@ -81,13 +91,13 @@
                         </div>
 
                         <div class="mt-1 mb-2 text-center">
-                            <span class="badge"
-                                [ngClass]="{
-                                    'bg-primary': item.estadoInscripciones === 'ABIERTO',
-                                    'bg-warning text-dark': item.estadoInscripciones === 'CERRADO'
-                                }">
-                                {{ item.estadoInscripciones === 'ABIERTO' ? 'Inscripciones abiertas' : 'Inscripciones cerradas' }}
+                            <span class="badge badge-inscripciones" [ngClass]="claseEstadoInscripciones(item.estadoInscripciones)">
+                                {{ textoEstadoInscripciones(item.estadoInscripciones) }}
                             </span>
+                        </div>
+
+                        <div class="mt-1 mb-2 text-center">
+                            <span class="badge bg-info text-dark badge-publico">Dirigido a: {{ textoPublico(item.publico) }}</span>
                         </div>
 
                         <div class="d-flex justify-content-center">

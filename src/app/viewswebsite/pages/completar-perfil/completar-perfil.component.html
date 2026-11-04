@@ -19,9 +19,9 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="campo">
-          <mat-label>Rol</mat-label>
-          <mat-select [(ngModel)]="perfil.tipoAlumno" name="rol" required>
-            <mat-option *ngFor="let r of roles" [value]="r">{{ r }}</mat-option>
+          <mat-label>Tipo de vínculo</mat-label>
+          <mat-select [(ngModel)]="perfil.tipoAlumno" name="rol" required (selectionChange)="onTipoChange()">
+            <mat-option *ngFor="let t of tiposVinculo" [value]="t">{{ t }}</mat-option>
           </mat-select>
         </mat-form-field>
 
@@ -44,10 +44,35 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="campo">
+        <mat-form-field *ngIf="pideCodigo" appearance="outline" class="campo">
           <mat-label>Código institucional</mat-label>
           <input matInput id="codigoInstitucional" aria-label="Código institucional" [(ngModel)]="perfil.alumnoCodigo" name="codigo" required />
         </mat-form-field>
+
+        <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="campo">
+          <mat-label>Facultad</mat-label>
+          <mat-select [(ngModel)]="perfil.facultad" name="facultad" required (selectionChange)="onFacultadChange($event.value)">
+            <mat-option *ngFor="let f of facultades" [value]="f">{{ f }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="campo">
+          <mat-label>Programa académico</mat-label>
+          <mat-select [(ngModel)]="perfil.programa" name="programa" required>
+            <mat-option *ngFor="let p of programas" [value]="p">{{ p }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <p class="aviso-catalogo" *ngIf="pideFacultadYPrograma && sinProgramas" role="status">
+          Esta facultad aún no tiene programas cargados. Comunícate con la coordinación del programa para completar tu registro.
+        </p>
+
+        <mat-form-field *ngIf="pideDependencia" appearance="outline" class="campo">
+          <mat-label>Dependencia, oficina o unidad</mat-label>
+          <input matInput id="dependencia" aria-label="Dependencia, oficina o unidad" [(ngModel)]="perfil.dependencia" name="dependencia" maxlength="150" required />
+        </mat-form-field>
+
+        <p class="aviso-catalogo error" *ngIf="errorCatalogo" role="alert">{{ errorCatalogo }}</p>
 
         <div class="botones">
           <button mat-button type="button" (click)="cancelar()">Cancelar</button>

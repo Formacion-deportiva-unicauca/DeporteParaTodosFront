@@ -245,9 +245,9 @@ export class FormGruposComponent implements OnInit, OnDestroy {
     this.alElegirFecha(campo, null);
   }
 
-  /** Solo se puede limpiar lo opcional; en edición una fecha con valor original no se puede borrar. */
+  /** Solo se puede limpiar lo opcional; el cierre de inscripciones es obligatorio y en edición una fecha con valor original no se puede borrar. */
   puedeLimpiar(campo: CampoFecha): boolean {
-    return !!this.grupo[campo] && !(this.isEditing && !!this.fechasOriginales[campo]);
+    return campo !== 'fechaIncripcionCierre' && !!this.grupo[campo] && !(this.isEditing && !!this.fechasOriginales[campo]);
   }
 
   private asignarFecha(campo: CampoFecha, valor: string): void {
@@ -304,6 +304,11 @@ export class FormGruposComponent implements OnInit, OnDestroy {
     return this.isEditing && !!this.fechasOriginales[campo] && !this.grupo[campo];
   }
 
+  /** Sin cierre un grupo quedaba abierto para siempre: el backend también lo exige. */
+  get errorCierreObligatorio(): string | null {
+    return this.grupo.fechaIncripcionCierre ? null : 'El cierre de inscripciones es obligatorio';
+  }
+
   get errorCupos(): string | null {
     const c = this.grupo.cupos;
     return typeof c === 'number' && Number.isInteger(c) && c >= 1
@@ -311,7 +316,7 @@ export class FormGruposComponent implements OnInit, OnDestroy {
   }
 
   get formularioValido(): boolean {
-    return this.fechasValidas && !this.errorCupos;
+    return this.fechasValidas && !this.errorCupos && !this.errorCierreObligatorio;
   }
 
   get fechasValidas(): boolean {

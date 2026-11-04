@@ -1,0 +1,16 @@
+.contenedor { padding: 1rem 1.5rem; }
+.filtros { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 1rem; }
+.filtros label { display: block; font-size: 0.8rem; margin-bottom: 0.15rem; }
+.tabla-ocupacion { width: 100%; border-collapse: collapse; }
+.tabla-ocupacion th, .tabla-ocupacion td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #ddd; text-align: left; vertical-align: middle; }
+.barra { height: 6px; background: #e5e5e5; border-radius: 3px; min-width: 80px; }
+.barra > span { display: block; height: 100%; border-radius: 3px; background: #2e7d32; }
+.panel-periodo { margin-top: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
+.campos-periodo { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+.error-campo { color: #b00020; font-size: 0.85rem; margin-top: 0.25rem; }
+.vista-previa { margin-top: 1rem; }
+.aviso-acceso { padding: 2rem; text-align: center; }
+@media (max-width: 768px) { .contenedor { padding: 0.75rem; } .tabla-ocupacion { font-size: 0.85rem; } }
+
+.enlace-curso, .enlace-grupo { color: inherit; font-weight: 500; text-decoration: underline; }
+.enlace-curso:hover, .enlace-grupo:hover { text-decoration: none; }

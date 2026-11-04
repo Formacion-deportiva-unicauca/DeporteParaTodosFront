@@ -202,40 +202,8 @@ describe('CursodeportivoService', () => {
     expect(errorCapturado).toBeTruthy();
   });
 
-  // cambiarEstadoInscripciones
-  it('cambiarEstadoInscripciones: PATCH con estado ABIERTO', () => {
-    service.cambiarEstadoInscripciones('Acuáticos', 'Natación', 'ABIERTO').subscribe(resp => {
-      expect(resp.estadoInscripciones).toBe('ABIERTO');
-    });
-    const req = httpMock.expectOne(
-      `${API}/curso/inscripciones?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&prmEstado=ABIERTO`
-    );
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toBeNull();
-    req.flush({ ...cursoDummy, estadoInscripciones: 'ABIERTO' });
-  });
-
-  it('cambiarEstadoInscripciones: PATCH con estado CERRADO', () => {
-    service.cambiarEstadoInscripciones('Acuáticos', 'Natación', 'CERRADO').subscribe(resp => {
-      expect(resp.estadoInscripciones).toBe('CERRADO');
-    });
-    const req = httpMock.expectOne(
-      `${API}/curso/inscripciones?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&prmEstado=CERRADO`
-    );
-    expect(req.request.method).toBe('PATCH');
-    req.flush({ ...cursoDummy, estadoInscripciones: 'CERRADO' });
-  });
-
-  it('cambiarEstadoInscripciones: propaga error HTTP', () => {
-    let errorCapturado: any;
-    service.cambiarEstadoInscripciones('Acuáticos', 'Natación', 'CERRADO').subscribe({
-      next: () => fail('debería haber fallado'),
-      error: err => (errorCapturado = err),
-    });
-    const req = httpMock.expectOne(
-      `${API}/curso/inscripciones?prmCategoria=Acu%C3%A1ticos&prmCurso=Nataci%C3%B3n&prmEstado=CERRADO`
-    );
-    req.flush('Error', { status: 500, statusText: 'Server Error' });
-    expect(errorCapturado).toBeTruthy();
+  // Fase 3: el estado de inscripciones del curso se calcula a partir de sus grupos; ya no se cambia a mano.
+  it('ya no existe cambiarEstadoInscripciones (el estado del curso lo deriva el backend)', () => {
+    expect((service as any).cambiarEstadoInscripciones).toBeUndefined();
   });
 });
