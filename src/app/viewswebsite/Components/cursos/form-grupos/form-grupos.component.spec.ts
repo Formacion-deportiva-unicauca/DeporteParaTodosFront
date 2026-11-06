@@ -4,22 +4,28 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NgForm } from '@angular/forms';
+import { By } from '@angular/platform-browser';
+import { MatFormField } from '@angular/material/form-field';
 import { of, throwError } from 'rxjs';
 import { BreakpointObserver } from '@angular/cdk/layout';
 
 import { FormGruposComponent } from './form-grupos.component';
 import { GrupoService } from 'src/app/services/grupo.service';
 import { ImagenService } from 'src/app/services/imagen.service';
+import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { InstructorServisce } from 'src/app/services/instructor.service';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 
 describe('FormGruposComponent', () => {
   let component: FormGruposComponent;
   let fixture: ComponentFixture<FormGruposComponent>;
   let grupoServiceSpy: jasmine.SpyObj<GrupoService>;
   let imagenServiceSpy: jasmine.SpyObj<ImagenService>;
+  let cursoServiceSpy: jasmine.SpyObj<CursodeportivoService>;
   let dialogRefSpy: jasmine.SpyObj<MatDialogRef<FormGruposComponent>>;
   let instructorServiceSpy: jasmine.SpyObj<InstructorServisce>;
+  let notificacionesSpy: jasmine.SpyObj<NotificacionService>;
 
   const mockGrupo: GrupoDTO = {
     categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1,
@@ -30,8 +36,11 @@ describe('FormGruposComponent', () => {
   beforeEach(async () => {
     grupoServiceSpy = jasmine.createSpyObj('GrupoService', ['getGrupo', 'createGrupo', 'updateGrupo']);
     imagenServiceSpy = jasmine.createSpyObj('ImagenService', ['postImagen', 'getimagen']);
+    cursoServiceSpy = jasmine.createSpyObj('CursodeportivoService', ['getCurso']);
+    cursoServiceSpy.getCurso.and.returnValue(of({ nombre: 'Avanzado', idImagen: 42 } as any));
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
     instructorServiceSpy = jasmine.createSpyObj('InstructorServisce', ['getInstructores', 'getInstructor']);
+    notificacionesSpy = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
 
     grupoServiceSpy.getGrupo.and.callFake(() => of({ ...mockGrupo }));
     grupoServiceSpy.createGrupo.and.returnValue(of(mockGrupo));
@@ -45,8 +54,10 @@ describe('FormGruposComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: { categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1 } },
         { provide: GrupoService, useValue: grupoServiceSpy },
         { provide: ImagenService, useValue: imagenServiceSpy },
+        { provide: CursodeportivoService, useValue: cursoServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: InstructorServisce, useValue: instructorServiceSpy },
+        { provide: NotificacionService, useValue: notificacionesSpy },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).overrideComponent(FormGruposComponent, {
@@ -157,6 +168,7 @@ describe('FormGruposComponent', () => {
     component['updateGrupo']();
     expect(component.errorServidor).toBe('Cupos inválidos');
     expect(dialogRefSpy.close).not.toHaveBeenCalled();
+    expect(notificacionesSpy.error).toHaveBeenCalledOnceWith('No se pudo actualizar el grupo', 'Cupos inválidos');
   });
 
   it('error del backend sin mensaje: usa el texto genérico de respaldo', () => {
@@ -176,7 +188,7 @@ describe('FormGruposComponent', () => {
 
   // ── crear ──────────────────────────────────────────────────────────────────
 
-  it('crearGrupo() con imagen: postImagen, createGrupo con fechas texto y cierra con true', () => {
+  it('crearGrupo() con imagen: postImagen, createGrupo con fechas texto y cierra devolviendo el grupo creado', () => {
     imagenServiceSpy.postImagen.and.returnValue(of({ id: 7 } as any));
     component.selectedFile = new File(['x'], 'a.jpg');
     component.grupo.fechaCreacion = '2026-03-05';
@@ -185,14 +197,42 @@ describe('FormGruposComponent', () => {
     expect(grupoServiceSpy.createGrupo).toHaveBeenCalledWith(jasmine.objectContaining({
       imagenGrupo: 7, anio: null, iterable: null, fechaCreacion: '2026-03-05', fechaFinalizacion: null,
     }));
-    expect(dialogRefSpy.close).toHaveBeenCalledWith(true);
+    expect(dialogRefSpy.close).toHaveBeenCalledWith(mockGrupo);
   });
 
-  it('crearGrupo() sin imagen no crea y avisa al usuario', () => {
+  it('crearGrupo() sin imagen usa la imagen del curso: no sube nada y envía su id', () => {
+    component.selectedFile = null;
+    component['crearGrupo']();
+    expect(cursoServiceSpy.getCurso).toHaveBeenCalledWith('Futbol', 'Avanzado');
+    expect(imagenServiceSpy.postImagen).not.toHaveBeenCalled();
+    expect(grupoServiceSpy.createGrupo).toHaveBeenCalledWith(jasmine.objectContaining({ imagenGrupo: 42 }));
+    expect(dialogRefSpy.close).toHaveBeenCalledWith(mockGrupo);
+  });
+
+  it('crearGrupo() sin imagen y con un curso sin imagen pide elegir una (el backend la exige)', () => {
+    cursoServiceSpy.getCurso.and.returnValue(of({ nombre: 'Avanzado', idImagen: null } as any));
     component.selectedFile = null;
     component['crearGrupo']();
     expect(grupoServiceSpy.createGrupo).not.toHaveBeenCalled();
-    expect(component.errorServidor).toBe('Selecciona una imagen para el grupo');
+    expect(component.errorServidor).toBe('El curso no tiene imagen: selecciona una para el grupo');
+    expect(notificacionesSpy.error).toHaveBeenCalledWith('No se pudo crear el grupo', 'El curso no tiene imagen: selecciona una para el grupo');
+  });
+
+  it('crearGrupo() sin imagen: si no se puede leer el curso lo avisa y no crea', () => {
+    cursoServiceSpy.getCurso.and.returnValue(throwError(() => ({ status: 500 })));
+    component.selectedFile = null;
+    component['crearGrupo']();
+    expect(grupoServiceSpy.createGrupo).not.toHaveBeenCalled();
+    expect(component.errorServidor).toBe('No se pudo leer el curso para usar su imagen');
+    expect(notificacionesSpy.error).toHaveBeenCalledWith('No se pudo crear el grupo', 'No se pudo leer el curso para usar su imagen');
+  });
+
+  it('la imagen del grupo es opcional: el campo no es obligatorio al crear y la ayuda explica qué pasa', () => {
+    component.isEditing = false;
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('#imagen') as HTMLInputElement;
+    expect(input.required).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Opcional: si no elige una, se usa la imagen del curso.');
   });
 
   it('crearGrupo(): errores de createGrupo y de postImagen se muestran', () => {
@@ -201,9 +241,11 @@ describe('FormGruposComponent', () => {
     grupoServiceSpy.createGrupo.and.returnValue(throwError(() => ({ error: { mensaje: 'Duplicado' } })));
     component['crearGrupo']();
     expect(component.errorServidor).toBe('Duplicado');
+    expect(notificacionesSpy.error).toHaveBeenCalledWith('No se pudo crear el grupo', 'Duplicado');
     imagenServiceSpy.postImagen.and.returnValue(throwError(() => ({})));
     component['crearGrupo']();
     expect(component.errorServidor).toBe('No se pudo subir la imagen');
+    expect(notificacionesSpy.error).toHaveBeenCalledWith('No se pudo crear el grupo', 'No se pudo subir la imagen');
   });
 
   it('en modo creación fechaCreacion arranca en la fecha local de hoy (yyyy-MM-dd)', () => {
@@ -561,5 +603,14 @@ describe('FormGruposComponent', () => {
     const body = grupoServiceSpy.createGrupo.calls.mostRecent().args[0] as any;
     expect('inscripcionesAbiertas' in body).toBeFalse();
     expect('motivoInscripcion' in body).toBeFalse();
+  });
+
+  it('los campos con texto de ayuda crecen con él: en móvil la ayuda de dos líneas no se encima con el campo siguiente', () => {
+    const conAyuda = fixture.debugElement.queryAll(By.directive(MatFormField))
+      .filter(d => d.nativeElement.querySelector('mat-hint'));
+    expect(conAyuda.length).toBe(2);
+    for (const campo of conAyuda) {
+      expect((campo.componentInstance as MatFormField).subscriptSizing).toBe('dynamic');
+    }
   });
 });

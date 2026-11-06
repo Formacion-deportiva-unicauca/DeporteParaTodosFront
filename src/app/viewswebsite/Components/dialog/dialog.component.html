@@ -1,25 +1,27 @@
-<div class="container">
+<button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+  <mat-icon>close</mat-icon>
+</button>
 
-  <div class="btn-cerrar">
-    <button mat-icon-button class="close-button" matDialogClose aria-label="Cerrar diálogo">
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
-
-
-  <mat-dialog-content  >
-    <div >
-      <h1 mat-dialog-title class="title-one">Confirmar para eliminar el elemento</h1>
-      <p *ngIf="data" class="texConfirmation"> ¿Está seguro que desea eliminar {{data.elemento}} con el identificador '{{
-        data.nombreElemento}}'?</p>
-      <p *ngIf="data?.advertencia" class="aviso-eliminacion" role="alert">
-        <mat-icon aria-hidden="true">warning</mat-icon>
-        <span>{{ data.advertencia }}</span>
-      </p>
-    </div>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close class="btn-cancelar">Cancelar</button>
-    <button mat-button (click)="confirmarEliminar()" class="btn-confirmar">Aceptar</button>
-  </mat-dialog-actions>
+<div class="cabecera-confirmacion">
+  <span class="icono-advertencia" aria-hidden="true">
+    <mat-icon aria-hidden="true">delete_outline</mat-icon>
+  </span>
+  <h2 mat-dialog-title class="titulo-confirmacion">Confirmar eliminación</h2>
 </div>
+
+<mat-dialog-content class="contenido-confirmacion">
+  <p *ngIf="data" class="texConfirmation">
+    ¿Está seguro que desea eliminar {{data.elemento}} con el identificador '{{data.nombreElemento}}'?
+  </p>
+  <p class="no-deshacer">Esta acción no se puede deshacer.</p>
+  <p *ngIf="data?.advertencia" class="aviso-eliminacion" role="alert">
+    <mat-icon aria-hidden="true">warning</mat-icon>
+    <span>{{ data.advertencia }}</span>
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <!-- El foco inicial va en Cancelar: Enter no debe eliminar por accidente -->
+  <button mat-button type="button" mat-dialog-close class="btn-cancelar" cdkFocusInitial>Cancelar</button>
+  <button mat-button type="button" class="btn-eliminar" (click)="confirmarEliminar()">Eliminar</button>
+</mat-dialog-actions>

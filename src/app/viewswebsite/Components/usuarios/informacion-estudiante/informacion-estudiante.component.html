@@ -1,131 +1,66 @@
 <app-sidenav>
-  <div class="container">
+  <div class="pagina-alumno">
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a href="/home" (click)="irAInicio($event)">Inicio</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">Mis cursos</span>
+    </nav>
 
-    <!-- Sección de información personal (solo rol disponible de fuente real) -->
-    <div class="personal-info" *ngIf="perfil === 'Alumno'">
-      <div class="info-text">
-        <h3>Tu información</h3>
-        <table>
-          <tr>
-            <th scope="row">Nombre:</th>
-            <td>{{ nombreAlumno ?? 'No disponible' }}</td>
-          </tr>
-          <tr>
-            <th scope="row">Código:</th>
-            <td>{{ codigoAlumno ?? 'No disponible' }}</td>
-          </tr>
-          <tr>
-            <th scope="row">Rol:</th>
-            <td>{{ perfil }}</td>
-          </tr>
-          <tr *ngIf="tipoVinculo">
-            <th scope="row">Tipo de vínculo:</th>
-            <td>{{ tipoVinculo }}</td>
-          </tr>
-          <tr *ngIf="facultadAlumno">
-            <th scope="row">Facultad:</th>
-            <td>{{ facultadAlumno }}</td>
-          </tr>
-          <tr *ngIf="programaAlumno">
-            <th scope="row">Programa:</th>
-            <td>{{ programaAlumno }}</td>
-          </tr>
-          <tr *ngIf="dependenciaAlumno">
-            <th scope="row">Dependencia:</th>
-            <td>{{ dependenciaAlumno }}</td>
-          </tr>
-        </table>
-      </div>
-      <div class="profile-pic">
-        <img src="./assets/imagesSystem/Silueta.jpeg" alt="Foto de perfil" />
-      </div>
+    <div class="barra-titulo">
+      <h1 class="titulo-pagina">Mis cursos</h1>
+      <button type="button" class="btn-secundario" *ngIf="perfil === 'Alumno'" (click)="openNotificacionesModal()">
+        <mat-icon aria-hidden="true" fontSet="material-icons-outlined">notifications</mat-icon> Mis notificaciones
+      </button>
     </div>
 
     <!-- Mensaje para roles sin acceso a esta pantalla -->
-    <div *ngIf="perfil && perfil !== 'Alumno'" class="msg-rol">
+    <div *ngIf="perfil && perfil !== 'Alumno'" class="msg-rol banner banner-info" role="status">
+      <mat-icon aria-hidden="true" fontSet="material-icons-outlined">info</mat-icon>
       <p>Esta sección es exclusiva para el rol Alumno.</p>
     </div>
 
-    <!-- Tabla de cursos -->
-    <div class="course-info" *ngIf="perfil === 'Alumno'">
-      <h3>Mis cursos matriculados</h3>
+    <ng-container *ngIf="perfil === 'Alumno'">
+      <!-- Información personal -->
+      <section class="tarjeta-perfil" aria-label="Tu información">
+        <span class="avatar" aria-hidden="true">{{ iniciales }}</span>
+        <div class="info-text">
+          <span class="eyebrow">Tu información</span>
+          <h2 class="nombre">{{ nombreAlumno ?? 'No disponible' }}</h2>
+          <dl class="datos">
+            <div><dt>Código</dt><dd>{{ codigoAlumno ?? 'No disponible' }}</dd></div>
+            <div *ngIf="tipoVinculo"><dt>Tipo de vínculo</dt><dd>{{ tipoVinculo }}</dd></div>
+            <div *ngIf="facultadAlumno"><dt>Facultad</dt><dd>{{ facultadAlumno }}</dd></div>
+            <div *ngIf="programaAlumno"><dt>Programa</dt><dd>{{ programaAlumno }}</dd></div>
+            <div *ngIf="dependenciaAlumno"><dt>Dependencia</dt><dd>{{ dependenciaAlumno }}</dd></div>
+          </dl>
+        </div>
+      </section>
 
-      <div *ngIf="cargando" class="cargando-wrapper" aria-live="polite">
-        <mat-spinner diameter="40"></mat-spinner>
-        <span>Cargando cursos...</span>
+      <div class="banner banner-hoy" *ngIf="!cargando && cursosConClaseHoy > 0" role="status">
+        <mat-icon aria-hidden="true">today</mat-icon>
+        <div>
+          <strong class="banner-titulo">Hoy, {{ diaHoy }}, tienes {{ cursosConClaseHoy }} {{ cursosConClaseHoy === 1 ? 'clase' : 'clases' }}</strong>
+          <p>Las clases de hoy aparecen primero, con su hora y su escenario.</p>
+        </div>
       </div>
 
-      <p *ngIf="!cargando && courses.data.length === 0" class="empty-msg">
-        No estás inscrito en ningún curso todavía.
-      </p>
+      <dl class="cifras" *ngIf="!cargando && courses.data.length > 0" aria-label="Resumen de tus cursos">
+        <div class="cifra"><dt>Cursos inscritos</dt><dd>{{ totalInscritos }}</dd></div>
+        <div class="cifra"><dt>En lista de espera</dt><dd>{{ totalEnEspera }}</dd></div>
+        <div class="cifra"><dt>Clases hoy</dt><dd>{{ cursosConClaseHoy }}</dd></div>
+      </dl>
 
-      <table mat-table [dataSource]="courses" class="mat-elevation-z8"
-             *ngIf="!cargando && courses.data.length > 0"
-             aria-label="Cursos matriculados">
+      <section class="seccion-cursos" aria-labelledby="titulo-cursos">
+        <h2 id="titulo-cursos" class="titulo-seccion">Mis cursos matriculados</h2>
+        <p class="subtitulo-seccion" *ngIf="courses.data.length > 0">Consulta tu horario y entra a cada grupo para ver sus detalles o cancelar tu inscripción.</p>
 
-        <!-- Curso -->
-        <ng-container matColumnDef="curso">
-          <th mat-header-cell *matHeaderCellDef scope="col">Curso</th>
-          <td mat-cell *matCellDef="let c">
-            {{ c.curso }}
-            <span *ngIf="!c.grupoActivo" class="aviso-inactivo" role="alert">
-              Este grupo ya no está disponible
-            </span>
-          </td>
-        </ng-container>
-
-        <!-- Categoría -->
-        <ng-container matColumnDef="categoria">
-          <th mat-header-cell *matHeaderCellDef scope="col">Categoría</th>
-          <td mat-cell *matCellDef="let c">{{ c.categoria }}</td>
-        </ng-container>
-
-        <!-- Grupo -->
-        <ng-container matColumnDef="grupo">
-          <th mat-header-cell *matHeaderCellDef scope="col">Grupo</th>
-          <td mat-cell *matCellDef="let c">{{ formatGrupo(c) }}</td>
-        </ng-container>
-
-        <!-- Instructor -->
-        <ng-container matColumnDef="instructor">
-          <th mat-header-cell *matHeaderCellDef scope="col">Instructor</th>
-          <td mat-cell *matCellDef="let c">
-            <ng-container *ngIf="c.instructorNombre as nombre; else sinInstructor">
-              <span class="instructor-nombre">{{ nombre }}</span>
-              <span class="instructor-codigo" *ngIf="c.instructorCodigo">
-                C&oacute;d. {{ c.instructorCodigo }}
-              </span>
-            </ng-container>
-            <ng-template #sinInstructor>Sin instructor asignado</ng-template>
-          </td>
-        </ng-container>
-
-        <!-- Horario -->
-        <ng-container matColumnDef="horario">
-          <th mat-header-cell *matHeaderCellDef scope="col">Horario</th>
-          <td mat-cell *matCellDef="let c">{{ formatHorario(c) }}</td>
-        </ng-container>
-
-        <!-- Estado -->
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef scope="col">Estado</th>
-          <td mat-cell *matCellDef="let c">
-            <span class="badge"
-                  [class.badge-inscrito]="c.estado === 'INSCRITO'"
-                  [class.badge-espera]="c.estado === 'EN_ESPERA'">
-              {{ formatEstado(c.estado) }}
-            </span>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      </table>
-    </div>
-
-    <div class="btnGuardar">
-      <button (click)="openNotificacionesModal()">Mis Notificaciones</button>
-    </div>
-
+        <app-tarjetas-cursos-alumno
+          [cursos]="courses.data"
+          [cargando]="cargando"
+          (verGrupo)="irAGrupo($event)"
+          (explorar)="explorarCursos()">
+        </app-tarjetas-cursos-alumno>
+      </section>
+    </ng-container>
   </div>
 </app-sidenav>

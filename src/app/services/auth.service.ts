@@ -8,6 +8,12 @@ import { PerfilService } from './perfil.service';
   providedIn: 'root'
 })
 export class AuthService {
+  // Carga del documento de descubrimiento de Google (siempre se resuelve, aunque falle).
+  private descubrimiento: Promise<void> = Promise.resolve();
+  private descubrimientoCargado = false;
+  // Evita lanzar varios flujos de OAuth a la vez (se pisarían el state/nonce y el login fallaría).
+  private loginEnCurso = false;
+
   constructor(
     private oauthService: OAuthService,
     private tokenInterchangeService: TokenInterchangeService,
@@ -47,8 +53,9 @@ export class AuthService {
       }
     });
 
-    this.oauthService.loadDiscoveryDocumentAndTryLogin()
+    this.descubrimiento = this.oauthService.loadDiscoveryDocumentAndTryLogin()
       .then(() => {
+        this.descubrimientoCargado = true;
         const claims: any = this.oauthService.getIdentityClaims();
         if (claims) {
           console.log('Usuario autenticado:', claims);
@@ -63,8 +70,32 @@ export class AuthService {
       .catch(err => console.error('Error al iniciar la sesión de OAuth:', err));
   }
 
-  login() {
-    this.oauthService.initLoginFlow();
+  /**
+   * Inicia el login con Google. Espera a que cargue el documento de descubrimiento (si falló, lo reintenta) y
+   * garantiza un único flujo: la librería encola un flujo por cada llamada hecha antes de esa carga y no los cancela.
+   * Rechaza si no se pudo contactar con Google; entonces se puede volver a intentar.
+   */
+  async login(): Promise<void> {
+    if (this.loginEnCurso) {
+      return;
+    }
+    this.loginEnCurso = true;
+    try {
+      await this.descubrimiento;
+      if (!this.descubrimientoCargado) {
+        await this.oauthService.loadDiscoveryDocument();
+        this.descubrimientoCargado = true;
+      }
+      this.oauthService.initLoginFlow();
+    } catch (err) {
+      this.loginEnCurso = false;
+      throw err;
+    }
+  }
+
+  /** Permite iniciar otro flujo, p. ej. cuando el usuario vuelve con "atrás" desde la página de Google. */
+  reiniciarLogin(): void {
+    this.loginEnCurso = false;
   }
 
   logout() {

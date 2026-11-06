@@ -9,81 +9,60 @@
 </ng-template>
 
 <ng-template #contenidoInicio>
-<div class="container d-flex justify-content-center">
-    <div class="text-home col-lg-10 shadow p-3 mb-5 bg-white rounded">
-        <h1 class="title-one">Deporte para todos</h1>
-        <!--El contenido del siguiete parafo que se muestra en la interfaz debe ser gestionado por el admin. Esta funcionalidad se debe desarrollar-->
-        <p>
-            
-            NOTA: El contenido (texto) de este componente se debe poder gestionar por el administrador del sistema. Se debe implementar la gestión.
-        </p>
+<section class="inicio">
+    <h1 class="title-one titulo-pagina">Deporte para todos</h1>
+
+    <div class="tarjeta-intro">
+        <p class="descripcion">{{ descripcion }}</p>
+        <span class="chip-rol" *ngIf="perfil">Rol: {{ etiquetaRol }}</span>
     </div>
-</div>
 
-<div class="content-tarjet">
-    <mat-grid-list [cols]="colsize" rowHeight="450">
-        <mat-grid-tile *ngFor="let item of listaEscenarios" [colspan]="1" [rowspan]="1" >
-            <mat-card class="mycard shadow fixed-card">
+    <div class="encabezado-seccion">
+        <h2 class="titulo-seccion">Categorías deportivas</h2>
+        <button type="button" class="btn btn-primary btnAgregar" *ngIf="perfil === 'Coordinador'" (click)="nuevaCategoria()">
+            <mat-icon aria-hidden="true">add</mat-icon>
+            Nueva categoría curso
+        </button>
+    </div>
 
-                <div class="img-container" (click)="abrirCursosDeportivos(item.titulo)">
-                    <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
-                        [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" mat-card-image
-                        alt="Imagen de categoría" />
+    <div class="rejilla">
+        <mat-card class="tarjeta-categoria" *ngFor="let item of listaEscenarios">
+            <button type="button" class="img-container" (click)="abrirCursosDeportivos(item.titulo)"
+                    [attr.aria-label]="'Ver cursos de ' + item.titulo">
+                <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
+                    [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" alt="" />
+                <ng-template #imagenPorDefecto>
+                    <img src="assets/imagesSystem/deporte.jpg" alt="" />
+                </ng-template>
+            </button>
 
-                    <ng-template #imagenPorDefecto>
-                        <img class="img-container" src="assets/imagesSystem/deporte.jpg" mat-card-image alt="Imagen por defecto" />
-                    </ng-template>
-                </div>
-
-                <mat-card-content class="contenido">
+            <mat-card-content class="contenido">
+                <div class="cabecera-tarjeta">
+                    <h3 class="card_title title-three-nrs">{{ item.titulo }}</h3>
                     <!--Menu de configuracion en tarjeta-->
-                    <button class="btn-menu" mat-icon-button [matMenuTriggerFor]="menu" *ngIf="perfil === 'Coordinador'">
-                        <mat-icon>settings</mat-icon>
+                    <button class="btn-menu" mat-icon-button [matMenuTriggerFor]="menu" *ngIf="perfil === 'Coordinador'"
+                            [attr.aria-label]="'Opciones de ' + item.titulo">
+                        <app-icono-engranaje></app-icono-engranaje>
                     </button>
                     <mat-menu #menu="matMenu">
                         <button mat-menu-item (click)="onUpdate(item.titulo)">
-                            <mat-icon>edit</mat-icon>
+                            <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
                             <span>Actualizar</span>
                         </button>
 
                         <button mat-menu-item (click)="onDelete(item.titulo)">
-                            <mat-icon>delete</mat-icon>
+                            <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
                             <span>Eliminar</span>
                         </button>
                     </mat-menu>
-                    <mat-card-title class="card_title title-three-nrs">{{ item.titulo }}
-                    </mat-card-title>
-                    <div class="d-flex justify-content-center">
-                        <button type="button" class="btn btn-primary" (click)="verInformacion(item)"
-                            style="border: none; background-color: transparent; color: black">
-                            Ver información
-                        </button>
-                    </div>
-                </mat-card-content>
-            </mat-card>
-        </mat-grid-tile>
-    </mat-grid-list>
-    <div class="container d-flex justify-content-center" *ngIf="perfil === 'Coordinador'">
-        <button class="btnAgregar" (click)="nuevaCategoria()">
-            Nueva categoría curso +
-        </button>
+                </div>
+                <p class="descripcion-categoria">{{ item.descripcion }}</p>
+                <button type="button" class="enlace-tarjeta" (click)="verInformacion(item)">
+                    Ver información
+                    <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                </button>
+            </mat-card-content>
+        </mat-card>
     </div>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title col-11 text-center title-one" id="exampleModalLabel">
-                    {{ categoriaSeleccionada?.titulo }}
-                </h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>{{ categoriaSeleccionada?.descripcion }}</p>
-            </div>
-        </div>
-    </div>
-</div>
+</section>
 </ng-template>

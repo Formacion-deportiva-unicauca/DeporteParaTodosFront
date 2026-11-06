@@ -5,12 +5,13 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { SidenavComponent } from '../../../pages/sidenav/sidenav.component';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { FormsModule } from '@angular/forms';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
 import { InstructorServisce } from 'src/app/services/instructor.service';
@@ -72,9 +73,10 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
 
   constructor(
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
     private instructorservice: InstructorServisce,
     private perfilService: PerfilService,
+    private router: Router,
   ) { }
 
   ngOnInit(): void {
@@ -114,15 +116,18 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
   }
 
   private cargarInstructores(): void {
-    this.instructorservice.getInstructores().subscribe(
-      (instructores: any) => {
+    this.instructorservice.getInstructores().subscribe({
+      next: (instructores: any) => {
         this.instructores = Array.isArray(instructores) ? instructores : [];
         // Reasignar los datos conserva el filtro y el orden vigentes (también tras eliminar).
         this.dataSource.data = this.instructores;
         // Se descartan los seleccionados que ya no están en la lista.
         this.seleccionados = new Set([...this.seleccionados].filter(id => this.instructores.some(i => i.id === id)));
-      }
-    );
+      },
+      error: () => {
+        this.notificaciones.error('No se pudieron cargar los instructores', 'Revise su conexión e intente de nuevo.');
+      },
+    });
   }
 
   /** Petición independiente de la lista: si falla, la lista se ve igual con "—" y un aviso propio. */
@@ -214,7 +219,7 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
       if (!resultado) return;
       if ('yaNoExiste' in resultado) {
         // Nada se guardó: se recarga la lista (y se descartan de la selección los que ya no están).
-        this.snackBar.open('El instructor ya no existe', '', { duration: 3000, panelClass: 'snack-error' });
+        this.avisarInstructorInexistente();
         this.cargarInstructores();
         return;
       }
@@ -222,7 +227,7 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
       const copia = new Set(this.seleccionados);
       elegidos.forEach(i => copia.delete(i.id));
       this.seleccionados = copia;
-      this.snackBar.open(textoResultadoProrroga(resultado), '', { duration: 3000, panelClass: 'snack-success' });
+      this.notificaciones.exito(textoResultadoProrroga(resultado));
     });
   }
 
@@ -255,6 +260,22 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
     return `${n} ${n === 1 ? 'instructor' : 'instructores'}`;
   }
 
+  /** El texto de estado separado en cifra y resto, para resaltar la cifra sin cambiar lo que anuncia el lector de pantalla. */
+  get partesEstado(): { cifra: string | null; resto: string } {
+    const texto = this.textoEstado;
+    const coincide = /^(\d+) (.+)$/.exec(texto);
+    return coincide ? { cifra: coincide[1], resto: coincide[2] } : { cifra: null, resto: texto };
+  }
+
+  irAInicio(evento: Event): void {
+    evento.preventDefault();
+    void this.router.navigate(['/home']);
+  }
+
+  private avisarInstructorInexistente(): void {
+    this.notificaciones.error('Instructor no encontrado', 'El instructor ya no existe; se actualizó la lista.');
+  }
+
   registroInstructor() {
     const dialogRef = this.dialog.open(FormInscripcionesComponent, {
       data: { rol: 'Instructor' }
@@ -262,6 +283,7 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
     dialogRef.afterClosed().subscribe((resultado) => {
       if (resultado?.confirmacionCreacion) {
         this.cargarInstructores();
+        this.notificaciones.exito('Instructor registrado', 'El instructor se registró y ya aparece en la lista.');
       }
     });
   }
@@ -273,14 +295,14 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
     dialogRef.afterClosed().subscribe((resultado?: ResultadoFormInstructor) => {
       if (!resultado) return;
       if ('yaNoExiste' in resultado) {
-        this.snackBar.open('El instructor ya no existe', '', { duration: 3000, panelClass: 'snack-error' });
+        this.avisarInstructorInexistente();
         this.cargarInstructores();
         return;
       }
       // Reemplazar la fila conserva el filtro y el orden vigentes (MatTableDataSource los reaplica).
       this.instructores = this.instructores.map(i => i.id === resultado.id ? { ...i, ...resultado } : i);
       this.dataSource.data = this.instructores;
-      this.snackBar.open('Instructor actualizado', '', { duration: 3000, panelClass: 'snack-success' });
+      this.notificaciones.exito('Instructor actualizado', `Los cambios de ${instructor.nombre} se guardaron correctamente.`);
     });
   }
 
@@ -297,12 +319,12 @@ export class ListaInstructoresComponent implements OnInit, AfterViewInit, OnDest
       if (!resultado) return;
       if (resultado.confirmado) {
         this.cargarInstructores();
-        this.snackBar.open('Instructor eliminado', '', { duration: 3000, panelClass: 'snack-success' });
+        this.notificaciones.exito('Instructor eliminado', `${instructor.nombre} ya no aparece en la lista.`);
       } else {
-        const msg = resultado.errorStatus === 409
-          ? 'El instructor ya se encuentra eliminado'
-          : 'Error al eliminar el instructor';
-        this.snackBar.open(msg, '', { duration: 3000, panelClass: 'snack-error' });
+        const motivo = resultado.errorStatus === 409
+          ? 'El instructor ya se encuentra eliminado.'
+          : 'Ocurrió un error, intente de nuevo.';
+        this.notificaciones.error('No se pudo eliminar el instructor', motivo);
       }
     });
   }

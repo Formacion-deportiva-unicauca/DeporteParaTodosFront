@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule,   } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +19,7 @@ import {MatExpansionModule} from '@angular/material/expansion';
     MatCheckboxModule,
     MatDialogModule,
     MatIconModule,
+    MatButtonModule,
     MatDatepickerModule,
     MatFormFieldModule,
     MatNativeDateModule,
@@ -60,7 +62,6 @@ export class GestionInscripcionesComponent {
   }
 
   cancelar() {
-    console.log('Acción cancelada');
-    // Opcional: Reiniciar campos o cerrar modal
+    this.dailogref.close();
   }
 }

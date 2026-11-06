@@ -1,54 +1,82 @@
-<button mat-icon-button class="close-button" matDialogClose aria-label="Cerrar diálogo">
-  <mat-icon>close</mat-icon>
-</button>
-
-<mat-dialog-content class="dialog-content">
-  <header class="title-two">{{ isEditing ? 'Editar curso' : 'Registrar curso' }}</header>
-  <form (ngSubmit)="onSubmit(cursoForm)" #cursoForm="ngForm" class="form-content">
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Nombre</mat-label>
-      <input matInput [disabled]="isEditing" placeholder="Nombre" [(ngModel)]="curso.nombre" name ="nombre" required>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Línea deportiva</mat-label>
-      <input type="text" matInput [matAutocomplete]="auto" [(ngModel)]="curso.deporte" name="deporte" required="este campo es requerido"
-        (ngModelChange)="filtrarDeportes($event)" />
-
-      <mat-autocomplete #auto="matAutocomplete">
-        <mat-option *ngFor="let d of deporteFiltrado" [value]="d.nombre">
-          {{ d.nombre }}
-        </mat-option>
-      </mat-autocomplete>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Descripción</mat-label>
-      <input matInput placeholder="Descripción" name="descripcion" [(ngModel)]="curso.descripcion" required>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field" subscriptSizing="dynamic">
-      <mat-label>Dirigido a</mat-label>
-      <mat-select [(ngModel)]="curso.publico" name="publico" required>
-        <mat-option *ngFor="let p of publicos" [value]="p.valor">{{ p.etiqueta }}</mat-option>
-      </mat-select>
-      <mat-hint>{{ descripcionPublicoElegido }}</mat-hint>
-    </mat-form-field>
-
-    <div class="form-field buttonImage">
-      <input type="file" id="imagen" (change)="onFileSelected($event)" accept="image/*" required />
-      <div *ngIf="imagenPreview" class="preview">
-        <img [src]="imagenPreview" alt="Vista previa" class="image-preview">
-      </div>
+<form (ngSubmit)="onSubmit(cursoForm)" #cursoForm="ngForm" class="dlg-form" novalidate>
+  <header class="dlg-cabecera">
+    <div>
+      <span class="dlg-eyebrow">Gestión de cursos</span>
+      <h2 mat-dialog-title class="dlg-titulo">{{ isEditing ? 'Editar curso' : 'Agregar curso' }}</h2>
+      <p class="dlg-subtitulo">
+        {{ isEditing ? 'Actualice la información del curso de la categoría ' : 'Complete la información del nuevo curso de la categoría ' }}{{ data.tituloCategoria }}.
+      </p>
     </div>
-    
-    <div class="form-buttons">
-      <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
-      <button mat-raised-button class="aceptar" type="submit" >Aceptar</button>
-      <!--<button mat-raised-button class="aceptar" type="submit">Aceptar</button>
-      <button mat-raised-button class="aceptar" type="submit" [disabled]="!cursoForm.form.valid">Aceptar</button>
-      -->
+    <button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-dialog-content class="dlg-cuerpo">
+    <p class="dlg-aviso"><mat-icon aria-hidden="true">info</mat-icon> Los campos marcados con * son obligatorios.</p>
+
+    <div class="dlg-rejilla">
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Nombre</mat-label>
+        <input matInput [disabled]="isEditing" placeholder="Ej. Natación básica" [(ngModel)]="curso.nombre" name="nombre"
+               #nombre="ngModel" required autocomplete="off" cdkFocusInitial>
+        <mat-error *ngIf="nombre.hasError('required')">El nombre es obligatorio</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Línea deportiva</mat-label>
+        <input type="text" matInput [matAutocomplete]="auto" [(ngModel)]="curso.deporte" name="deporte"
+               #deporte="ngModel" required autocomplete="off" (ngModelChange)="filtrarDeportes($event)" />
+        <mat-autocomplete #auto="matAutocomplete">
+          <mat-option *ngFor="let d of deporteFiltrado" [value]="d.nombre">
+            {{ d.nombre }}
+          </mat-option>
+        </mat-autocomplete>
+        <mat-error *ngIf="deporte.hasError('required')">La línea deportiva es obligatoria</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field dlg-ancho-completo" subscriptSizing="dynamic">
+        <mat-label>Dirigido a</mat-label>
+        <mat-select [(ngModel)]="curso.publico" name="publico" required>
+          <mat-option *ngFor="let p of publicos" [value]="p.valor">{{ p.etiqueta }}</mat-option>
+        </mat-select>
+        <mat-hint>{{ descripcionPublicoElegido }}</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field dlg-ancho-completo">
+        <mat-label>Descripción</mat-label>
+        <textarea matInput rows="3" placeholder="Describa brevemente el curso." name="descripcion"
+                  [(ngModel)]="curso.descripcion" #descripcion="ngModel" required></textarea>
+        <mat-error *ngIf="descripcion.hasError('required')">La descripción es obligatoria</mat-error>
+      </mat-form-field>
     </div>
-  </form>
-</mat-dialog-content>
+
+    <p class="selector-imagen-titulo">Imagen de portada{{ isEditing ? '' : ' *' }}</p>
+    <!-- Control oculto: hace que el formulario sea inválido mientras falte la imagen al crear (el servidor la exige) -->
+    <input type="hidden" name="imagenRequerida" [ngModel]="(isEditing || selectedFile) ? 'ok' : ''" #imagenCtrl="ngModel" required />
+    <div class="selector-imagen">
+      <input type="file" id="imagen" class="archivo-oculto" (change)="onFileSelected($event)" accept="image/*" />
+      <label for="imagen" class="boton-archivo">
+        <mat-icon aria-hidden="true">upload</mat-icon>
+        {{ imagenPreview || selectedFile ? 'Cambiar imagen' : 'Seleccionar imagen' }}
+      </label>
+      <span class="nombre-archivo" *ngIf="selectedFile">{{ selectedFile.name }}</span>
+      <span class="ayuda-archivo">
+        {{ isEditing ? 'Opcional: si no elige otra, se conserva la actual. Formatos JPG o PNG.'
+                     : 'La imagen es obligatoria. Formatos JPG o PNG.' }}
+      </span>
+      <img *ngIf="imagenPreview" [src]="imagenPreview" alt="Vista previa de la imagen elegida" class="image-preview">
+    </div>
+    <p *ngIf="imagenCtrl.invalid && imagenCtrl.touched" class="error-campo" role="alert">Elija una imagen de portada</p>
+
+    <p *ngIf="errorServidor" class="error-servidor" role="alert">{{ errorServidor }}</p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
+    <button mat-button class="aceptar" type="submit" [disabled]="guardando">
+      <mat-icon aria-hidden="true">{{ isEditing ? 'check_circle_outline' : 'add' }}</mat-icon>
+      {{ guardando ? 'Guardando…' : (isEditing ? 'Guardar cambios' : 'Crear curso') }}
+    </button>
+  </mat-dialog-actions>
+</form>

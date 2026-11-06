@@ -1,70 +1,90 @@
+<div class="estructura">
+  <header class="barra">
+    <button type="button" class="btn-hamburguesa" *ngIf="isHandset$ | async"
+            aria-label="Abrir menú de navegación" (click)="drawer.toggle()">
+      <mat-icon aria-hidden="true">menu</mat-icon>
+    </button>
 
-<mat-sidenav-container class="sidenav-container">
-  <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
-    [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(isHandset$ | async) === false">
-    <div class="navegacion">
-      <div class="encabezadonavbar">
-        <img src="./assets/imagesSystem/Logo-Universidad-del-Cauca-horizontal-B.png">
-      </div>
-      <div class="contenidonavbar">
-      <mat-nav-list>
-        <a mat-list-item href="#" class="nav-item" style="color: white;" >
-          <mat-icon>home</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Home</span>
-        </a>
-        <a mat-list-item (click)="redirectionTo('lista-instructores')" class="nav-item" *ngIf="perfil === 'Coordinador'" >
-          <mat-icon>person</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Instructores</span>
-        </a>
+    <a class="marca" routerLink="/home">
+      <img class="escudo" src="assets/imagesSystem/Logo-Universidad-del-Cauca-horizontal-B.png" alt="Universidad del Cauca">
+      <span class="marca-texto">
+        <span class="marca-titulo">Deporte para Todos</span>
+        <span class="marca-sub">Vicerrectoría de Cultura y Bienestar</span>
+      </span>
+    </a>
 
-        <a mat-list-item (click)="redirectionTo('gestion-inscripciones')" class="nav-item" *ngIf="perfil === 'Coordinador'" >
-          <mat-icon>event_available</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Inscripciones</span>
-        </a>
-        <a mat-list-item (click)="redirectionTo('reportes')" class="nav-item" *ngIf="perfil === 'Coordinador'" >
-          <mat-icon>tune</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Reportes</span>
-        </a>
-        <a mat-list-item (click)="redirectionTo('info-instructor')" class="nav-item" *ngIf="perfil === 'Instructor'">
-          <mat-icon>person</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Mis cursos</span>
-        </a>
-        <a mat-list-item (click)="redirectionTo('info-estudiante')" class="nav-item" *ngIf="perfil === 'Alumno'" >
-          <mat-icon>person</mat-icon>
-          <span class="text-body-small-r opcion-espaciado-p">Mis cursos</span>
-        </a>
-        
-      </mat-nav-list>
-      </div>
-    </div>
-  </mat-sidenav>
-  <mat-sidenav-content>
-    <mat-toolbar color="primary" class="navbar">
-      <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()"
-        *ngIf="isHandset$ | async">
-        <mat-icon aria-label="Side nav toggle icon"> menu</mat-icon>
+    <nav class="enlaces" aria-label="Enlaces institucionales" *ngIf="(isHandset$ | async) === false">
+      <a routerLink="/home">Inicio</a>
+      <a routerLink="/home">Noticias</a>
+      <a [href]="urlVicerrectoria" target="_blank" rel="noopener noreferrer">Nosotros</a>
+      <a [href]="urlVicerrectoria" target="_blank" rel="noopener noreferrer">Contáctanos</a>
+    </nav>
+
+    <button type="button" class="usuario" [matMenuTriggerFor]="menuUsuario" aria-label="Menú de usuario">
+      <span class="avatar" aria-hidden="true">{{ iniciales }}</span>
+      <span class="usuario-texto">
+        <span class="usuario-nombre">{{ nombreUsuario }}</span>
+        <span class="usuario-rol" *ngIf="etiqueta">Rol: {{ etiqueta }}</span>
+      </span>
+      <mat-icon aria-hidden="true">arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #menuUsuario="matMenu" xPosition="before">
+      <button mat-menu-item type="button" (click)="cerrarSesion()">
+        <mat-icon fontSet="material-icons-outlined">logout</mat-icon>
+        <span>Cerrar sesión</span>
       </button>
-      <!--<span>Deporte para todos</span>-->
-      <div class="navbar-left">
-        <a (click)="redirectionTo('home')">
-          <!--<img src="./assets/imagesSystem/logo_unicauca.png" alt="Logo" class="logo" width="110px" height="">-->
-          <mat-icon>home</mat-icon>
+    </mat-menu>
+  </header>
+
+  <mat-sidenav-container class="contenedor">
+    <mat-sidenav #drawer class="sidenav" fixedInViewport [fixedTopGap]="altoBarra"
+                 [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+                 [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(isHandset$ | async) === false">
+      <nav class="navegacion" aria-label="Navegación principal">
+        <p class="titulo-panel" *ngIf="tituloPanel">{{ tituloPanel }}</p>
+
+        <a class="nav-item" routerLink="/home" routerLinkActive="activo" ariaCurrentWhenActive="page" (click)="alNavegar(drawer)">
+          <mat-icon aria-hidden="true">home</mat-icon>
+          <span>Home</span>
         </a>
+        <a class="nav-item" routerLink="/lista-instructores" routerLinkActive="activo" ariaCurrentWhenActive="page"
+           *ngIf="perfil === 'Coordinador'" (click)="alNavegar(drawer)">
+          <mat-icon aria-hidden="true">person</mat-icon>
+          <span>Instructores</span>
+        </a>
+        <a class="nav-item" routerLink="/gestion-inscripciones" routerLinkActive="activo" ariaCurrentWhenActive="page"
+           *ngIf="perfil === 'Coordinador'" (click)="alNavegar(drawer)">
+          <mat-icon aria-hidden="true">event_available</mat-icon>
+          <span>Inscripciones</span>
+        </a>
+        <a class="nav-item" routerLink="/reportes" routerLinkActive="activo" ariaCurrentWhenActive="page"
+           *ngIf="perfil === 'Coordinador'" (click)="alNavegar(drawer)">
+          <mat-icon aria-hidden="true">tune</mat-icon>
+          <span>Reportes</span>
+        </a>
+        <a class="nav-item" routerLink="/info-instructor" routerLinkActive="activo" ariaCurrentWhenActive="page"
+           *ngIf="perfil === 'Instructor'" (click)="alNavegar(drawer)">
+          <mat-icon aria-hidden="true">person</mat-icon>
+          <span>Mis cursos</span>
+        </a>
+        <a class="nav-item" routerLink="/info-estudiante" routerLinkActive="activo" ariaCurrentWhenActive="page"
+           *ngIf="perfil === 'Alumno'" (click)="alNavegar(drawer)">
+          <mat-icon aria-hidden="true">person</mat-icon>
+          <span>Mis cursos</span>
+        </a>
+
+        <!-- En móvil los enlaces institucionales no caben en la barra: van al final del panel -->
+        <div class="institucional" *ngIf="isHandset$ | async">
+          <a class="enlace-institucional" [href]="urlVicerrectoria" target="_blank" rel="noopener noreferrer">Nosotros</a>
+          <a class="enlace-institucional" [href]="urlVicerrectoria" target="_blank" rel="noopener noreferrer">Contáctanos</a>
+        </div>
+      </nav>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="area-contenido">
+      <div class="contenido">
+        <ng-content></ng-content>
       </div>
-      <div class="navbar-right">
-        <ul>
-          <li><a (click)="redirectionTo('')">Inicio</a></li>
-          <li><a (click)="redirectionTo ('')">Noticias</a></li>
-          <li><a (click)="redirectionTo ('https://vicecultura.unicauca.edu.co/viceculturav2/divisiones/deporte/deportiva')">Nosotros</a></li>
-          <li><a (click)="redirectionTo('https://vicecultura.unicauca.edu.co/viceculturav2/divisiones/deporte/deportiva')">Contáctanos </a></li>
-          <li><span class="rol-tag" *ngIf="perfil">Rol: {{ perfil }}</span></li>
-          <li><a (click)="cerrarSesion()"> Cerrar Sesión
-              <!--<mat-icon>login</mat-icon>  Icono de inicio de sesión --> </a></li>
-        </ul>
-      </div>
-    </mat-toolbar>
-    <div class="contenido">
-      <ng-content></ng-content>
-    </div>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

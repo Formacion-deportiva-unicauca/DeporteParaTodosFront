@@ -1,29 +1,30 @@
 import { Component } from '@angular/core';
 import { take } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Router } from '@angular/router';
 /**Angular Material */
 import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatGridListModule } from '@angular/material/grid-list';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { DialogComponent } from '../../Components/dialog/dialog.component';
 import { NuevoCursoCategoriaComponent } from '../../Components/cursos/nuevo-curso-categoria/nuevo-curso-categoria.component';
 import { HeaderComponent } from '../header/header.component';
 import { SidenavComponent } from '../sidenav/sidenav.component';
 import { CategoriaService } from 'src/app/services/categoria.service';
 import { CategoriaDTO } from 'src/app/Models/DTOs/categoria-dto';
-import * as bootstrap from 'bootstrap';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { ImagenService } from 'src/app/services/imagen.service';
 import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
+import { descripcionInicio, etiquetaRol, leerTipoVinculoGuardado } from 'src/app/shared/rol-usuario';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { InformacionDialogComponent } from '../../Components/dialog/informacion-dialog.component';
 
+import { IconoEngranajeComponent } from 'src/app/shared/icono-engranaje/icono-engranaje.component';
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -31,7 +32,6 @@ import { TokenInterchangeService } from 'src/app/services/token-interchange.serv
     CommonModule,
     MatCardModule,
     MatToolbarModule,
-    MatGridListModule,
     MatFormFieldModule,
     MatPaginatorModule,
     MatIconModule,
@@ -40,6 +40,7 @@ import { TokenInterchangeService } from 'src/app/services/token-interchange.serv
     MatSnackBarModule,
     HeaderComponent,
     SidenavComponent,
+    IconoEngranajeComponent,
   ],
 
   templateUrl: './home.component.html',
@@ -47,21 +48,17 @@ import { TokenInterchangeService } from 'src/app/services/token-interchange.serv
 })
 
 export class HomeComponent {
-  public colsize = 3;
-  public isMobile: boolean = false;
   public listaEscenarios: CategoriaDTO[] = [];
-  public categoriaSeleccionada: CategoriaDTO | null = null; // Variable para almacenar la categoría seleccionada
   perfil?: string;
 
   constructor(
-    private breakPointObserver: BreakpointObserver,
     private router: Router,
     private categoriaService: CategoriaService,
     private imagenService: ImagenService,
     private dialog: MatDialog,
     private perfilService: PerfilService,
-    private snackBar: MatSnackBar,
     private tokenInterchangeService: TokenInterchangeService,
+    private notificaciones: NotificacionService,
   ) { }
 
   ngOnInit(): void {
@@ -71,15 +68,19 @@ export class HomeComponent {
       this.tokenInterchangeService.tokenReady$.pipe(take(1))
         .subscribe(() => this.loadCategorias());
     }
-    this.breakPointObserver
-      .observe([Breakpoints.Handset])
-      .subscribe((result) => {
-        this.isMobile = result.matches;
-        this.colsize = this.isMobile ? 1 : 3;
-      });
     this.perfilService.perfil$.subscribe(perfil => {
       this.perfil = perfil;
     });
+  }
+
+  /** Mensaje de bienvenida: cada rol ve lo que puede hacer (administrar, gestionar asistencia, consultar e inscribirse). */
+  get descripcion(): string {
+    return descripcionInicio(this.perfil);
+  }
+
+  /** Rol que se muestra: para Alumno, su tipo de vínculo (Estudiante, Docente, Administrativo, Contratista). */
+  get etiquetaRol(): string {
+    return etiquetaRol(this.perfil, leerTipoVinculoGuardado());
   }
 
   loadCategorias(): void {
@@ -103,18 +104,26 @@ export class HomeComponent {
       },
       (error) => {
         console.error('Error al cargar las categorías', error);
-        this.snackBar.open('No se pudieron cargar las categorias, intenta de nuevo', 'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudieron cargar las categorías', 'Revise su conexión e intente de nuevo.');
       }
     );
   }
 
+  /** Información de la categoría en un diálogo de Material (centrado y responsive), con acceso directo a sus cursos. */
   verInformacion(item: CategoriaDTO): void {
-    this.categoriaSeleccionada = item;
-    const modalElement = document.getElementById('exampleModal');
-    if (modalElement) {
-      const modal = new bootstrap.Modal(modalElement);
-      modal.show();
-    }
+    this.dialog.open(InformacionDialogComponent, {
+      data: {
+        etiqueta: 'Categoría deportiva',
+        titulo: item.titulo,
+        descripcion: item.descripcion,
+        imagen: item.imagenBase64 ? `data:${item.tipoArchivo};base64,${item.imagenBase64}` : null,
+        textoAccion: 'Ver cursos',
+      },
+    }).afterClosed().subscribe((resultado) => {
+      if (resultado === 'accion') {
+        this.abrirCursosDeportivos(item.titulo);
+      }
+    });
   }
 
   configurarTipoCurso() {
@@ -132,6 +141,7 @@ export class HomeComponent {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.loadCategorias();
+        this.notificaciones.exito('Categoría actualizada', `Los cambios de «${titulo}» se guardaron correctamente.`);
       }
     });
   }
@@ -144,14 +154,15 @@ export class HomeComponent {
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.confirmado) {
         this.loadCategorias();
+        this.notificaciones.exito('Categoría eliminada', `«${nombreElemento}» ya no aparece en el panel.`);
       } else if (result?.errorStatus !== undefined) {
         const status = result.errorStatus;
         if (status === 409) {
-          this.snackBar.open('La categoría ya se encuentra eliminada', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar la categoría', 'La categoría ya se encuentra eliminada.');
         } else if (status === 404) {
-          this.snackBar.open('La categoría no existe', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar la categoría', 'La categoría no existe.');
         } else {
-          this.snackBar.open('Error al eliminar la categoría, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar la categoría', 'Ocurrió un error, intente de nuevo.');
         }
       }
     });
@@ -162,9 +173,9 @@ export class HomeComponent {
     const dialogRef = this.dialog.open(NuevoCursoCategoriaComponent, {
     });
     dialogRef.afterClosed().subscribe((result) => {
-      this.loadCategorias();
       if (result) {
-        this.ngOnInit();
+        this.loadCategorias();
+        this.notificaciones.exito('Categoría creada', 'La categoría se registró y ya aparece en el panel.');
       }
     });
   }

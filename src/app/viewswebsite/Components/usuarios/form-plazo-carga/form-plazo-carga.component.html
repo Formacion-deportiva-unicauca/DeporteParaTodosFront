@@ -3,7 +3,7 @@
 </button>
 
 <mat-dialog-content class="dialog-content">
-  <header class="title-two">Plazo de carga de atenciones</header>
+  <h2 mat-dialog-title class="title-two">Plazo de carga de atenciones</h2>
 
   <form [formGroup]="form" (ngSubmit)="guardar()" class="form-content" novalidate>
     <p class="datos-instructor"><strong>Instructor:</strong> {{ data.nombre }} · Periodo {{ data.anio }}-{{ data.periodo }}</p>

@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import { SidenavComponent } from '../../../pages/sidenav/sidenav.component';
@@ -39,6 +40,8 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
 
   fechaApertura = '';
   fechaCierre = '';
+  /** El error del cierre se muestra solo cuando la persona ya pasó por el campo (no al abrir la pantalla). */
+  cierreTocado = false;
 
   readonly formatearFecha = formatearFecha;
 
@@ -49,7 +52,7 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
   constructor(
     private grupoService: GrupoService,
     private perfilService: PerfilService,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
     private router: Router,
     private route: ActivatedRoute,
   ) { }
@@ -148,6 +151,31 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
     };
   }
 
+  // ── Resumen ──
+
+  get totalAbiertas(): number {
+    return this.grupos.filter(g => g.estadoInscripcion === 'ABIERTAS' && !g.cerradaManual).length;
+  }
+
+  get totalLlenos(): number {
+    return this.grupos.filter(g => g.nivel === 'LLENO').length;
+  }
+
+  get hayFiltros(): boolean {
+    const f = this.filtros;
+    return !!(f.categoria || f.curso || f.publico || f.nivel);
+  }
+
+  limpiarFiltros(): void {
+    this.filtros = { categoria: '', curso: '', publico: '', nivel: '' };
+    this.alCambiarFiltro();
+  }
+
+  irAInicio(evento: Event): void {
+    evento.preventDefault();
+    void this.router.navigate(['/home']);
+  }
+
   // ── Presentación ──
 
   porcentaje(g: OcupacionGrupoDTO): number {
@@ -161,10 +189,11 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
     return 'Con cupo';
   }
 
+  /** Clase del chip de ocupación. El color nunca es rojo (rol de error naranja del lineamiento) y siempre va con texto. */
   claseNivel(nivel: NivelOcupacion): string {
-    if (nivel === 'LLENO') return 'bg-danger';
-    if (nivel === 'POR_LLENAR') return 'bg-warning text-dark';
-    return 'bg-success';
+    if (nivel === 'LLENO') return 'nivel-lleno';
+    if (nivel === 'POR_LLENAR') return 'nivel-por-llenar';
+    return 'nivel-con-cupo';
   }
 
   textoVentana(g: OcupacionGrupoDTO): string {
@@ -211,6 +240,24 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
     }
   }
 
+  limpiarSeleccion(): void {
+    this.claves = new Set();
+  }
+
+  /** Texto de la barra de selección (región aria-live). */
+  get textoSeleccion(): string {
+    const n = this.seleccionados.length;
+    if (n === 0) return 'Seleccione grupos para modificar su periodo';
+    return `${n} ${n === 1 ? 'grupo seleccionado' : 'grupos seleccionados'}`;
+  }
+
+  /** Lleva a quien eligió grupos hasta las fechas y deja el cursor en el campo de cierre. */
+  irAlPeriodo(): void {
+    const panel = document.getElementById('panel-periodo');
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('fecha-cierre')?.focus({ preventScroll: true });
+  }
+
   /** Atajo de una fila: deja seleccionado solo ese grupo para extenderle el cierre. */
   extender(g: OcupacionGrupoDTO): void {
     this.claves = new Set([this.clave(g)]);
@@ -229,6 +276,18 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
     return null;
   }
 
+  get mostrarErrorPeriodo(): boolean {
+    return this.errorPeriodo !== null && this.cierreTocado;
+  }
+
+  /** Por qué el botón de aplicar está deshabilitado (para que no quede un botón gris sin explicación). */
+  get motivoBloqueo(): string | null {
+    if (this.aplicando || this.puedeAplicar) return null;
+    if (this.seleccionados.length === 0) return 'Seleccione al menos un grupo en la tabla para poder aplicar el periodo.';
+    if (!this.fechaCierre) return 'Defina la fecha de cierre para poder aplicar el periodo.';
+    return this.errorPeriodo;
+  }
+
   get puedeAplicar(): boolean {
     return !this.aplicando && this.errorPeriodo === null && this.seleccionados.length > 0;
   }
@@ -245,15 +304,17 @@ export class GestionInscripcionesCoordinadorComponent implements OnInit, OnDestr
       next: () => {
         this.aplicando = false;
         const n = elegidos.length;
-        this.snackBar.open(`Periodo aplicado a ${n} ${n === 1 ? 'grupo' : 'grupos'}`, 'Cerrar',
-          { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito('Periodo aplicado', `Las fechas de inscripción se aplicaron a ${n} ${n === 1 ? 'grupo' : 'grupos'}.`);
         this.claves = new Set();
+        // Las fechas se limpian para no reutilizarlas por descuido en otro grupo de grupos.
+        this.fechaApertura = '';
+        this.fechaCierre = '';
+        this.cierreTocado = false;
         this.cargar();
       },
       error: err => {
         this.aplicando = false;
-        this.snackBar.open(err?.error?.mensaje ?? 'No se pudo aplicar el periodo, intenta de nuevo', 'Cerrar',
-          { duration: 4000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo aplicar el periodo', err?.error?.mensaje ?? 'Intente de nuevo.');
       },
     });
   }

@@ -196,9 +196,87 @@ describe('AuthService', () => {
 
   // ── login ────────────────────────────────────────────────────────────────
 
-  it('login() llama a oauthService.initLoginFlow()', () => {
-    service.login();
+  it('login() llama a oauthService.initLoginFlow()', async () => {
+    await service.login();
     expect(oauthSpy.initLoginFlow).toHaveBeenCalledTimes(1);
+  });
+
+  describe('login() robusto (evita el botón "pegado" o el doble flujo de OAuth)', () => {
+    function crearServicio(descubrimiento: Promise<unknown>): AuthService {
+      TestBed.resetTestingModule();
+      eventsSubject = new Subject<any>();
+      oauthSpy.events = eventsSubject.asObservable();
+      oauthSpy.initLoginFlow.calls.reset();
+      oauthSpy.loadDiscoveryDocument = jasmine.createSpy('loadDiscoveryDocument').and.returnValue(Promise.resolve());
+      oauthSpy.loadDiscoveryDocumentAndTryLogin.and.returnValue(descubrimiento);
+      TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
+        providers: [
+          AuthService,
+          { provide: OAuthService, useValue: oauthSpy },
+          { provide: TokenInterchangeService, useValue: tokenSpy },
+          { provide: PerfilService, useValue: perfilSpy },
+        ],
+      });
+      return TestBed.inject(AuthService);
+    }
+
+    it('espera a que cargue el documento de descubrimiento antes de iniciar el flujo', fakeAsync(() => {
+      let resolver!: () => void;
+      const servicio = crearServicio(new Promise<void>(r => (resolver = r)));
+      void servicio.login();
+      tick();
+      expect(oauthSpy.initLoginFlow).not.toHaveBeenCalled();
+      resolver();
+      tick();
+      expect(oauthSpy.initLoginFlow).toHaveBeenCalledTimes(1);
+    }));
+
+    it('varios clics seguidos inician un único flujo', fakeAsync(() => {
+      const servicio = crearServicio(Promise.resolve());
+      void servicio.login();
+      void servicio.login();
+      void servicio.login();
+      tick();
+      expect(oauthSpy.initLoginFlow).toHaveBeenCalledTimes(1);
+    }));
+
+    it('si el documento de descubrimiento no cargó, lo reintenta antes de iniciar el flujo', fakeAsync(() => {
+      spyOn(console, 'error');
+      const servicio = crearServicio(Promise.reject(new Error('sin red')));
+      tick();
+      void servicio.login();
+      tick();
+      expect(oauthSpy.loadDiscoveryDocument).toHaveBeenCalledTimes(1);
+      expect(oauthSpy.initLoginFlow).toHaveBeenCalledTimes(1);
+    }));
+
+    it('si el reintento también falla, login() rechaza y permite volver a intentar', fakeAsync(() => {
+      spyOn(console, 'error');
+      const servicio = crearServicio(Promise.reject(new Error('sin red')));
+      tick();
+      oauthSpy.loadDiscoveryDocument.and.returnValue(Promise.reject(new Error('sigue sin red')));
+      let rechazado = false;
+      servicio.login().catch(() => (rechazado = true));
+      tick();
+      expect(rechazado).toBeTrue();
+      expect(oauthSpy.initLoginFlow).not.toHaveBeenCalled();
+
+      oauthSpy.loadDiscoveryDocument.and.returnValue(Promise.resolve());
+      void servicio.login();
+      tick();
+      expect(oauthSpy.initLoginFlow).toHaveBeenCalledTimes(1);
+    }));
+
+    it('reiniciarLogin() permite iniciar otro flujo (p. ej. al volver con "atrás" desde Google)', fakeAsync(() => {
+      const servicio = crearServicio(Promise.resolve());
+      void servicio.login();
+      tick();
+      servicio.reiniciarLogin();
+      void servicio.login();
+      tick();
+      expect(oauthSpy.initLoginFlow).toHaveBeenCalledTimes(2);
+    }));
   });
 
   // ── getProfile / isAuthenticated / getUserProfile ────────────────────────

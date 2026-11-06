@@ -1,89 +1,151 @@
-.container {
-  margin-top: 30px;
-  margin-bottom: 10px;
+.inicio {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.5rem 0 1.5rem;
 }
 
-.fixed-card {
-  width: 400px;
-  height: 400px;
+/* Título de página: Titillium Web con la línea de título en secundario light (lineamiento) */
+.titulo-pagina {
+  position: relative;
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.75rem;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-h4);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-primario);
+}
+.titulo-pagina::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 96px;
+  height: 4px;
+  background: var(--color-secundario-light);
+}
+
+.tarjeta-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radio-tarjeta);
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.descripcion { margin: 0; font-size: var(--texto-cuerpo-1); color: var(--color-neutro-texto); }
+
+.chip-rol {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radio-total);
+  background: var(--color-tonal-95);
+  font-weight: 600;
+  color: var(--color-primario);
+}
+
+.encabezado-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.titulo-seccion {
+  margin: 0;
+  font-size: var(--texto-h5);
+  font-weight: 700;
+  color: var(--color-primario);
+}
+.btnAgregar { display: inline-flex; align-items: center; gap: 0.4rem; width: auto; max-width: none; }
+
+/* Rejilla de columnas iguales, como en el prototipo: 1 en móvil, 2 hasta 1099px y 3 desde 1100px. Sin alturas fijas ni
+   BreakpointObserver. Se descartó auto-fill (reserva columnas vacías a la derecha) y auto-fit con máximo (cuenta las
+   columnas con ese máximo y a 1640px dejaba 2 columnas y una tarjeta huérfana). Desde 1100px el menú lateral (260px)
+   deja al menos ~790px de contenido: 3 tarjetas por fila de unos 245px o más. */
+.rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: start;
+  gap: 1.5rem;
+}
+@media (min-width: 576px) {
+  .rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1100px) {
+  .rejilla { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.tarjeta-categoria {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .img-container {
+  display: block;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  background: var(--color-tonal-95);
   overflow: hidden;
-}
-
-.img-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-
-.btn-menu {
-  border: none !important;
-  background-color: transparent !important;
-}
-
-.text-home {
-  margin: 0 auto;
-  text-align: center;
-}
-
-.text-home title-one {
-  text-align: center;
-}
-
-.text-home p {
-  text-align: justify;
-}
-
-img,
-p {
   cursor: pointer;
 }
+.img-container img { width: 100%; height: 100%; object-fit: cover; }
+.img-container:focus-visible,
+.enlace-tarjeta:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: -3px; }
 
+.contenido { display: flex; flex-direction: column; flex: 1; gap: 0.5rem; padding: 1rem 1.25rem 1.25rem; }
+
+.cabecera-tarjeta { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .card_title {
   display: -webkit-box;
   -webkit-line-clamp: 1;
-  /* Número de líneas que quieres mostrar */
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
+  margin: 0;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-h6);
+  font-weight: 700;
+  color: var(--color-primario);
+}
+.btn-menu { flex-shrink: 0; border-radius: 50% !important; border: 1.5px solid var(--color-primario) !important; background-color: transparent !important; color: var(--color-primario); }
+
+.descripcion-categoria {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+  margin: 0;
+  color: var(--color-neutro-texto);
 }
 
-.text-info {
-  text-align: justify;
-  justify-content: center;
-  background-color: rgb(240, 242, 242);
+/* Enlace de acción en terciario (enlaces y textos destacados) */
+.enlace-tarjeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-subtitulo-3);
+  font-weight: 600;
+  color: var(--color-terciario);
+  cursor: pointer;
 }
+.enlace-tarjeta:hover { color: var(--color-primario-light); text-decoration: underline; }
+.enlace-tarjeta mat-icon { width: 18px; height: 18px; font-size: 18px; }
 
-.contenido {
-  border: rgb(219, 218, 218) 0.5px solid;
-  background-color: rgb(249, 250, 250);
-  padding: 10px;
+@media (max-width: 575.98px) {
+  .titulo-pagina { font-size: var(--texto-h5); }
+  .tarjeta-intro { flex-direction: column; align-items: flex-start; }
 }
-
-p {
-  text-align: center;
-  color: black;
-}
-
-.shadow {
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-}
-
-.no-underline {
-  text-decoration: none;
-}
-
-.titlleModal {
-  text-align: center;
-}
-
-/*spacearound, espaceBetwen, spaceEvnely, */

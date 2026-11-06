@@ -1,114 +1,202 @@
-.sidenav-container {
-  height: 100%;
-  width: 100%;
+:host {
+  --alto-barra: 64px;
+  display: block;
+}
+
+.estructura {
   display: flex;
   flex-direction: column;
-  color: #000066;
+  height: 100vh;
+}
+
+/* ── Barra superior: color primario, marca a la izquierda, enlaces y usuario a la derecha ── */
+.barra {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 var(--alto-barra);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0 1.5rem;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-right: auto;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.escudo {
+  height: 44px;
+  width: auto;
+  padding-right: 0.9rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.marca-texto { display: flex; flex-direction: column; min-width: 0; }
+
+.marca-titulo {
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-h6);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.marca-sub {
+  font-size: 12px;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.enlaces { display: flex; align-items: center; gap: 1.25rem; }
+
+.enlaces a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-subtitulo-3);
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+.enlaces a:hover { text-decoration: underline; }
+
+/* ── Usuario ── */
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--radio-total);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.usuario:hover { background: rgba(255, 255, 255, 0.12); }
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primario-light);
+  font-family: var(--fuente-titulos);
+  font-weight: 700;
+}
+
+.usuario-texto { display: flex; flex-direction: column; line-height: 1.2; }
+.usuario-nombre { font-family: var(--fuente-titulos); font-size: var(--texto-subtitulo-3); font-weight: 600; }
+/* Amarillo del Plan de Desarrollo Institucional: contrasta con el azul de la barra */
+.usuario-rol { font-size: 12px; color: var(--color-pdi-2); }
+
+.btn-hamburguesa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -0.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.btn-hamburguesa:hover { background: rgba(255, 255, 255, 0.12); }
+
+.barra a:focus-visible,
+.barra button:focus-visible,
+.nav-item:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* ── Contenedor: panel lateral + contenido ── */
+.contenedor {
+  flex: 1;
+  min-height: 0;
 }
 
 .sidenav {
-  width: 200px;
-  background: #000066;
-  /*scrollbar-color: #eeeef1 #000066;*/
+  width: 260px;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  border-radius: 0;
 }
 
-.navegacion {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  /*z-index: 5;*/
-}
+.navegacion { display: flex; flex-direction: column; padding-bottom: 1rem; }
 
-.encabezadonavbar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-  height: 70px;
-  position: relative;
-}
-
-img {
-  height: 70px;
-  padding: 1px;
-}
-
-.contenidonavbar {
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-.sidebar-dropdown {
-  padding-left: 32px;
-}
-
-.text-body-small-r {
-  font-family: "FiraSans-Regular";
-  font-size: 14px;
-  color: #f4f4f8;
-}
-
-.opcion-espaciado-p {
-  padding-left: 10%;
-}
-
-mat-nav-list a.nav-item {
-  color: white !important;
-  text-decoration: none;
-}
-
-mat-nav-list a.nav-item mat-icon {
-  color: white !important;
-  margin-right: 8px;
-}
-
-mat-nav-list a.nav-item:hover {
-  color: white !important;
-}
-
-mat-nav-list a.nav-item:link,
-mat-nav-list a.nav-item:visited,
-mat-nav-list a.nav-item:active {
-  text-decoration: none;
-}
-
-a {
-  cursor: pointer;
-}
-
-.navbar {
-  height: 70px;
-  position: sticky;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: #000066;
-  color: white;
-}
-
-.navbar-left {
-  flex: 1;
-}
-
-.navbar-right ul {
-  display: flex;
-  list-style-type: none;
+.titulo-panel {
   margin: 0;
-  padding: 0;
+  padding: 1.25rem 1.5rem 0.75rem;
+  font-size: var(--texto-overline);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.navbar-right ul li {
-  margin-left: 20px;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 52px;
+  padding: 0 1.5rem;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-subtitulo-1);
+  font-weight: 600;
+  color: var(--color-sobre-primario);
+  text-decoration: none;
+}
+.nav-item mat-icon { color: var(--color-sobre-primario); }
+.nav-item:hover { background: rgba(255, 255, 255, 0.12); }
+/* Ítem activo: primario light (hover y destacados según el lineamiento) */
+.nav-item.activo { background: var(--color-primario-light); }
+
+.institucional {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+.enlace-institucional {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+}
+.enlace-institucional:hover { text-decoration: underline; }
+
+.area-contenido { background: var(--color-neutro-hover); }
+.contenido { padding: 1rem 1.5rem; }
+
+/* ── Tableta y móvil ── */
+@media (max-width: 991.98px) {
+  .barra { gap: 0.75rem; padding: 0 1rem; }
+  .escudo { height: 36px; padding-right: 0.6rem; }
+  .marca-titulo { font-size: var(--texto-subtitulo-1); }
+  .contenido { padding: 0.75rem; }
 }
 
-.navbar-right ul li a {
-  color: white;
-}
-
-.rol-tag {
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.8rem;
-  font-style: italic;
+@media (max-width: 575.98px) {
+  /* Nombre y rol no caben junto a la marca: queda el avatar */
+  .usuario-texto, .usuario mat-icon { display: none; }
+  .marca-sub { display: none; }
+  .escudo { display: none; }
 }

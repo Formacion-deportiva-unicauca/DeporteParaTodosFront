@@ -1,126 +1,186 @@
 <app-sidenav>
 
-  <div class="inscripcion-container" *ngIf="!cargando && grupo; else cargandoTpl">
+  <div class="pagina-inscripcion" *ngIf="!cargando && grupo; else cargandoTpl">
+
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a href="/home" (click)="irAInicio($event)">Inicio</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <a href="/list-grupos" (click)="volverEnlace($event)">Grupos · {{ nombreCurso }}</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">Inscripción</span>
+    </nav>
 
     <div class="encabezado">
-      <button class="btn-volver" (click)="volver()">← Volver</button>
-      <h2 class="titulo">Inscripción al grupo</h2>
+      <h1 class="titulo-pagina">Inscripción al grupo</h1>
+      <button type="button" class="btn-volver" (click)="volver()">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon> Volver a grupos
+      </button>
     </div>
 
-    <!-- Estado del curso (badges, consistente con list-grupos) -->
-    <div class="estado-info" *ngIf="cursoInfo">
-      <span class="badge"
-        [ngClass]="{
-          'bg-success': cursoInfo.estadoCurso === 'ACTIVO',
-          'bg-secondary': cursoInfo.estadoCurso === 'INACTIVO',
-          'bg-danger': cursoInfo.estadoCurso === 'CERRADO'
-        }">
-        {{ cursoInfo.estadoCurso === 'ACTIVO' ? 'Activo' :
-           cursoInfo.estadoCurso === 'INACTIVO' ? 'Inactivo' : 'Cerrado' }}
-      </span>
-      <span class="badge ms-2" *ngIf="cursoInfo.estadoInscripciones"
-        [ngClass]="cursoInfo.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : cursoInfo.estadoInscripciones === 'SIN_GRUPOS' ? 'bg-secondary' : 'bg-warning text-dark'">
-        {{ cursoInfo.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : cursoInfo.estadoInscripciones === 'SIN_GRUPOS' ? 'Curso: sin grupos' : 'Curso: inscripciones cerradas' }}
-      </span>
-    </div>
+    <div class="disposicion">
 
-    <!-- Información del grupo -->
-    <div class="info-card">
-      <h3>Información del grupo</h3>
-      <table class="info-table">
-        <tr>
-          <th>Categoría</th>
-          <td>{{ categoria }}</td>
-        </tr>
-        <tr>
-          <th>Curso</th>
-          <td>{{ curso }}</td>
-        </tr>
-        <tr>
-          <th>Código</th>
-          <td>{{ grupo!.anio }}-{{ grupo!.periodo ?? 2 }} · Grupo {{ letraDeIterable(grupo!.iterable) }}</td>
-        </tr>
-        <tr>
-          <th>Cupos disponibles</th>
-          <td>
-            <ng-container *ngIf="disponibilidad; else cargandoCupos">
-              <span [ngClass]="disponibilidad.cuposDisponibles > 0 ? 'text-success fw-bold' : 'text-warning fw-bold'">
-                {{ disponibilidad.cuposDisponibles }} / {{ disponibilidad.cuposTotales }}
-              </span>
-              <span *ngIf="disponibilidad.tamanoListaEspera > 0" class="ms-2 text-muted">
-                ({{ disponibilidad.tamanoListaEspera }} en espera)
-              </span>
-            </ng-container>
-            <ng-template #cargandoCupos>—</ng-template>
-          </td>
-        </tr>
-        <tr>
-          <th>Instructor</th>
-          <td>{{ grupo!.nombreInstructor ?? '—' }}</td>
-        </tr>
-        <tr>
-          <th>Horario</th>
-          <td>
-            <ng-container *ngIf="horarios.length > 0; else sinHorario">
-              <span *ngFor="let h of horarios" class="horario-item">
-                {{ h.dia }} {{ h.horaInicio }} – {{ h.horaFin }} · {{ h.escenario }}
-              </span>
-            </ng-container>
-            <ng-template #sinHorario>Por definir</ng-template>
-          </td>
-        </tr>
-        <tr>
-          <th>Inscripciones</th>
-          <td id="ventana-inscripcion">{{ textoVentana }}</td>
-        </tr>
-      </table>
-    </div>
+      <!-- Información del grupo -->
+      <section class="info-card" aria-labelledby="titulo-grupo">
+        <span class="eyebrow">{{ categoria }}</span>
+        <h2 id="titulo-grupo" class="nombre-curso">{{ nombreCurso }}</h2>
+        <p class="codigo-grupo">{{ grupo!.anio }}-{{ grupo!.periodo ?? 2 }} · Grupo {{ letraDeIterable(grupo!.iterable) }}</p>
 
-    <!-- Aviso lista de espera -->
-    <div class="aviso-espera" *ngIf="!yaInscrito && disponibilidad && disponibilidad.cuposDisponibles === 0">
-      <span>El grupo está completo.</span>
-      <span *ngIf="disponibilidad.tamanoListaEspera >= 0">
-        Si te unes, quedarás en posición {{ disponibilidad.tamanoListaEspera + 1 }} de la lista de espera.
-      </span>
-    </div>
-
-    <!-- Acción de inscripción -->
-    <div class="accion">
-      <ng-container *ngIf="!yaInscrito; else inscritoTpl">
-        <button class="btn-inscribirse"
-                [disabled]="inscribiendo || !puedeInscribirseEnGrupo()"
-                [class.btn-espera]="disponibilidad && disponibilidad.cuposDisponibles === 0"
-                (click)="inscribirse()">
-          {{ inscribiendo ? 'Procesando...'
-             : (disponibilidad && disponibilidad.cuposDisponibles === 0) ? 'Unirse a lista de espera'
-             : 'Inscribirme en este grupo' }}
-        </button>
-        <p *ngIf="avisoGrupo" class="aviso-cerrado aviso-grupo-cerrado" role="status">{{ avisoGrupo }}</p>
-        <p *ngIf="!puedeInscribirse() && cursoInfo" class="aviso-cerrado">
-          {{ cursoInfo.estadoCurso !== 'ACTIVO'
-             ? 'El curso no está activo actualmente.'
-             : 'Las inscripciones para este curso están cerradas.' }}
-        </p>
-      </ng-container>
-      <ng-template #inscritoTpl>
-        <div class="estado-inscripcion">
-          <div class="inscrito-badge" [class.espera-badge]="yaEnEspera">
-            {{ yaEnEspera ? '⏳ En lista de espera' : '✓ Inscripción realizada' }}
-          </div>
-          <button class="btn-cancelar"
-                  [disabled]="cancelando"
-                  (click)="cancelarInscripcion()">
-            {{ cancelando ? 'Cancelando...' : yaEnEspera ? 'Salir de lista de espera' : 'Cancelar inscripción' }}
-          </button>
+        <!-- Estado del curso (chips con texto: el estado nunca se comunica solo con color) -->
+        <div class="estado-info" *ngIf="cursoInfo">
+          <span class="chip chip-curso" [attr.data-estado]="cursoInfo.estadoCurso">
+            <span class="punto" aria-hidden="true"></span>Curso
+            {{ cursoInfo.estadoCurso === 'ACTIVO' ? 'activo' : cursoInfo.estadoCurso === 'INACTIVO' ? 'inactivo' : 'cerrado' }}
+          </span>
+          <span class="chip chip-curso-inscripciones" *ngIf="cursoInfo.estadoInscripciones" [attr.data-estado]="cursoInfo.estadoInscripciones">
+            {{ cursoInfo.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : cursoInfo.estadoInscripciones === 'SIN_GRUPOS' ? 'Curso: sin grupos' : 'Curso: inscripciones cerradas' }}
+          </span>
         </div>
-      </ng-template>
-    </div>
 
+        <dl class="detalles">
+          <div class="detalle detalle-instructor">
+            <dt>Instructor</dt>
+            <dd>
+              <ng-container *ngIf="grupo!.nombreInstructor as nombre; else sinInstructor">
+                <span class="avatar" aria-hidden="true">{{ iniciales(nombre) }}</span>
+                <span class="instructor-nombre">{{ nombrePropio(nombre) }}</span>
+              </ng-container>
+              <ng-template #sinInstructor>Sin instructor asignado</ng-template>
+            </dd>
+          </div>
+
+          <div class="detalle detalle-cupos">
+            <dt>Cupos disponibles</dt>
+            <dd>
+              <ng-container *ngIf="disponibilidad; else cargandoCupos">
+                <strong class="cupos-cifra" [class.agotado]="disponibilidad.cuposDisponibles === 0">
+                  {{ disponibilidad.cuposDisponibles }} de {{ disponibilidad.cuposTotales }}
+                </strong>
+                <div class="barra" role="progressbar" aria-label="Ocupación del grupo" aria-valuemin="0" aria-valuemax="100"
+                     [attr.aria-valuenow]="porcentajeOcupacion">
+                  <span [style.width.%]="porcentajeOcupacion"></span>
+                </div>
+                <span *ngIf="disponibilidad.tamanoListaEspera > 0" class="en-espera">
+                  {{ disponibilidad.tamanoListaEspera }} en lista de espera
+                </span>
+              </ng-container>
+              <ng-template #cargandoCupos>—</ng-template>
+            </dd>
+          </div>
+
+          <div class="detalle detalle-horario">
+            <dt>Horario</dt>
+            <dd>
+              <ul class="lista-horarios" *ngIf="horarios.length > 0; else sinHorario">
+                <li *ngFor="let h of horarios" class="horario-item">
+                  <span class="dia">{{ nombreDia(h.dia) }}</span>
+                  <span class="hora">{{ franja(h) }}</span>
+                  <span class="escenario" *ngIf="h.escenario">{{ h.escenario }}</span>
+                </li>
+              </ul>
+              <ng-template #sinHorario>Por definir</ng-template>
+            </dd>
+          </div>
+
+          <div class="detalle detalle-ventana">
+            <dt>Inscripciones</dt>
+            <dd id="ventana-inscripcion">{{ textoVentana }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Panel de acción y de estado: se ve siempre, no solo unos segundos como la notificación -->
+      <aside class="panel-accion" [class.con-estado]="yaInscrito || !!canceladoReciente" aria-label="Tu inscripción">
+
+        <!-- Inscrito -->
+        <div class="resultado resultado-exito" *ngIf="yaInscrito && !yaEnEspera" role="status">
+          <mat-icon class="resultado-icono" aria-hidden="true">check_circle</mat-icon>
+          <h2 class="resultado-titulo">Estás inscrito en este grupo</h2>
+          <p class="resultado-texto">Tu cupo está confirmado. Consulta tu horario cuando quieras en «Mis cursos».</p>
+        </div>
+
+        <!-- En lista de espera -->
+        <div class="resultado resultado-espera" *ngIf="yaInscrito && yaEnEspera" role="status">
+          <mat-icon class="resultado-icono" aria-hidden="true">hourglass_empty</mat-icon>
+          <h2 class="resultado-titulo">Estás en la lista de espera</h2>
+          <p class="resultado-texto">
+            <ng-container *ngIf="posicionEspera">Tu posición es la {{ posicionEspera }}. </ng-container>Te avisaremos si se libera un cupo.
+          </p>
+        </div>
+
+        <!-- Cancelación reciente -->
+        <div class="resultado resultado-info" *ngIf="!yaInscrito && canceladoReciente" role="status">
+          <mat-icon class="resultado-icono" aria-hidden="true">info</mat-icon>
+          <h2 class="resultado-titulo">{{ canceladoReciente.titulo }}</h2>
+          <p class="resultado-texto">{{ canceladoReciente.mensaje }}</p>
+        </div>
+
+        <!-- Aún sin inscripción: ofrece inscribirse o unirse a la lista de espera -->
+        <ng-container *ngIf="!yaInscrito">
+          <div class="aviso aviso-espera" *ngIf="grupoLleno && puedeInscribirseEnGrupo()" role="status">
+            <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+            <p>
+              <strong>El grupo está completo.</strong>
+              Si te unes, quedarás en la posición {{ disponibilidad!.tamanoListaEspera + 1 }} de la lista de espera y te avisaremos si se libera un cupo.
+            </p>
+          </div>
+
+          <button type="button" class="btn-principal btn-inscribirse"
+                  [disabled]="inscribiendo || !puedeInscribirseEnGrupo()"
+                  [class.btn-espera]="grupoLleno"
+                  (click)="inscribirse()">
+            <mat-icon aria-hidden="true">{{ grupoLleno ? 'hourglass_empty' : 'how_to_reg' }}</mat-icon>
+            {{ inscribiendo ? 'Procesando...'
+               : grupoLleno ? 'Unirme a la lista de espera'
+               : 'Inscribirme en este grupo' }}
+          </button>
+
+          <div class="aviso aviso-cerrado" *ngIf="avisoGrupo" role="status">
+            <mat-icon aria-hidden="true">lock</mat-icon>
+            <span class="aviso-grupo-cerrado">{{ avisoGrupo }}</span>
+          </div>
+          <div class="aviso aviso-cerrado" *ngIf="!puedeInscribirse() && cursoInfo" role="status">
+            <mat-icon aria-hidden="true">lock</mat-icon>
+            <span>
+              {{ cursoInfo.estadoCurso !== 'ACTIVO'
+                 ? 'El curso no está activo actualmente.'
+                 : 'Las inscripciones para este curso están cerradas.' }}
+            </span>
+          </div>
+        </ng-container>
+
+        <!-- Ya inscrito o en espera: ver mis cursos y cancelar con confirmación -->
+        <ng-container *ngIf="yaInscrito">
+          <button type="button" class="btn-principal btn-mis-cursos" (click)="irAMisCursos()">
+            <mat-icon aria-hidden="true">event_available</mat-icon> Ver mis cursos
+          </button>
+
+          <button type="button" class="btn-cancelar-inscripcion" *ngIf="!confirmandoCancelacion" [disabled]="cancelando"
+                  (click)="pedirCancelacion()">
+            {{ yaEnEspera ? 'Salir de la lista de espera' : 'Cancelar inscripción' }}
+          </button>
+
+          <div class="confirmar-cancelacion" *ngIf="confirmandoCancelacion" role="group" aria-labelledby="pregunta-cancelar">
+            <p id="pregunta-cancelar" class="pregunta">
+              {{ yaEnEspera ? '¿Salir de la lista de espera? Perderás tu posición.'
+                            : '¿Cancelar tu inscripción? Tu cupo quedará disponible para otras personas.' }}
+            </p>
+            <div class="confirmar-botones">
+              <button type="button" class="btn-confirmar-cancelar" [disabled]="cancelando" (click)="cancelarInscripcion()">
+                {{ cancelando ? 'Cancelando...' : yaEnEspera ? 'Sí, salir' : 'Sí, cancelar' }}
+              </button>
+              <button type="button" class="btn-mantener" [disabled]="cancelando" (click)="descartarCancelacion()">
+                Mantener
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </aside>
+    </div>
   </div>
 
   <ng-template #cargandoTpl>
     <div class="cargando">
-      <p *ngIf="cargando">Cargando información del grupo...</p>
+      <p *ngIf="cargando" role="status">Cargando información del grupo...</p>
       <p *ngIf="!cargando && !grupo">No se encontró información del grupo.</p>
     </div>
   </ng-template>

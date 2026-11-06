@@ -1,69 +1,53 @@
-.container {
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-  }
-  
-  .personal-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 30px;
-    border: 1px solid #ccc;
-    padding: 20px;
-    border-radius: 10px;
-  }
-  
-  .info-text {
-    flex: 2;
-  }
-  
-  .profile-pic {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .profile-pic img {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-  }
-  
-  .course-info {
-    border: 1px solid #ccc;
-    padding: 20px;
-    border-radius: 10px;
-  }
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  th {
-    background-color: #0c3f69;
-    color: #000066;
-    font-weight: bold;
-  }
-  
-  td, th {
-    padding: 8px;
-    border: 1px solid #ccc;
-  }
-  
-  
+.pagina-instructor { max-width: 1400px; margin: 0 auto; padding: 0.5rem 0 2rem; }
 
-.cargando-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 0;
+/* Ruta de navegación */
+.migas { display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem; font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.migas a { color: var(--color-terciario); text-decoration: none; }
+.migas a:hover { text-decoration: underline; }
+.migas mat-icon { width: 18px; height: 18px; font-size: 18px; }
+
+/* Título de página con línea secundaria (lineamiento) */
+.titulo-pagina {
+  position: relative; margin: 0 0 1.25rem; padding-bottom: 0.75rem;
+  font-family: var(--fuente-titulos); font-size: var(--texto-h4); font-weight: 700; line-height: 1.2; color: var(--color-primario);
 }
+.titulo-pagina::after { content: ""; position: absolute; left: 0; bottom: 0; width: 96px; height: 4px; background: var(--color-secundario-light); }
 
-.msg-rol {
-  padding: 16px;
-  color: #555;
+.eyebrow { display: block; font-size: var(--texto-overline); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutro-texto); }
+
+/* Datos del instructor */
+.tarjeta-perfil {
+  display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1rem; padding: 1.25rem 1.5rem;
+  border-left: 4px solid var(--color-secundario-light); border-radius: var(--radio-tarjeta); background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
+.avatar {
+  display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%;
+  background: var(--color-primario); color: var(--color-sobre-primario); font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700;
+}
+.info-text { min-width: 0; }
+.nombre { margin: 0.1rem 0 0.35rem; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; color: var(--color-primario); overflow-wrap: anywhere; }
+.datos { display: flex; flex-wrap: wrap; gap: 0.25rem 2rem; margin: 0; }
+.datos dt { font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.datos dd { margin: 0; font-weight: 600; color: var(--color-neutro-texto); }
+.cargando-wrapper { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; color: var(--color-neutro-texto); }
 
-  
+/* Avisos */
+.banner { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding: 0.9rem 1.1rem; border-left: 4px solid; border-radius: var(--radio-pequeno); }
+.banner mat-icon { flex-shrink: 0; width: 24px; height: 24px; font-size: 24px; }
+.banner p { margin: 0; }
+.banner-info, .banner-hoy { border-color: var(--color-terciario); background: #d8e3ff; color: var(--color-primario); }
+.banner-titulo { display: block; font-family: var(--fuente-titulos); font-size: var(--texto-subtitulo-1); }
+
+/* Resumen */
+.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0 0 1.5rem; }
+.cifra { padding: 0.9rem 1.1rem; border-radius: var(--radio-tarjeta); background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.cifra dt { font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.cifra dd { margin: 0.1rem 0 0; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; line-height: 1.1; color: var(--color-primario); }
+
+.titulo-seccion { margin: 0; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; color: var(--color-primario); }
+.subtitulo-seccion { margin: 0.15rem 0 1rem; color: var(--color-neutro-texto); }
+
+@media (max-width: 599.98px) {
+  .tarjeta-perfil { flex-direction: column; align-items: flex-start; }
+  .cifras { grid-template-columns: 1fr; }
+}

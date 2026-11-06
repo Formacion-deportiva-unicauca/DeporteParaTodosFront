@@ -36,7 +36,8 @@ describe('DetalleInstructorComponent', () => {
   let instructorSpy: jasmine.SpyObj<InstructorServisce>;
   let grupoSpy: jasmine.SpyObj<GrupoService>;
   let router: Router;
-  let snackOpen: jasmine.Spy;
+  let avisoExito: jasmine.Spy;
+  let avisoError: jasmine.Spy;
 
   const el = (): HTMLElement => fixture.nativeElement as HTMLElement;
   const texto = (sel: string): string => el().querySelector(sel)?.textContent?.trim() ?? '';
@@ -45,7 +46,8 @@ describe('DetalleInstructorComponent', () => {
   const crear = (antes?: () => void): void => {
     fixture = TestBed.createComponent(DetalleInstructorComponent);
     component = fixture.componentInstance;
-    snackOpen = spyOn(component['snackBar'], 'open');
+    avisoExito = spyOn(component['notificaciones'], 'exito');
+    avisoError = spyOn(component['notificaciones'], 'error');
     antes?.();
     fixture.detectChanges();
   };
@@ -118,9 +120,9 @@ describe('DetalleInstructorComponent', () => {
     expect(el().querySelector('table[mat-table]')).toBeNull();
   });
 
-  it('otro error de getInstructor (500): snackbar genérico y la tabla sigue visible', () => {
+  it('otro error de getInstructor (500): aviso de error genérico y la tabla sigue visible', () => {
     crear(() => instructorSpy.getInstructor.and.returnValue(throwError(() => http(500))));
-    expect(snackOpen).toHaveBeenCalledWith(jasmine.any(String), '', jasmine.objectContaining({ panelClass: 'snack-error' }));
+    expect(avisoError).toHaveBeenCalledOnceWith('No se pudo cargar el instructor', jasmine.any(String));
     expect(el().textContent).not.toContain('Instructor no encontrado');
     expect(el().querySelectorAll('tr[mat-row]').length).toBe(1);
   });
@@ -325,31 +327,28 @@ describe('DetalleInstructorComponent', () => {
       );
     });
 
-    it('éxito: snackbar "Prórroga asignada a 1 instructor" sin volver a pedir el instructor', () => {
+    it('éxito: aviso "Prórroga asignada a 1 instructor" sin volver a pedir el instructor', () => {
       crear();
       abrir = spyOn(component['dialog'], 'open');
-      const snack = snackOpen;
       cierraCon([{ idInstructor: 'INS01', dias: 10, fechaLimite: '2026-11-10' }]);
       botonProrroga()!.click();
-      expect(snack).toHaveBeenCalledWith('Prórroga asignada a 1 instructor', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+      expect(avisoExito).toHaveBeenCalledOnceWith('Prórroga asignada a 1 instructor');
       expect(instructorSpy.getInstructor).toHaveBeenCalledTimes(1);
     });
 
     it('dias = 0: "Prórroga quitada"', () => {
       crear();
       abrir = spyOn(component['dialog'], 'open');
-      const snack = snackOpen;
       cierraCon([{ idInstructor: 'INS01', dias: 0, fechaLimite: null }]);
       botonProrroga()!.click();
-      expect(snack).toHaveBeenCalledWith('Prórroga quitada', '', jasmine.any(Object));
+      expect(avisoExito).toHaveBeenCalledOnceWith('Prórroga quitada');
     });
 
-    it('Cancelar no muestra snackbar', () => {
+    it('Cancelar no muestra aviso', () => {
       crear();
       abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
-      const snack = snackOpen;
       botonProrroga()!.click();
-      expect(snack).not.toHaveBeenCalled();
+      expect(avisoExito).not.toHaveBeenCalled();
     });
 
     it('señal "ya no existe": muestra el estado "Instructor no encontrado"', () => {

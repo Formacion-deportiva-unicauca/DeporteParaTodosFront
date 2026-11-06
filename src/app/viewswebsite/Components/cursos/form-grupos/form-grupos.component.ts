@@ -11,6 +11,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { GrupoService } from 'src/app/services/grupo.service';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
 import { ImagenService } from 'src/app/services/imagen.service';
+import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
@@ -18,6 +19,7 @@ import { FechaEsAdapter } from 'src/app/shared/fecha-es.adapter';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { InstructorDTO } from 'src/app/Models/DTOs/instructor-dto';
 import { InstructorServisce } from 'src/app/services/instructor.service';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 
 type CampoFecha = 'fechaCreacion' | 'fechaFinalizacion' | 'fechaInscripcionApertura' | 'fechaIncripcionCierre';
 
@@ -88,9 +90,11 @@ export class FormGruposComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: { categoria: string, curso: string, anio: number, iterable: number },
     private grupoService: GrupoService,
     private imagenService: ImagenService,
+    private cursoService: CursodeportivoService,
     private dialogRef: MatDialogRef<FormGruposComponent>,
     private instructorService: InstructorServisce,
     private breakpointObserver: BreakpointObserver,
+    private notificaciones: NotificacionService,
   ) { }
 
   ngOnInit(): void {
@@ -161,29 +165,45 @@ export class FormGruposComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * La imagen del grupo es opcional: si no se elige una se usa la del curso (el backend exige un id de imagen al crear
+   * y la tarjeta del grupo ya no la muestra; la imagen que se ve es la del curso).
+   */
   private crearGrupo(): void {
-    if (!this.selectedFile) {
-      this.errorServidor = 'Selecciona una imagen para el grupo';
+    if (this.selectedFile) {
+      this.imagenService.postImagen(this.selectedFile).subscribe({
+        next: (imagenResponse) => { this.enviarNuevoGrupo(imagenResponse.id); },
+        error: (err) => { this.mostrarError(err, 'No se pudo subir la imagen', 'No se pudo crear el grupo'); },
+      });
       return;
     }
-    this.imagenService.postImagen(this.selectedFile).subscribe({
-      next: (imagenResponse) => {
-        const nuevoGrupo: GrupoDTO = {
-          categoria: this.categoriaGrupo!,
-          curso: this.cursoGrupo!,
-          anio: null,
-          iterable: null,
-          imagenGrupo: imagenResponse.id,
-          idInstructor: this.grupo.idInstructor,
-          cupos: this.grupo.cupos,
-          ...this.fechasParaEnviar(),
-        };
-        this.grupoService.createGrupo(nuevoGrupo).subscribe({
-          next: () => { this.dialogRef.close(true); },
-          error: (err) => { this.mostrarError(err, 'No se pudo crear el grupo'); },
-        });
+    this.cursoService.getCurso(this.categoriaGrupo!, this.cursoGrupo!).subscribe({
+      next: (curso) => {
+        if (curso?.idImagen == null) {
+          this.mostrarError(null, 'El curso no tiene imagen: selecciona una para el grupo', 'No se pudo crear el grupo');
+          return;
+        }
+        this.enviarNuevoGrupo(curso.idImagen);
       },
-      error: (err) => { this.mostrarError(err, 'No se pudo subir la imagen'); },
+      error: () => { this.mostrarError(null, 'No se pudo leer el curso para usar su imagen', 'No se pudo crear el grupo'); },
+    });
+  }
+
+  private enviarNuevoGrupo(idImagen: number | null): void {
+    const nuevoGrupo: GrupoDTO = {
+      categoria: this.categoriaGrupo!,
+      curso: this.cursoGrupo!,
+      anio: null,
+      iterable: null,
+      imagenGrupo: idImagen,
+      idInstructor: this.grupo.idInstructor,
+      cupos: this.grupo.cupos,
+      ...this.fechasParaEnviar(),
+    };
+    this.grupoService.createGrupo(nuevoGrupo).subscribe({
+      // Se devuelve el grupo creado (con su año e iterable calculados por el servidor): quien abrió el diálogo pasa al paso 2 (horarios).
+      next: (creado) => { this.dialogRef.close(creado ?? true); },
+      error: (err) => { this.mostrarError(err, 'No se pudo crear el grupo', 'No se pudo crear el grupo'); },
     });
   }
 
@@ -203,22 +223,24 @@ export class FormGruposComponent implements OnInit, OnDestroy {
     const enviar = (dto: GrupoDTO): void => {
       this.grupoService.updateGrupo(categoria, curso, anio, iterable, dto).subscribe({
         next: () => { this.dialogRef.close(true); },
-        error: (err) => { this.mostrarError(err, 'No se pudo actualizar el grupo'); },
+        error: (err) => { this.mostrarError(err, 'No se pudo actualizar el grupo', 'No se pudo actualizar el grupo'); },
       });
     };
 
     if (this.selectedFile) {
       this.imagenService.postImagen(this.selectedFile).subscribe({
         next: (imagenResponse) => { enviar({ ...payload, imagenGrupo: imagenResponse.id }); },
-        error: (err) => { this.mostrarError(err, 'No se pudo subir la imagen'); },
+        error: (err) => { this.mostrarError(err, 'No se pudo subir la imagen', 'No se pudo actualizar el grupo'); },
       });
     } else {
       enviar(payload);
     }
   }
 
-  private mostrarError(err: any, respaldo: string): void {
+  /** Muestra el motivo dentro del diálogo (junto al formulario) y como notificación de error. */
+  private mostrarError(err: any, respaldo: string, titulo: string): void {
     this.errorServidor = err?.error?.mensaje ?? respaldo;
+    this.notificaciones.error(titulo, this.errorServidor ?? respaldo);
   }
 
   /** Fechas como texto 'yyyy-MM-dd'; vacío → null. Sin Date ni toISOString (desfasan un día por zona horaria). */

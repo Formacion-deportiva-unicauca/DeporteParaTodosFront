@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { AlumnoService } from 'src/app/services/alumno.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AlumnoDTO } from 'src/app/Models/DTOs/alumno-dto';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -17,7 +17,9 @@ import { GrupoService } from 'src/app/services/grupo.service';
 import { InstructorServisce } from 'src/app/services/instructor.service';
 import { HorarioService } from 'src/app/services/horario.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { FormGruposComponent } from '../form-grupos/form-grupos.component';
 import { FormInscripcionesComponent } from '../../usuarios/form-inscripciones/form-inscripciones.component';
 import { DialogComponent } from '../../dialog/dialog.component';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
@@ -32,14 +34,16 @@ import { ConfirmacionAsistenciaRequestDTO } from 'src/app/Models/DTOs/confirmaci
 import { interpretarAtenciones } from 'src/app/shared/atenciones.util';
 import { interpretarListado } from 'src/app/shared/listado-vacio.util';
 import { PerfilService } from 'src/app/services/perfil.service';
-import { avisoInscripcionGrupo, fechaLarga, formatearFecha } from 'src/app/shared/fecha-grupo.util';
+import { aDateLocal, avisoInscripcionGrupo, fechaLarga, formatearFecha, inscripcionesAbiertasDeGrupo } from 'src/app/shared/fecha-grupo.util';
 import {
-  FranjaDia, diasConClase, duracionManualValida, esRolSinRestriccion, franjaDelDia, hoyTexto, textoDiasDeClase,
+  FranjaDia, diasConClase, duracionManualValida, esRolSinRestriccion, formatoHora12, franjaDelDia, hoyTexto, textoDiasDeClase,
 } from 'src/app/shared/ventana-registro.util';
 import { ConfirmarSinAsistentesComponent } from './confirmar-sin-asistentes.component';
 import { NovedadClaseService } from 'src/app/services/novedad-clase.service';
 import { NovedadClaseDto, NovedadClaseRequestDto, MOTIVOS_NOVEDAD, motivoRequiereDescripcion, motivoNombre } from 'src/app/Models/DTOs/novedad-clase-dto';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
+
+export type FiltroAtenciones = 'todos' | 'asistieron' | 'faltaron';
 
 @Component({
   selector: 'app-list-deportistasde-curso',
@@ -73,6 +77,14 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   clasesAtenciones: Record<number, AtencionDTO[]> = {};
   clasesExpandidas = new Set<number>();
   historialVisible = false;
+  cargandoHistorial = false;
+  /** La última carga del historial falló: se ofrece reintentar. */
+  errorHistorial = false;
+  /** Por defecto se ven las últimas sesiones; "Ver historial completo" muestra todas. */
+  historialCompleto = false;
+  readonly limiteHistorial = 5;
+  /** Filtro de la lista de deportistas dentro de cada clase abierta. */
+  filtroAtenciones: Record<number, FiltroAtenciones> = {};
   displayedColumns: string[] = ['Código', 'Nombre', 'Correo', 'Faltas', 'Asistencia', 'Acciones'];
   displayedColumnsEspera: string[] = ['Posicion', 'Nombre', 'Correo', 'FechaInscripcion', 'Acciones'];
 
@@ -148,13 +160,16 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     private claseService: ClaseService,
     private asistenciaService: AsistenciaService,
     private novedadClaseService: NovedadClaseService,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
+    private router: Router,
   ) { }
 
   ngOnInit(): void {
     this.perfilService.perfil$.subscribe(p => {
       this.rol = p;
       this.actualizarColumnas();
+      // El rol puede llegar después de abrir la pantalla: entonces el historial se carga al conocerlo.
+      if (this.categoria && this.puedeVerHistorial && !this.historialVisible && !this.cargandoHistorial) this.cargarHistorial();
     });
     this.route.paramMap.subscribe(
       (params) => {
@@ -166,6 +181,12 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     );
     this.cargarMarcasDeHoy();
     this.cargarDatos();
+    if (this.puedeVerHistorial) this.cargarHistorial();
+  }
+
+  /** Coordinador e Instructor consultan el historial de clases; se carga al abrir la pantalla, sin un botón intermedio. */
+  get puedeVerHistorial(): boolean {
+    return this.rol === 'Coordinador' || this.rol === 'Instructor';
   }
 
   cargarDatos(): void {
@@ -270,7 +291,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     const mensaje = this.esInstructorDelGrupo
       ? 'Por ahora solo el Coordinador puede agregar, editar o desvincular deportistas'
       : 'No puede gestionar grupos que no son de su cargo';
-    this.snackBar.open(mensaje, 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+    this.notificaciones.error('Acción no permitida', mensaje);
     return false;
   }
 
@@ -283,7 +304,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     if (!this.autorizadoParaGestionar()) return;
     const aviso = this.avisoInscripciones;
     if (aviso) {
-      this.snackBar.open(aviso, 'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+      this.notificaciones.error('No se puede inscribir', aviso);
       return;
     }
     this.abrirDialogInscribir();
@@ -311,17 +332,64 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           this.inscripcionService.postInscripcion(inscripcion).subscribe({
             next: (response) => {
               if (response != null) {
+                this.notificaciones.exito('Deportista inscrito', 'Ya aparece en la lista del grupo.');
                 this.ngOnInit();
               }
             },
             error: (err: HttpErrorResponse) => {
               const mensaje = err?.error?.mensaje || 'No se pudo inscribir al deportista. Intente de nuevo.';
-              this.snackBar.open(mensaje, 'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+              this.notificaciones.error('No se pudo inscribir', mensaje);
             },
           });
         }
       }
     );
+  }
+
+  // ── Encabezado del grupo ──────────────────────────────────────────────────
+
+  /** "2026-2 · Grupo A" */
+  get tituloGrupo(): string {
+    return `${this.grupo.anio}-${this.grupo.periodo} · Grupo ${this.letraDeIterable(this.grupo.iterable)}`;
+  }
+
+  get inscritos(): number {
+    return this.alumnos.data.length;
+  }
+
+  get cuposDisponibles(): number {
+    const d = this.disponibilidad;
+    return d && d.cuposTotales > 0 ? Math.max(0, d.cuposDisponibles) : Math.max(0, (this.grupo.cupos ?? 0) - this.inscritos);
+  }
+
+  get inscripcionesAbiertas(): boolean {
+    return inscripcionesAbiertasDeGrupo(this.grupo);
+  }
+
+  horaCorta(hora: string): string {
+    return formatoHora12(hora);
+  }
+
+  volverAGrupos(evento?: Event): void {
+    evento?.preventDefault();
+    void this.router.navigate(['/list-grupos', this.categoria, this.titulo]);
+  }
+
+  irAInicio(evento?: Event): void {
+    evento?.preventDefault();
+    void this.router.navigate(['/home']);
+  }
+
+  editarGrupo(): void {
+    if (this.rol !== 'Coordinador') return;
+    this.dialog.open(FormGruposComponent, {
+      data: { categoria: this.categoria, curso: this.titulo, anio: this.anio, iterable: this.iterable },
+    }).afterClosed().subscribe((resultado) => {
+      if (resultado) {
+        this.cargarDatos();
+        this.notificaciones.exito('Grupo actualizado', 'Los cambios del grupo se guardaron correctamente.');
+      }
+    });
   }
 
   letraDeIterable(n: number | null): string {
@@ -337,7 +405,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     dialogRef.afterClosed().subscribe((resultado) => {
       if (resultado?.actualizado) {
         this.cargarDatos();
-        this.snackBar.open('Datos del deportista actualizados', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito('Deportista actualizado', 'Los datos se guardaron correctamente.');
       }
     });
   }
@@ -359,9 +427,9 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.confirmado) {
         this.cargarDatos();
-        this.snackBar.open('Deportista desvinculado del grupo', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito('Deportista desvinculado', `${alumno.nombre} ya no hace parte de este grupo.`);
       } else if (result?.errorStatus !== undefined) {
-        this.snackBar.open('Error al desvincular al deportista, intente de nuevo', 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo desvincular', 'Error al desvincular al deportista, intente de nuevo.');
       }
     });
   }
@@ -369,19 +437,22 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   promover(alumno: InscripcionEnEsperaDto): void {
     this.inscripcionService.promoverAlumno(alumno.alumnoId, this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
       next: () => {
-        this.snackBar.open(`${alumno.nombre} promovido al grupo`, 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito('Deportista promovido', `${alumno.nombre} promovido al grupo.`);
         this.cargarDatos();
       },
       error: (err) => {
         const msg = err?.status === 409 ? 'El alumno ya está inscrito en el grupo' : 'Error al promover, intente de nuevo';
-        this.snackBar.open(msg, 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo promover', msg);
       }
     });
   }
 
   cargarHistorial(): void {
+    this.cargandoHistorial = true;
+    this.errorHistorial = false;
     this.claseService.getClase(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
       next: (cuerpo) => {
+        this.cargandoHistorial = false;
         // Lista, o GC-0002 (grupo sin clases) = historial vacío. Cualquier otro cuerpo no se puede interpretar: se avisa
         // del error y se conserva lo que ya se veía, sin tomarlo por "no hay clases".
         const clases = interpretarListado<ClaseDTO>(cuerpo);
@@ -393,12 +464,57 @@ export class ListDeportistasdeCursoComponent implements OnInit {
         this.historialVisible = true;
         this.cargarNovedades();
       },
-      error: () => this.avisarErrorHistorial(),
+      error: () => { this.cargandoHistorial = false; this.avisarErrorHistorial(); },
     });
   }
 
   private avisarErrorHistorial(): void {
-    this.snackBar.open('Error al cargar el historial de clases', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+    this.errorHistorial = true;
+    this.notificaciones.error('No se pudo cargar el historial', 'Error al cargar el historial de clases. Intente de nuevo.');
+  }
+
+  /** Clases de la más reciente a la más antigua. */
+  get clasesOrdenadas(): ClaseDTO[] {
+    return [...this.clases].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  }
+
+  get clasesVisibles(): ClaseDTO[] {
+    return this.historialCompleto ? this.clasesOrdenadas : this.clasesOrdenadas.slice(0, this.limiteHistorial);
+  }
+
+  get hayMasClases(): boolean {
+    return this.clases.length > this.limiteHistorial;
+  }
+
+  alternarHistorialCompleto(): void {
+    this.historialCompleto = !this.historialCompleto;
+  }
+
+  /** Cuántas de las clases registradas quedaron como "no realizada" (novedad en esa fecha). */
+  get totalNoRealizadas(): number {
+    return this.clases.filter(c => this.getNovedadParaFecha(c.fecha) !== null).length;
+  }
+
+  /** Asistieron / faltaron de una clase, o null mientras no se hayan cargado sus atenciones. */
+  resumenClase(clase: ClaseDTO): { asistieron: number; faltaron: number } | null {
+    const lista = this.clasesAtenciones[clase.codigo];
+    if (!lista) return null;
+    const asistieron = lista.filter(a => a.estaAtendido).length;
+    return { asistieron, faltaron: lista.length - asistieron };
+  }
+
+  filtroDe(clase: ClaseDTO): FiltroAtenciones {
+    return this.filtroAtenciones[clase.codigo] ?? 'todos';
+  }
+
+  cambiarFiltroAtenciones(clase: ClaseDTO, filtro: FiltroAtenciones): void {
+    this.filtroAtenciones = { ...this.filtroAtenciones, [clase.codigo]: filtro };
+  }
+
+  atencionesFiltradas(clase: ClaseDTO): AtencionDTO[] {
+    const lista = this.clasesAtenciones[clase.codigo] ?? [];
+    const f = this.filtroDe(clase);
+    return f === 'todos' ? lista : lista.filter(a => (f === 'asistieron') === a.estaAtendido);
   }
 
   cargarNovedades(): void {
@@ -438,7 +554,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   }
 
   private avisarErrorAtenciones(): void {
-    this.snackBar.open('Error al cargar las atenciones', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+    this.notificaciones.error('No se pudieron cargar las asistencias', 'Error al cargar las atenciones. Intente de nuevo.');
   }
 
   getNombreAlumno(perfId: string): string {
@@ -464,11 +580,9 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           error: () => this.avisarErrorAtenciones(),
         });
         this.cargarAlumnos();
-        this.snackBar.open('Asistencia eliminada correctamente', 'Cerrar', {
-          duration: 3000, panelClass: ['snack-success'],
-        });
+        this.notificaciones.exito('Asistencia eliminada', `Se quitó el registro de ${this.getNombreAlumno(atencion.idPerfil)}.`);
       } else if (result?.errorStatus !== undefined) {
-        this.snackBar.open('Error al eliminar la asistencia, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo eliminar la asistencia', 'Error al eliminar la asistencia, intente de nuevo.');
       }
     });
   }
@@ -488,6 +602,33 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   /** "jueves, 15 de octubre de 2026" */
   get hoyLargo(): string {
     return fechaLarga(this.hoy);
+  }
+
+  /** "Miércoles" */
+  get hoyDiaSemana(): string {
+    const d = aDateLocal(this.hoy);
+    const dia = d ? new Intl.DateTimeFormat('es-CO', { weekday: 'long' }).format(d) : '';
+    return dia.charAt(0).toUpperCase() + dia.slice(1);
+  }
+
+  /** "28 de octubre de 2026" */
+  get hoyFechaLarga(): string {
+    const d = aDateLocal(this.hoy);
+    return d ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'long' }).format(d) : '';
+  }
+
+  /** "2 horas" / "1 hora 30 min" / "45 min" de la franja de hoy; vacío si no hay franja visible. */
+  get duracionHoyTexto(): string {
+    const f = this.franjaVisible;
+    if (!f) return '';
+    const h = f.horas, m = f.minutos;
+    const horas = h > 0 ? `${h} ${h === 1 ? 'hora' : 'horas'}` : '';
+    const minutos = m > 0 ? `${m} min` : '';
+    return [horas, minutos].filter(Boolean).join(' ');
+  }
+
+  get totalSinMarcar(): number {
+    return this.alumnos.data.length - this.totalAsistieron;
   }
 
   /** Solo el Coordinador puede registrar un día sin clase; el resto solo registra en los días del horario. */
@@ -738,7 +879,9 @@ export class ListDeportistasdeCursoComponent implements OnInit {
         this.asistenciaConfirmadaHoy = true;
         this.intentoFueraDeHorario = false;
         this.guardando = false;
-        this.snackBar.open('Asistencia registrada correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        const presentes = cuerpo.asistencias.filter(a => a.estaAtendido).length;
+        this.notificaciones.exito('Asistencia registrada',
+          `Se guardó la asistencia del ${formatearFecha(fecha)}: asistieron ${presentes} y faltaron ${cuerpo.asistencias.length - presentes}.`);
         // Las faltas las calcula el backend: se vuelven a pedir con la lista.
         this.cargarAlumnos();
         if (this.historialVisible) this.cargarHistorial();
@@ -852,9 +995,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
     this.novedadClaseService.registrarNovedad(datos).subscribe({
       next: () => {
-        this.snackBar.open('Novedad registrada correctamente', 'Cerrar', {
-          duration: 3000, panelClass: ['snack-success'],
-        });
+        this.notificaciones.exito('Novedad registrada', `La clase del ${formatearFecha(datos.fecha)} quedó como no realizada.`);
         this.cerrarFormNovedad();
         if (this.historialVisible) this.cargarNovedades();
       },
@@ -864,7 +1005,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           : err?.status === 422
             ? 'Fecha no permitida o fuera de la ventana de registro'
             : 'No se pudo registrar la novedad. Intenta de nuevo.';
-        this.snackBar.open(msg, 'Cerrar', { duration: 4000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo registrar la novedad', msg);
       },
     });
   }

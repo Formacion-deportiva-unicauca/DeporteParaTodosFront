@@ -5,7 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EMPTY, Subject, combineLatest, distinctUntilChanged, map, merge, switchMap, takeUntil, tap, catchError } from 'rxjs';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
@@ -50,7 +51,7 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
   private idActual = '';
 
   constructor(
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
     private dialog: MatDialog,
     private perfilService: PerfilService,
     private instructorService: InstructorServisce,
@@ -105,10 +106,7 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
         if (err?.status === 404) {
           this.instructorNoEncontrado = true;
         } else {
-          this.snackBar.open('No se pudo cargar la información del instructor.', '', {
-            duration: 4000,
-            panelClass: 'snack-error',
-          });
+          this.notificaciones.error('No se pudo cargar el instructor', 'Revise su conexión e intente de nuevo.');
         }
         return EMPTY;
       }),
@@ -160,7 +158,7 @@ export class DetalleInstructorComponent implements OnInit, OnDestroy {
           this.instructorNoEncontrado = true;
           return;
         }
-        this.snackBar.open(textoResultadoProrroga(resultado), '', { duration: 3000, panelClass: 'snack-success' });
+        this.notificaciones.exito(textoResultadoProrroga(resultado));
       });
   }
 

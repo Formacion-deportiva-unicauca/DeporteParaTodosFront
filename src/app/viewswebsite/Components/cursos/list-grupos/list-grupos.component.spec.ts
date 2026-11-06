@@ -6,13 +6,17 @@
 // instanciar a través de Angular DI (que requeriría stubs para 10 dependencias).
 // Válido porque letraDeIterable no accede a `this`.
 
+import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
+import { SidenavStub } from 'src/app/testing/sidenav-stub';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { FormHorarioComponent } from '../form-horario/form-horario.component';
+import { FormGruposComponent } from '../form-grupos/form-grupos.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { OAuthService } from 'angular-oauth2-oidc';
@@ -72,7 +76,7 @@ describe('ListGruposComponent › alumnosGrupo', () => {
         { provide: ImagenService, useValue: { getimagen: jasmine.createSpy().and.returnValue(of({})) } },
         { provide: InstructorServisce, useValue: { getInstructor: jasmine.createSpy().and.returnValue(of({})) } },
         { provide: HorarioService, useValue: { getHorarios: jasmine.createSpy().and.returnValue(of([])) } },
-        { provide: MatSnackBar,  useValue: { open: jasmine.createSpy() } },
+        { provide: NotificacionService, useValue: jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']) },
         { provide: MatDialog,    useValue: { open: jasmine.createSpy().and.returnValue({ afterClosed: () => of(null) }) } },
         { provide: BreakpointObserver, useValue: { observe: jasmine.createSpy().and.returnValue(of({ matches: false })) } },
         {
@@ -81,7 +85,9 @@ describe('ListGruposComponent › alumnosGrupo', () => {
         },
       ],
       schemas: [NO_ERRORS_SCHEMA],
-    }).compileComponents();
+    })
+    .overrideComponent(ListGruposComponent, { remove: { imports: [SidenavComponent] }, add: { imports: [SidenavStub] } })
+    .compileComponents();
 
     fixture   = TestBed.createComponent(ListGruposComponent);
     component = fixture.componentInstance;
@@ -147,15 +153,15 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     expect(pista()).toBeNull();
   });
 
-  it('el badge del curso se distingue del grupo: "Curso: inscripciones abiertas/cerradas"', () => {
+  it('el chip del resumen del curso indica si el curso tiene inscripciones abiertas o cerradas', () => {
     const badge = (): string =>
-      (fixture.nativeElement as HTMLElement).querySelector('.estado-info .badge.ms-2')?.textContent?.trim() ?? '';
+      (fixture.nativeElement as HTMLElement).querySelector('.resumen-curso .badge-inscripciones')?.textContent?.trim() ?? '';
     component.curso = { ...component.curso!, estadoInscripciones: 'ABIERTO' };
     fixture.detectChanges();
-    expect(badge()).toBe('Curso: inscripciones abiertas');
+    expect(badge()).toBe('Inscripciones abiertas');
     component.curso = { ...component.curso!, estadoInscripciones: 'CERRADO' };
     fixture.detectChanges();
-    expect(badge()).toBe('Curso: inscripciones cerradas');
+    expect(badge()).toBe('Inscripciones cerradas');
   });
 
   // ── Fase 3: cierre manual de inscripciones por grupo (solo Coordinador) ───────────────────────
@@ -165,11 +171,11 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     inscripcionesCerradasManual: true, fechaIncripcionCierre: '2026-12-31',
   };
 
-  it('el badge del curso muestra "Curso: sin grupos" cuando aún no tiene grupos', () => {
+  it('el chip del curso muestra "Sin grupos" cuando aún no tiene grupos', () => {
     component.curso = { ...component.curso!, estadoInscripciones: 'SIN_GRUPOS' };
     fixture.detectChanges();
-    const badge = (fixture.nativeElement as HTMLElement).querySelector('.estado-info .badge.ms-2')?.textContent?.trim();
-    expect(badge).toBe('Curso: sin grupos');
+    const badge = (fixture.nativeElement as HTMLElement).querySelector('.resumen-curso .badge-inscripciones')?.textContent?.trim();
+    expect(badge).toBe('Sin grupos');
   });
 
   it('accionCierreInscripciones(): "Cerrar inscripciones" si está abierto, "Reabrir inscripciones" si lo cerró el Coordinador', () => {
@@ -183,7 +189,8 @@ describe('ListGruposComponent › alumnosGrupo', () => {
   });
 
   it('toggleCierreInscripciones(): cierra un grupo abierto, actualiza la tarjeta y avisa', () => {
-    const snack = spyOn(component['snackBar'], 'open');
+    const exito = component['notificaciones'].exito as jasmine.Spy;
+    const error = component['notificaciones'].error as jasmine.Spy;
     const item: GrupoDTO = { ...abierto };
     grupoSpy.cambiarCierreInscripciones.and.returnValue(of({
       ...item, inscripcionesAbiertas: false, motivoInscripcion: 'CERRADAS', inscripcionesCerradasManual: true,
@@ -192,12 +199,12 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     expect(grupoSpy.cambiarCierreInscripciones).toHaveBeenCalledWith('Recreativo', 'Natacion', 2026, 1, true);
     expect(item.inscripcionesCerradasManual).toBeTrue();
     expect(item.inscripcionesAbiertas).toBeFalse();
-    expect(snack).toHaveBeenCalledWith(
-      'Inscripciones del grupo cerradas', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-success'] }));
+    expect(exito).toHaveBeenCalledWith('Inscripciones cerradas', jasmine.stringContaining('se cerraron'));
   });
 
   it('toggleCierreInscripciones(): reabre un grupo cerrado por el Coordinador', () => {
-    const snack = spyOn(component['snackBar'], 'open');
+    const exito = component['notificaciones'].exito as jasmine.Spy;
+    const error = component['notificaciones'].error as jasmine.Spy;
     const item: GrupoDTO = { ...cerradoAMano };
     grupoSpy.cambiarCierreInscripciones.and.returnValue(of({
       ...item, inscripcionesAbiertas: true, motivoInscripcion: 'ABIERTAS', inscripcionesCerradasManual: false,
@@ -206,28 +213,26 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     expect(grupoSpy.cambiarCierreInscripciones).toHaveBeenCalledWith('Recreativo', 'Natacion', 2026, 1, false);
     expect(item.inscripcionesCerradasManual).toBeFalse();
     expect(item.inscripcionesAbiertas).toBeTrue();
-    expect(snack).toHaveBeenCalledWith(
-      'Inscripciones del grupo reabiertas', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-success'] }));
+    expect(exito).toHaveBeenCalledWith('Inscripciones reabiertas', jasmine.stringContaining('se reabrieron'));
   });
 
   it('toggleCierreInscripciones(): muestra el mensaje del backend si no se puede (422) y no cambia la tarjeta', () => {
-    const snack = spyOn(component['snackBar'], 'open');
+    const exito = component['notificaciones'].exito as jasmine.Spy;
+    const error = component['notificaciones'].error as jasmine.Spy;
     const item: GrupoDTO = { ...cerradoAMano };
     grupoSpy.cambiarCierreInscripciones.and.returnValue(
       throwError(() => ({ status: 422, error: { mensaje: 'No se pueden reabrir las inscripciones: la fecha de cierre ya pasó' } })));
     component.toggleCierreInscripciones(item);
     expect(item.inscripcionesCerradasManual).toBeTrue();
-    expect(snack).toHaveBeenCalledWith(
-      'No se pueden reabrir las inscripciones: la fecha de cierre ya pasó', 'Cerrar',
-      jasmine.objectContaining({ panelClass: ['snack-error'] }));
+    expect(error).toHaveBeenCalledWith('No se pudo cambiar el estado', 'No se pueden reabrir las inscripciones: la fecha de cierre ya pasó');
   });
 
   it('toggleCierreInscripciones(): mensaje genérico si el error no trae mensaje', () => {
-    const snack = spyOn(component['snackBar'], 'open');
+    const exito = component['notificaciones'].exito as jasmine.Spy;
+    const error = component['notificaciones'].error as jasmine.Spy;
     grupoSpy.cambiarCierreInscripciones.and.returnValue(throwError(() => ({ status: 500 })));
     component.toggleCierreInscripciones({ ...abierto });
-    expect(snack).toHaveBeenCalledWith(
-      jasmine.stringContaining('No se pudo cambiar'), 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+    expect(error).toHaveBeenCalledWith('No se pudo cambiar el estado', jasmine.stringContaining('No se pudo cambiar'));
   });
 
   it('un grupo cerrado a mano no muestra la pista de cambiar la fecha: se reabre desde el menú', () => {
@@ -261,19 +266,21 @@ describe('ListGruposComponent › alumnosGrupo', () => {
   });
 
   it('Alumno que pulsa un grupo cerrado o no abierto recibe el aviso con la fecha (no se queda sin respuesta)', () => {
-    const snack = spyOn(component['snackBar'], 'open');
+    const exito = component['notificaciones'].exito as jasmine.Spy;
+    const error = component['notificaciones'].error as jasmine.Spy;
     component.perfil = 'Alumno';
     component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, cerrado);
-    expect(snack).toHaveBeenCalledWith('Las inscripciones de este grupo cerraron el 14/06/2026', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+    expect(error).toHaveBeenCalledWith('Inscripción no disponible', 'Las inscripciones de este grupo cerraron el 14/06/2026');
     component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, noAbierto);
-    expect(snack).toHaveBeenCalledWith('Las inscripciones de este grupo abren el 01/07/2026', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+    expect(error).toHaveBeenCalledWith('Inscripción no disponible', 'Las inscripciones de este grupo abren el 01/07/2026');
   });
 
   it('Alumno con un grupo abierto no recibe ningún aviso', () => {
-    const snack = spyOn(component['snackBar'], 'open');
+    const exito = component['notificaciones'].exito as jasmine.Spy;
+    const error = component['notificaciones'].error as jasmine.Spy;
     component.perfil = 'Alumno';
     component.alumnosGrupo('Recreativo', 'Natacion', 2026, 1, abierto);
-    expect(snack).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 
   it('Alumno sí navega con un grupo abierto o sin el campo (compatibilidad)', () => {
@@ -299,7 +306,154 @@ describe('ListGruposComponent › alumnosGrupo', () => {
     component['loadGrupos']('Recreativo', 'Natacion');
     expect(component.curso).toBeNull();
   });
+
+  // ── Diseño de la vista (prototipo) ────────────────────────────────────────────────────────────
+  describe('diseño de la vista', () => {
+    const el = (): HTMLElement => fixture.nativeElement;
+    const q = (sel: string): HTMLElement | null => el().querySelector(sel);
+    const qa = (sel: string): HTMLElement[] => Array.from(el().querySelectorAll(sel)) as HTMLElement[];
+    const grupoA: GrupoDTO = {
+      ...grupoBase, nombreInstructor: 'Katerinn Natalia Arcos Daza', inscripcionesAbiertas: true,
+      horarios: [{ id: 1, categoria: 'Recreativo', curso: 'Natacion', anio: 2026, iterable: 1, dia: 'Miércoles', horaInicio: '18:00:00', horaFin: '20:00:00', escenario: 'Coliseo universitario', eliminado: 0 }],
+    };
+
+    function conGrupos(grupos: GrupoDTO[], rol = 'Coordinador'): void {
+      component.perfil = rol;
+      component.grupos = grupos;
+      component.disponibilidad = { '2026-1': { cuposTotales: 24, cuposDisponibles: 6, tamanoListaEspera: 0 } };
+      fixture.detectChanges();
+    }
+
+    it('el título es "Grupos · {curso}" y la miga lleva a Inicio', () => {
+      conGrupos([grupoA]);
+      expect(q('h1.titulo-pagina')?.textContent?.trim()).toBe('Grupos · Natacion');
+      expect(q('.migas')?.textContent).toContain('Inicio');
+    });
+
+    it('"Volver a cursos" navega a los cursos de la categoría', () => {
+      conGrupos([grupoA]);
+      (q('.volver') as HTMLElement).click();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/cursos_deportivos', 'Recreativo']);
+    });
+
+    it('solo el Coordinador ve "Nuevo grupo"', () => {
+      conGrupos([grupoA]);
+      expect(q('.barra-superior .btn-principal')?.textContent).toContain('Nuevo grupo');
+      conGrupos([grupoA], 'Alumno');
+      expect(q('.barra-superior .btn-principal')).toBeNull();
+    });
+
+    it('el resumen del curso muestra categoría, nombre, estado y las cifras de grupos, inscritos y cupos', () => {
+      conGrupos([grupoA]);
+      const r = q('.resumen-curso') as HTMLElement;
+      expect(r.textContent).toContain('Recreativo');
+      expect(r.querySelector('.chip-estado')?.textContent?.trim()).toBe('Curso activo');
+      const cifras = qa('.resumen-curso .cifra').map(c => `${c.querySelector('dd')?.textContent?.trim()} ${c.querySelector('dt')?.textContent?.trim()}`);
+      expect(cifras).toEqual(['1 Grupos', '18 Personas inscritas', '6 Cupos disponibles']);
+    });
+
+    it('cada grupo muestra periodo, letra, instructor con iniciales y sus horarios en formato de 12 horas', () => {
+      conGrupos([grupoA]);
+      const t = q('.tarjeta-grupo') as HTMLElement;
+      expect(t.querySelector('.eyebrow-grupo')?.textContent?.trim()).toBe('2026-2');
+      expect(t.querySelector('.nombre-grupo')?.textContent?.trim()).toBe('Grupo A');
+      expect(t.querySelector('.instructor')?.textContent).toContain('Katerinn Natalia Arcos Daza');
+      expect(t.querySelector('.avatar')?.textContent?.trim()).toBe('KD');
+      const fila = Array.from(t.querySelectorAll('.horario-fila span')).map(e => e.textContent?.trim());
+      expect(fila).toEqual(['Miércoles', '6:00 p. m. – 8:00 p. m.', 'Coliseo universitario']);
+    });
+
+    it('sin horarios ni instructor lo dice con claridad', () => {
+      conGrupos([{ ...grupoA, horarios: [], nombreInstructor: null }]);
+      expect(q('.tarjeta-grupo')?.textContent).toContain('Horario por definir');
+      expect(q('.tarjeta-grupo')?.textContent).toContain('Sin instructor asignado');
+    });
+
+    it('la ocupación se muestra con una barra accesible y los cupos disponibles', () => {
+      conGrupos([grupoA]);
+      const barra = q('.tarjeta-grupo [role="progressbar"]') as HTMLElement;
+      expect(barra.getAttribute('aria-valuenow')).toBe('18');
+      expect(barra.getAttribute('aria-valuemax')).toBe('24');
+      expect(q('.tarjeta-grupo')?.textContent).toContain('18 de 24 cupos');
+      expect(q('.tarjeta-grupo')?.textContent).toContain('6 cupos disponibles');
+    });
+
+    it('un grupo lleno lo indica', () => {
+      conGrupos([grupoA]);
+      component.disponibilidad = { '2026-1': { cuposTotales: 24, cuposDisponibles: 0, tamanoListaEspera: 3 } };
+      fixture.detectChanges();
+      expect(q('.tarjeta-grupo')?.textContent).toContain('Grupo lleno');
+      expect(q('.tarjeta-grupo')?.textContent).toContain('3 en espera');
+    });
+
+    it('el grupo cerrado muestra un aviso con el motivo (el texto de ayuda solo para el Coordinador)', () => {
+      conGrupos([cerrado]);
+      expect(q('.aviso-cierre .etiqueta-inscripcion')?.textContent?.trim()).toBe('Cerraron el 14/06/2026');
+      expect(q('.aviso-cierre .pista-reabrir')).not.toBeNull();
+      conGrupos([cerrado], 'Instructor');
+      expect(q('.aviso-cierre .etiqueta-inscripcion')).not.toBeNull();
+      expect(q('.aviso-cierre .pista-reabrir')).toBeNull();
+    });
+
+    it('"Ver grupo" abre la lista del grupo para Coordinador e Instructor', () => {
+      conGrupos([grupoA]);
+      (q('.ver-grupo') as HTMLElement).click();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/listaDeportistasCurso', 'Recreativo', 'Natacion', 2026, 1]);
+    });
+
+    it('el Alumno ve "Inscribirme" (deshabilitado si el grupo está cerrado) y no "Ver grupo"', () => {
+      conGrupos([grupoA, { ...cerrado, iterable: 2 }], 'Alumno');
+      const botones = qa('.btn-inscribirme') as HTMLButtonElement[];
+      expect(botones.length).toBe(2);
+      expect(botones[0].disabled).toBeFalse();
+      expect(botones[1].disabled).toBeTrue();
+      expect(q('.ver-grupo')).toBeNull();
+    });
+
+    it('el engranaje solo lo ve el Coordinador y tiene nombre accesible', () => {
+      conGrupos([grupoA]);
+      expect(q('.btn-menu')?.getAttribute('aria-label')).toBe('Acciones del grupo A');
+      expect(q('.btn-menu app-icono-engranaje')).not.toBeNull();
+      conGrupos([grupoA], 'Instructor');
+      expect(q('.btn-menu')).toBeNull();
+    });
+
+    it('la rejilla usa 1 columna en móvil, 2 desde 768px y 3 desde 1280px, sin mat-grid-list', () => {
+      conGrupos([grupoA]);
+      expect(q('mat-grid-list')).toBeNull();
+      const cols = getComputedStyle(q('.rejilla-grupos') as HTMLElement).gridTemplateColumns.split(' ').filter(Boolean).length;
+      const esperadas = window.matchMedia('(min-width: 1280px)').matches ? 3 : window.matchMedia('(min-width: 768px)').matches ? 2 : 1;
+      expect(cols).toBe(esperadas);
+    });
+
+    it('un grupo sin horarios (ya cargados) muestra al Coordinador el aviso y un acceso a "Definir horarios"', () => {
+      conGrupos([{ ...grupoA, horarios: [] }]);
+      const aviso = q('.tarjeta-grupo .aviso-sin-horario') as HTMLElement;
+      expect(aviso.textContent).toContain('instructor no podrá registrar asistencia');
+      spyOn(component, 'gestionarHorarios');
+      (aviso.querySelector('button') as HTMLElement).click();
+      expect(component.gestionarHorarios).toHaveBeenCalled();
+    });
+
+    it('el aviso de "sin horario" no aparece para el Instructor ni mientras los horarios aún cargan', () => {
+      conGrupos([{ ...grupoA, horarios: [] }], 'Instructor');
+      expect(q('.aviso-sin-horario')).toBeNull();
+      conGrupos([{ ...grupoA, horarios: undefined }]);
+      expect(q('.aviso-sin-horario')).toBeNull();
+    });
+
+    it('un grupo con horarios no muestra el aviso', () => {
+      conGrupos([grupoA]);
+      expect(q('.aviso-sin-horario')).toBeNull();
+    });
+
+    it('sin grupos lo explica', () => {
+      conGrupos([]);
+      expect(q('.aviso-vacio')?.textContent).toContain('aún no tiene grupos');
+    });
+  });
 });
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // onDelete() — flujo completo de eliminación de grupo
@@ -309,7 +463,8 @@ describe('ListGruposComponent › onDelete', () => {
   let fixture: ComponentFixture<ListGruposComponent>;
   let mockDialogRef: { afterClosed: jasmine.Spy };
   let dialogOpenSpy: jasmine.Spy;
-  let snackBarOpenSpy: jasmine.Spy;
+  let avisoExito: jasmine.Spy;
+  let avisoError: jasmine.Spy;
 
   const mockItem: GrupoDTO = {
     categoria: 'Acuáticos',
@@ -356,7 +511,9 @@ describe('ListGruposComponent › onDelete', () => {
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ categoria: 'Acuáticos', curso: 'Natación' })) } },
       ],
       schemas: [NO_ERRORS_SCHEMA],
-    }).compileComponents();
+    })
+    .overrideComponent(ListGruposComponent, { remove: { imports: [SidenavComponent] }, add: { imports: [SidenavStub] } })
+    .compileComponents();
 
     fixture   = TestBed.createComponent(ListGruposComponent);
     component = fixture.componentInstance;
@@ -366,7 +523,8 @@ describe('ListGruposComponent › onDelete', () => {
     // (needed because MatDialogModule in standalone imports creates its own injector,
     //  so the TestBed-level MatDialog provider is shadowed by the component's own one)
     dialogOpenSpy   = spyOn(component['dialog'], 'open').and.returnValue(mockDialogRef as any);
-    snackBarOpenSpy = spyOn(component['snackBar'], 'open');
+    avisoExito = spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    avisoError = spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
   });
 
   it('abre el dialog con tipoElemento="grupo" y los parámetros del item', () => {
@@ -386,10 +544,7 @@ describe('ListGruposComponent › onDelete', () => {
     spyOn<any>(component, 'loadGrupos');
     component.onDelete(mockItem);
     expect(component['loadGrupos']).toHaveBeenCalled();
-    expect(snackBarOpenSpy).toHaveBeenCalledWith(
-      'Grupo eliminado correctamente', 'Cerrar',
-      jasmine.objectContaining({ panelClass: ['snack-success'] })
-    );
+    expect(avisoExito).toHaveBeenCalledWith('Grupo eliminado', jasmine.any(String));
   });
 
   it('errorStatus definido → muestra snackbar de error sin recargar', () => {
@@ -397,10 +552,7 @@ describe('ListGruposComponent › onDelete', () => {
     spyOn<any>(component, 'loadGrupos');
     component.onDelete(mockItem);
     expect(component['loadGrupos']).not.toHaveBeenCalled();
-    expect(snackBarOpenSpy).toHaveBeenCalledWith(
-      jasmine.stringContaining('Error'), 'Cerrar',
-      jasmine.objectContaining({ panelClass: ['snack-error'] })
-    );
+    expect(avisoError).toHaveBeenCalledWith('No se pudo eliminar el grupo', jasmine.stringContaining('Error'));
   });
 
   it('con inscritos y lista de espera → el dialog advierte que sus inscripciones se cancelarán', () => {
@@ -457,7 +609,8 @@ describe('ListGruposComponent › onDelete', () => {
     spyOn<any>(component, 'loadGrupos');
     component.onDelete(mockItem);
     expect(component['loadGrupos']).not.toHaveBeenCalled();
-    expect(snackBarOpenSpy).not.toHaveBeenCalled();
+    expect(avisoExito).not.toHaveBeenCalled();
+    expect(avisoError).not.toHaveBeenCalled();
   });
 });
 
@@ -504,5 +657,94 @@ describe('ListGruposComponent › puedeInscribirse', () => {
   it('categoria "seleccionado" → false aunque el curso esté ACTIVO+ABIERTO', () => {
     comp.categoria = 'seleccionado';
     expect(comp.puedeInscribirse()).toBeFalse();
+  });
+});
+
+describe('ListGruposComponent › nuevo grupo: paso 2 (horarios)', () => {
+  let component: ListGruposComponent;
+  let fixture: ComponentFixture<ListGruposComponent>;
+  let abrir: jasmine.Spy;
+  let cierres: any[];
+  let avisos: jasmine.SpyObj<NotificacionService>;
+
+  const creado: GrupoDTO = { categoria: 'Recreativo', curso: 'Natacion', anio: 2026, iterable: 2, periodo: 2, cupos: 10, fechaCreacion: '2026-01-01' };
+
+  beforeEach(async () => {
+    avisos = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
+    await TestBed.configureTestingModule({
+      imports: [ListGruposComponent, HttpClientTestingModule, NoopAnimationsModule],
+      providers: [
+        { provide: Router, useValue: jasmine.createSpyObj('Router', ['navigate']) },
+        { provide: PerfilService, useValue: { perfil$: new BehaviorSubject<string>('Coordinador') } },
+        { provide: AuthService, useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'isAuthenticated', 'getProfile']) },
+        { provide: TokenInterchangeService, useValue: {} },
+        { provide: OAuthService, useValue: { configure: () => {}, setupAutomaticSilentRefresh: () => {}, events: of(), loadDiscoveryDocumentAndTryLogin: () => Promise.resolve(), getIdentityClaims: () => null, hasValidAccessToken: () => false, hasValidIdToken: () => false } },
+        { provide: GrupoService, useValue: { getGrupos: () => of([]) } },
+        { provide: CursodeportivoService, useValue: { getCurso: () => of({ nombre: 'Natacion', estadoCurso: 'ACTIVO' } as CursoDTO) } },
+        { provide: ImagenService, useValue: { getimagen: () => of({}) } },
+        { provide: InstructorServisce, useValue: { getInstructor: () => of({}) } },
+        { provide: HorarioService, useValue: { getHorarios: () => of([]) } },
+        { provide: NotificacionService, useValue: avisos },
+        { provide: BreakpointObserver, useValue: { observe: () => of({ matches: false }) } },
+        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ categoria: 'Recreativo', curso: 'Natacion' })) } },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    })
+      .overrideComponent(ListGruposComponent, { remove: { imports: [SidenavComponent] }, add: { imports: [SidenavStub] } })
+      .compileComponents();
+    fixture = TestBed.createComponent(ListGruposComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    cierres = [creado, true];
+    abrir = spyOn(component['dialog'], 'open').and.callFake(() => ({ afterClosed: () => of(cierres.shift()) }) as any);
+    spyOn<any>(component, 'loadGrupos');
+  });
+
+  it('tras crear el grupo avisa y abre los horarios del grupo NUEVO como "paso 2" (con su año e iterable)', () => {
+    component.nuevoGrupo();
+    expect(abrir.calls.argsFor(0)[0]).toBe(FormGruposComponent);
+    expect(avisos.exito).toHaveBeenCalledWith('Grupo creado', jasmine.stringContaining('Grupo B'));
+    expect(abrir.calls.argsFor(1)[0]).toBe(FormHorarioComponent);
+    expect(abrir.calls.argsFor(1)[1]!.data).toEqual({ categoria: 'Recreativo', curso: 'Natacion', anio: 2026, iterable: 2, nuevoGrupo: true });
+  });
+
+  it('si se guardan horarios lo confirma y recarga los grupos', () => {
+    component.nuevoGrupo();
+    expect(avisos.exito).toHaveBeenCalledWith('Horarios guardados', jasmine.any(String));
+    expect(component['loadGrupos']).toHaveBeenCalled();
+  });
+
+  it('si se omite el paso (X, Esc o "Omitir por ahora") el grupo queda creado y se explica dónde definir el horario', () => {
+    cierres = [creado, false];
+    component.nuevoGrupo();
+    expect(avisos.info).toHaveBeenCalledWith('Grupo sin horario', jasmine.stringContaining('Gestionar horarios'));
+    expect(avisos.exito).not.toHaveBeenCalledWith('Horarios guardados', jasmine.anything());
+  });
+
+  it('cerrar el formulario del grupo sin crearlo no avisa ni abre los horarios', () => {
+    cierres = [undefined];
+    component.nuevoGrupo();
+    expect(abrir).toHaveBeenCalledTimes(1);
+    expect(avisos.exito).not.toHaveBeenCalled();
+  });
+
+  it('al actualizar un grupo avisa con éxito y recarga; si cancela no avisa', () => {
+    cierres = [true];
+    component.onUpdate(2026, 1);
+    expect(avisos.exito).toHaveBeenCalledOnceWith('Grupo actualizado', 'Los cambios del grupo se guardaron correctamente.');
+    expect(component['loadGrupos']).toHaveBeenCalled();
+
+    avisos.exito.calls.reset();
+    cierres = [undefined];
+    component.onUpdate(2026, 1);
+    expect(avisos.exito).not.toHaveBeenCalled();
+  });
+
+  it('si no se pueden cargar los grupos avisa con la notificación de error', () => {
+    (component['loadGrupos'] as jasmine.Spy).and.callThrough();
+    spyOn(component['grupoService'], 'getGrupos').and.returnValue(throwError(() => ({ status: 500 })));
+    spyOn(console, 'error');
+    component['loadGrupos']('Recreativo', 'Natacion');
+    expect(avisos.error).toHaveBeenCalledOnceWith('No se pudieron cargar los grupos', 'Revise su conexión e intente de nuevo.');
   });
 });

@@ -36,7 +36,8 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
   let confirmarAsistencia: jasmine.Spy;
   let getClase: jasmine.Spy;
   let getAtencionesClase: jasmine.Spy;
-  let snack: jasmine.Spy;
+  let notiExito: jasmine.Spy;
+  let notiError: jasmine.Spy;
   let abrirDialogo: jasmine.Spy;
   let ahoraFijo: Date = JUEVES;
 
@@ -100,7 +101,8 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     const horarios$ = o.horarios === undefined ? of(todosLosDias()) : o.horarios === 'error' ? throwError(() => err(500)) : Array.isArray(o.horarios) ? of(o.horarios) : o.horarios;
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(horarios$);
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Prof' } as any));
-    snack = spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    notiExito = spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    notiError = spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
     abrirDialogo = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(true) } as any);
     postClase = spyOn(component['claseService'], 'postClase').and.callFake((c: ClaseDTO) => of({ ...c, codigo: 50 }));
     getClase = spyOn(component['claseService'], 'getClase').and.returnValue(o.clases === 'error' ? throwError(() => err(500)) : of(o.clases === undefined ? [] : o.clases));
@@ -108,6 +110,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       .and.returnValue(of({ codigoClase: 50, confirmadaEn: '2026-10-15T12:00:00', presentes: 0, ausentes: 0 }));
     const atenciones$ = o.atenciones === 'error' ? throwError(() => err(500)) : o.atenciones instanceof Subject ? o.atenciones : of(o.atenciones === undefined ? [] : o.atenciones);
     getAtencionesClase = spyOn(component['asistenciaService'], 'getAtencionesClase').and.returnValue(atenciones$);
+    spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
     fixture.detectChanges();
   };
 
@@ -671,7 +674,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     it('éxito: snackbar de éxito', () => {
       marcar('Ana');
       guardar();
-      expect(snack).toHaveBeenCalledWith('Asistencia registrada correctamente', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-success'] }));
+      expect(component['notificaciones'].exito).toHaveBeenCalledWith('Asistencia registrada', jasmine.stringContaining('asistieron'));
     });
 
     it('ninguno marcado: pide confirmación con el diálogo propio', () => {
@@ -774,7 +777,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect(casilla('Ana').checked).toBeTrue();
       confirmarAsistencia.and.returnValue(of({ codigoClase: 50, confirmadaEn: '2026-10-15T12:00:00', presentes: 1, ausentes: 2 }));
       guardar();
-      expect(snack).toHaveBeenCalledWith('Asistencia registrada correctamente', 'Cerrar', jasmine.any(Object));
+      expect(component['notificaciones'].exito).toHaveBeenCalledWith('Asistencia registrada', jasmine.stringContaining('asistieron'));
       expect(q('.error-registro')).toBeNull();
     });
 
@@ -829,7 +832,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
 
     it('al abrir la pantalla precarga las marcas de hoy: asistió = marcado; faltó o sin registro = sin marcar', async () => {
       await montar({ clases: [claseExistente], atenciones: previas });
-      expect(getClase).toHaveBeenCalledTimes(1);
+      expect(getClase).toHaveBeenCalledTimes(2);   // una lectura para las marcas de hoy y otra para el historial (Coordinador)
       expect(getAtencionesClase).toHaveBeenCalledWith(50);
       expect(casilla('Ana').checked).toBeTrue();
       expect(casilla('Beto').checked).toBeFalse();

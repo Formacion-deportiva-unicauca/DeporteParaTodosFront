@@ -1,0 +1,84 @@
+:host {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Pie compacto como el del SIVRI: texto de 12px (Caption de la tabla tipográfica de desarrollo) */
+.pie {
+  background: var(--color-neutro-hover);
+  color: var(--color-neutro-texto);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Franja de colores del Plan de Desarrollo Institucional (6px, como en SIVRI) */
+.franja {
+  display: flex;
+  height: 6px;
+}
+.segmento { flex: 1; }
+.s1 { background: var(--color-secundario); }
+.s2 { background: var(--color-pdi-1); }
+.s3 { background: var(--color-pdi-2); }
+.s4 { background: var(--color-pdi-3); }
+.s5 { background: var(--color-pdi-4); }
+.s6 { background: var(--color-pdi-5); }
+
+.datos {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1.4fr;
+  gap: 1rem;
+  padding: 0.6rem 2rem 0.4rem;
+}
+
+.bloque {
+  display: flex;
+  flex-direction: column;
+  padding-left: 1rem;
+  border-left: 1px solid #c9c9c9;
+}
+.bloque:first-child { padding-left: 0; border-left: 0; }
+
+.nombre {
+  font-family: var(--fuente-titulos);
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--color-primario);
+}
+
+.legal {
+  padding: 0 2rem 0.6rem;
+  text-align: center;
+}
+.legal p { margin: 0 0 0.1rem; }
+
+.enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Separadores verticales entre enlaces: "Política | Política | Soporte" */
+.enlaces li + li::before {
+  content: "|";
+  margin: 0 0.5rem;
+  color: #8a8a8a;
+}
+
+a { color: var(--color-primario); text-decoration: underline; }
+a:hover { color: var(--color-primario-light); }
+a:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: 2px; }
+
+/* Tableta y móvil: una columna, sin separadores verticales */
+@media (max-width: 991.98px) {
+  .datos { grid-template-columns: 1fr; gap: 0.5rem; padding: 0.75rem 1rem 0.5rem; }
+  .bloque { padding-left: 0; border-left: 0; }
+  .legal { padding: 0 1rem 0.75rem; }
+  /* En columna, los enlaces van uno bajo otro, sin barras, con objetivo táctil cómodo */
+  .enlaces { flex-direction: column; align-items: center; }
+  .enlaces li + li::before { content: none; }
+  .enlaces a, .enlaces span { display: inline-block; padding: 0.4rem 0; }
+}

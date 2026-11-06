@@ -1,19 +1,24 @@
-<!--Header-->
-<nav class="navbar">
-  <div class="navbar-left">
-    <a (click)="redirectionTo('home')">
-      <img src="./assets/imagesSystem/logo_unicauca.png" alt="Logo" class="logo" width="110px" height="">
-    </a>
-  </div>
-  <div class="navbar-right">
-      <ul>
-          <li><a (click)="redirectionTo('')">Inicio</a></li>
-          <li><a (click)="redirectionTo ('')">Noticias</a></li>
-          <li><a (click)="redirectionTo ('https://vicecultura.unicauca.edu.co/viceculturav2/divisiones/deporte/deportiva')">Nosotros</a></li>
-          <li><a (click)="redirectionTo('https://vicecultura.unicauca.edu.co/viceculturav2/divisiones/deporte/deportiva')">Contáctanos </a></li>
-          <li *ngIf="perfil"><span class="rol-tag">Rol: {{ perfil }}</span></li>
-          <li *ngIf="!perfil"><a (click)="redirectionTo('login')">Iniciar Sesión</a></li>
-          <li *ngIf="perfil"><a (click)="cerrarSesion()">Cerrar Sesión</a></li>
-      </ul>
-  </div>
-</nav>
+<header class="barra">
+  <a class="marca" routerLink="/home">
+    <img class="escudo" src="assets/imagesSystem/Logo-Universidad-del-Cauca-horizontal-B.png" alt="Universidad del Cauca">
+    <span class="marca-texto">
+      <span class="marca-titulo">Deporte para Todos</span>
+      <span class="marca-sub">Vicerrectoría de Cultura y Bienestar</span>
+    </span>
+  </a>
+
+  <button type="button" class="btn-hamburguesa" aria-controls="enlaces-visitante"
+          [attr.aria-expanded]="menuAbierto" aria-label="Abrir menú de navegación" (click)="alternarMenu()">
+    <mat-icon aria-hidden="true">{{ menuAbierto ? 'close' : 'menu' }}</mat-icon>
+  </button>
+
+  <nav id="enlaces-visitante" class="enlaces" [class.abierto]="menuAbierto" aria-label="Enlaces institucionales">
+    <a routerLink="/home">Inicio</a>
+    <a routerLink="/home">Noticias</a>
+    <a [href]="urlVicerrectoria" target="_blank" rel="noopener noreferrer">Nosotros</a>
+    <a [href]="urlVicerrectoria" target="_blank" rel="noopener noreferrer">Contáctanos</a>
+    <span class="rol" *ngIf="perfil">Rol: {{ etiqueta }}</span>
+    <a routerLink="/login" *ngIf="!perfil">Iniciar sesión</a>
+    <button type="button" class="salir" *ngIf="perfil" (click)="cerrarSesion()">Cerrar sesión</button>
+  </nav>
+</header>

@@ -1,136 +1,202 @@
-<button mat-icon-button class="close-button" matDialogClose aria-label="Cerrar diálogo">
-  <mat-icon>close</mat-icon>
-</button>
+<header class="dlg-cabecera">
+  <div>
+    <span class="dlg-eyebrow">{{ esInstructor ? 'Gestión de instructores' : isInscribirMode || isEditing ? 'Gestión de deportistas' : 'Registro' }}</span>
+    <h2 mat-dialog-title class="dlg-titulo">{{ isEditing ? (esInstructor ? 'Editar instructor' : 'Editar deportista') : esInstructor ? 'Registrar instructor' : isInscribirMode ? 'Agregar deportista al grupo' : 'Registro de usuario' }}</h2>
+    <p class="dlg-subtitulo">
+      {{ isEditing ? 'Actualice la información personal de la persona.'
+         : isInscribirMode ? 'Busque primero el correo para evitar registros duplicados.'
+         : esInstructor ? 'Complete los datos del nuevo instructor.'
+         : 'Complete sus datos para continuar.' }}
+    </p>
+  </div>
+  <button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
 
-<mat-dialog-content class="dialog-content">
-  <header class="title-two">{{ isEditing ? 'Editar usuario' : esInstructor ? 'Registrar instructor' : isInscribirMode ? 'Inscribir deportista' : 'Registro de usuario' }}</header>
+<!-- ── Paso 1 (solo modo inscribir): buscar por correo ── -->
+<ng-template #busqueda>
+  <section *ngIf="isInscribirMode" class="dlg-seccion busqueda-section" aria-labelledby="sec-buscar">
+    <div class="dlg-seccion-cabecera">
+      <span class="dlg-paso" aria-hidden="true">1</span>
+      <div>
+        <h3 id="sec-buscar" class="dlg-seccion-titulo">Buscar deportista</h3>
+        <p class="dlg-seccion-ayuda">Use preferiblemente el correo institucional de la persona.</p>
+      </div>
+    </div>
 
-  <!-- ── Sección de búsqueda (solo modo inscribir) ── -->
-  <div *ngIf="isInscribirMode" class="busqueda-section">
     <div class="search-row">
       <mat-form-field appearance="outline" class="form-field search-field">
         <mat-label>Correo del deportista</mat-label>
-        <input matInput type="email" [(ngModel)]="correoBusqueda" name="correoBusqueda"
-               placeholder="correo@unicauca.edu.co" [disabled]="buscando" />
+        <input matInput type="email" [(ngModel)]="correoBusqueda" name="correoBusqueda" [ngModelOptions]="{standalone: true}"
+               placeholder="nombre@unicauca.edu.co" [disabled]="buscando" />
       </mat-form-field>
-      <button mat-raised-button type="button" class="btn-buscar"
+      <button mat-button type="button" class="btn-buscar"
               (click)="buscarAlumno()" [disabled]="!correoBusqueda.trim() || buscando">
-        <mat-icon>search</mat-icon>
+        <mat-icon aria-hidden="true">search</mat-icon>
         {{ buscando ? 'Buscando…' : 'Buscar' }}
       </button>
     </div>
 
     <!-- Estado: ENCONTRADO -->
-    <div *ngIf="estado === 'encontrado'" class="resultado encontrado">
-      <mat-icon class="icono-estado verde">check_circle</mat-icon>
-      <p class="resultado-nombre">{{ perfilEncontrado?.nombre }}</p>
-      <p class="resultado-correo">{{ perfilEncontrado?.correo }}</p>
-      <div class="form-buttons">
-        <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
-        <button mat-raised-button class="aceptar" type="button" (click)="inscribirEncontrado()">Inscribir</button>
+    <div *ngIf="estado === 'encontrado'" class="resultado encontrado" role="status">
+      <mat-icon class="icono-estado verde" aria-hidden="true">check_circle</mat-icon>
+      <div>
+        <p class="resultado-nombre">{{ perfilEncontrado?.nombre }}</p>
+        <p class="resultado-correo">{{ perfilEncontrado?.correo }}</p>
       </div>
     </div>
 
     <!-- Estado: ROL_INVALIDO -->
-    <div *ngIf="estado === 'rol_invalido'" class="resultado rol-invalido">
-      <mat-icon class="icono-estado rojo">block</mat-icon>
+    <div *ngIf="estado === 'rol_invalido'" class="resultado rol-invalido" role="alert">
+      <mat-icon class="icono-estado naranja" aria-hidden="true">block</mat-icon>
       <p>Este correo pertenece a un <strong>Instructor o Coordinador</strong> y no puede inscribirse como deportista.</p>
-      <button mat-button type="button" class="cancelar" (click)="onCancel()">Cerrar</button>
     </div>
 
-    <!-- Estado: NO_ENCONTRADO → mensaje antes del formulario -->
-    <div *ngIf="estado === 'no_encontrado'" class="aviso-no-encontrado">
-      <mat-icon>info</mat-icon>
-      <span>No existe un deportista con ese correo. Complete los datos para registrarlo:</span>
+    <!-- Estado: NO_ENCONTRADO → el paso 2 completa los datos -->
+    <div *ngIf="estado === 'no_encontrado'" class="aviso-no-encontrado dlg-aviso" role="status">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>No existe un deportista con ese correo. Complete los datos para registrarlo.</span>
     </div>
-  </div>
+  </section>
+</ng-template>
 
-  <form *ngIf="showRegisterForm" (ngSubmit)="onSubmit(inscripcionForm)" #inscripcionForm="ngForm" class="form-content">
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Nombre</mat-label>
-      <input matInput placeholder="Nombre" [(ngModel)]="perfil.nombre" name="nombre" required />
-    </mat-form-field>
+<!-- ── Con formulario de registro (registro, edición, instructor o inscribir un correo nuevo) ── -->
+<form *ngIf="showRegisterForm; else sinFormulario" (ngSubmit)="onSubmit(inscripcionForm)" #inscripcionForm="ngForm" class="dlg-form" novalidate>
+  <mat-dialog-content class="dlg-cuerpo">
+    <ng-container *ngTemplateOutlet="busqueda"></ng-container>
 
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Correo institucional</mat-label>
-      <input matInput placeholder="Correo institucional" [(ngModel)]="perfil.correo" name="correo" type="email" required [disabled]="correoBloqueado" />
-    </mat-form-field>
+    <p *ngIf="!isEditing" class="dlg-aviso"><mat-icon aria-hidden="true">info</mat-icon> Los campos marcados con * son obligatorios.</p>
 
-    <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
-      <mat-label>Tipo de identificación</mat-label>
-      <mat-select [(ngModel)]="perfil.tipoId" name="tipodocumento" placeholder="Tipo de documento">
-        <mat-option *ngFor="let tipo of tipoDocumento" [value]="tipo">
-          {{ tipo }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+    <!-- Información personal -->
+    <section class="dlg-seccion" aria-labelledby="sec-personal">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">{{ isInscribirMode ? 2 : 1 }}</span>
+        <div>
+          <h3 id="sec-personal" class="dlg-seccion-titulo">Información personal</h3>
+          <p class="dlg-seccion-ayuda">Datos de identificación y contacto.</p>
+        </div>
+      </div>
+      <div class="dlg-rejilla">
+        <mat-form-field appearance="outline" class="form-field dlg-ancho-completo">
+          <mat-label>Nombre completo</mat-label>
+          <input matInput placeholder="Nombres y apellidos" [(ngModel)]="perfil.nombre" name="nombre" required />
+        </mat-form-field>
 
-    <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
-      <mat-label>Numero identificación</mat-label>
-      <input matInput placeholder="Número identidad" [(ngModel)]="perfil.id" name="identificacion" required />
-    </mat-form-field>
+        <mat-form-field appearance="outline" class="form-field dlg-ancho-completo">
+          <mat-label>Correo institucional</mat-label>
+          <input matInput placeholder="nombre@unicauca.edu.co" [(ngModel)]="perfil.correo" name="correo" type="email" required [disabled]="correoBloqueado" />
+        </mat-form-field>
 
-    <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
-      <mat-label>Sexo</mat-label>
-      <mat-select [(ngModel)]="perfil.sexo" name="sexo" placeholder="Sexo">
-        <mat-option *ngFor="let tipo of sexo" [value]="tipo">
-          {{ tipo }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+        <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
+          <mat-label>Tipo de identificación</mat-label>
+          <mat-select [(ngModel)]="perfil.tipoId" name="tipodocumento" placeholder="Tipo de documento">
+            <mat-option *ngFor="let tipo of tipoDocumento" [value]="tipo">
+              {{ tipo }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
-    <!-- Tipo de vínculo: select temporal (SCRUM-160) — cuando TIC responda se autocompletará.
-         Para instructores el tipo viene fijo como Docente; el select solo aplica a deportistas.
-         Va antes de los datos que dependen de él (código, facultad, programa, dependencia). -->
-    <mat-form-field *ngIf="!isEditing && !esInstructor" appearance="outline" class="form-field">
-      <mat-label>Tipo de vínculo</mat-label>
-      <mat-select [(ngModel)]="perfil.tipoAlumno" name="tipoAlumno" required (selectionChange)="onTipoChange()">
-        <mat-option *ngFor="let tipo of tiposAlumno" [value]="tipo">{{ tipo }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+        <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
+          <mat-label>Numero identificación</mat-label>
+          <input matInput placeholder="Sin puntos ni espacios" [(ngModel)]="perfil.id" name="identificacion" required />
+        </mat-form-field>
 
-    <mat-form-field *ngIf="pideCodigo" appearance="outline" class="form-field">
-      <mat-label>Código institucional</mat-label>
-      <input matInput placeholder="Código institucional" [(ngModel)]="perfil.alumnoCodigo" name="codigo" required />
-    </mat-form-field>
+        <mat-form-field *ngIf="!isEditing" appearance="outline" class="form-field">
+          <mat-label>Sexo</mat-label>
+          <mat-select [(ngModel)]="perfil.sexo" name="sexo" placeholder="Sexo">
+            <mat-option *ngFor="let tipo of sexo" [value]="tipo">
+              {{ tipo }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </section>
 
-    <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="form-field">
-      <mat-label>Facultad</mat-label>
-      <mat-select [(ngModel)]="perfil.facultad" name="facultad" required (selectionChange)="onFacultadChange($event.value)">
-        <mat-option *ngFor="let f of facultades" [value]="f">{{ f }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <!-- Información institucional -->
+    <section *ngIf="!isEditing" class="dlg-seccion" aria-labelledby="sec-institucional">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">{{ isInscribirMode ? 3 : 2 }}</span>
+        <div>
+          <h3 id="sec-institucional" class="dlg-seccion-titulo">Información institucional</h3>
+          <p class="dlg-seccion-ayuda">Vinculación con la Universidad del Cauca.</p>
+        </div>
+      </div>
+      <div class="dlg-rejilla">
+        <!-- Tipo de vínculo: select temporal (SCRUM-160) — cuando TIC responda se autocompletará.
+             Para instructores el tipo viene fijo como Docente; el select solo aplica a deportistas.
+             Va antes de los datos que dependen de él (código, facultad, programa, dependencia). -->
+        <mat-form-field *ngIf="!esInstructor" appearance="outline" class="form-field">
+          <mat-label>Tipo de vínculo</mat-label>
+          <mat-select [(ngModel)]="perfil.tipoAlumno" name="tipoAlumno" required (selectionChange)="onTipoChange()">
+            <mat-option *ngFor="let tipo of tiposAlumno" [value]="tipo">{{ tipo }}</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-    <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="form-field">
-      <mat-label>Programa académico</mat-label>
-      <mat-select [(ngModel)]="perfil.programa" name="programa" required>
-        <mat-option *ngFor="let p of programas" [value]="p">{{ p }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+        <mat-form-field *ngIf="pideCodigo" appearance="outline" class="form-field">
+          <mat-label>Código institucional</mat-label>
+          <input matInput placeholder="Código institucional" [(ngModel)]="perfil.alumnoCodigo" name="codigo" required />
+        </mat-form-field>
 
-    <p class="error-edicion" *ngIf="pideFacultadYPrograma && sinProgramas" role="status">
-      Esta facultad aún no tiene programas cargados.
-    </p>
+        <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="form-field">
+          <mat-label>Facultad</mat-label>
+          <mat-select [(ngModel)]="perfil.facultad" name="facultad" required (selectionChange)="onFacultadChange($event.value)">
+            <mat-option *ngFor="let f of facultades" [value]="f">{{ f }}</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-    <mat-form-field *ngIf="pideDependencia" appearance="outline" class="form-field">
-      <mat-label>Dependencia, oficina o unidad</mat-label>
-      <input matInput placeholder="Dependencia, oficina o unidad" [(ngModel)]="perfil.dependencia" name="dependencia" maxlength="150" required />
-    </mat-form-field>
+        <mat-form-field *ngIf="pideFacultadYPrograma" appearance="outline" class="form-field">
+          <mat-label>Programa académico</mat-label>
+          <mat-select [(ngModel)]="perfil.programa" name="programa" required>
+            <mat-option *ngFor="let p of programas" [value]="p">{{ p }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <p class="error-edicion dlg-ancho-completo" *ngIf="pideFacultadYPrograma && sinProgramas" role="status">
+          Esta facultad aún no tiene programas cargados.
+        </p>
+
+        <mat-form-field *ngIf="pideDependencia" appearance="outline" class="form-field dlg-ancho-completo">
+          <mat-label>Dependencia, oficina o unidad</mat-label>
+          <input matInput placeholder="Dependencia, oficina o unidad" [(ngModel)]="perfil.dependencia" name="dependencia" maxlength="150" required />
+        </mat-form-field>
+
+        <!-- Instructor: rol fijo, sin select -->
+        <div *ngIf="esInstructor" class="tipo-fijo dlg-ancho-completo">
+          <span class="badge bg-primary">Rol: Instructor · Tipo: Docente</span>
+        </div>
+      </div>
+    </section>
 
     <p class="error-edicion" *ngIf="errorCatalogo" role="alert">{{ errorCatalogo }}</p>
-
-    <!-- Instructor: rol fijo, sin select -->
-    <div *ngIf="!isEditing && esInstructor" class="tipo-fijo">
-      <span class="badge bg-primary">Rol: Instructor · Tipo: Docente</span>
-    </div>
-
     <p class="error-edicion" *ngIf="errorEdicion" role="alert">{{ errorEdicion }}</p>
     <p class="error-edicion" *ngIf="errorRegistro" role="alert">{{ errorRegistro }}</p>
+  </mat-dialog-content>
 
-    <div class="form-buttons">
-      <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
-      <button mat-raised-button class="aceptar" type="submit" [disabled]="!inscripcionForm.form.valid">{{ isInscribirMode ? 'Registrar e Inscribir' : 'Aceptar' }}</button>
-      <!--<button mat-raised-button class="aceptar" type="submit">Aceptar</button>-->
-    </div>
-  </form>
-</mat-dialog-content>
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
+    <button mat-button class="aceptar" type="submit" [disabled]="!inscripcionForm.form.valid">
+      <mat-icon aria-hidden="true">{{ isEditing ? 'check_circle_outline' : 'add' }}</mat-icon>
+      {{ isInscribirMode ? 'Registrar e inscribir' : isEditing ? 'Guardar cambios' : 'Aceptar' }}
+    </button>
+  </mat-dialog-actions>
+</form>
+
+<!-- ── Sin formulario: solo el paso de búsqueda (aún sin buscar, encontrado o rol inválido) ── -->
+<ng-template #sinFormulario>
+  <mat-dialog-content class="dlg-cuerpo">
+    <ng-container *ngTemplateOutlet="busqueda"></ng-container>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCancel()">{{ estado === 'rol_invalido' ? 'Cerrar' : 'Cancelar' }}</button>
+    <button *ngIf="estado === 'encontrado'" mat-button class="aceptar" type="button" (click)="inscribirEncontrado()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Inscribir
+    </button>
+    <button *ngIf="estado === 'busqueda'" mat-button class="aceptar" type="button" disabled>
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Registrar e inscribir
+    </button>
+  </mat-dialog-actions>
+</ng-template>

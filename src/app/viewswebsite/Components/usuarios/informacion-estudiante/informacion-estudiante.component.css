@@ -1,139 +1,65 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
+.pagina-alumno { max-width: 1400px; margin: 0 auto; padding: 0.5rem 0 2rem; }
+
+/* Ruta de navegación */
+.migas { display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem; font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.migas a { color: var(--color-terciario); text-decoration: none; }
+.migas a:hover { text-decoration: underline; }
+.migas mat-icon { width: 18px; height: 18px; font-size: 18px; }
+
+/* Título de página con línea secundaria (lineamiento) + acción de la página */
+.barra-titulo { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem 1rem; margin-bottom: 1.25rem; }
+.titulo-pagina {
+  position: relative; margin: 0; padding-bottom: 0.75rem;
+  font-family: var(--fuente-titulos); font-size: var(--texto-h4); font-weight: 700; line-height: 1.2; color: var(--color-primario);
 }
+.titulo-pagina::after { content: ""; position: absolute; left: 0; bottom: 0; width: 96px; height: 4px; background: var(--color-secundario-light); }
 
-.personal-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 30px;
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 10px;
+.btn-secundario {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 44px; padding: 0 1.25rem;
+  border: 2px solid var(--color-primario); border-radius: var(--radio-total); background: #fff; color: var(--color-primario); cursor: pointer;
+  font-family: var(--fuente-titulos); font-size: var(--texto-boton-1); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
 }
+.btn-secundario:hover { background: var(--color-tonal-95); }
+.btn-secundario:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: 2px; }
+.btn-secundario mat-icon { width: 20px; height: 20px; font-size: 20px; }
 
-.info-text {
-  flex: 2;
+.eyebrow { display: block; font-size: var(--texto-overline); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutro-texto); }
+
+/* Datos de la persona */
+.tarjeta-perfil {
+  display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1rem; padding: 1.25rem 1.5rem;
+  border-left: 4px solid var(--color-secundario-light); border-radius: var(--radio-tarjeta); background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
-
-.profile-pic {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.avatar {
+  display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%;
+  background: var(--color-primario); color: var(--color-sobre-primario); font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700;
 }
+.info-text { min-width: 0; }
+.nombre { margin: 0.1rem 0 0.35rem; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; color: var(--color-primario); overflow-wrap: anywhere; }
+.datos { display: flex; flex-wrap: wrap; gap: 0.35rem 2rem; margin: 0; }
+.datos dt { font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.datos dd { margin: 0; font-weight: 600; color: var(--color-neutro-texto); overflow-wrap: anywhere; }
 
-.profile-pic img {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-}
+/* Avisos */
+.banner { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding: 0.9rem 1.1rem; border-left: 4px solid; border-radius: var(--radio-pequeno); }
+.banner mat-icon { flex-shrink: 0; width: 24px; height: 24px; font-size: 24px; }
+.banner p { margin: 0; }
+.banner-info, .banner-hoy { border-color: var(--color-terciario); background: #d8e3ff; color: var(--color-primario); }
+.banner-titulo { display: block; font-family: var(--fuente-titulos); font-size: var(--texto-subtitulo-1); }
 
-.course-info {
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 10px;
-}
+/* Resumen */
+.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0 0 1.5rem; }
+.cifra { padding: 0.9rem 1.1rem; border-radius: var(--radio-tarjeta); background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.cifra dt { font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.cifra dd { margin: 0.1rem 0 0; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; line-height: 1.1; color: var(--color-primario); }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+.titulo-seccion { margin: 0; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; color: var(--color-primario); }
+.subtitulo-seccion { margin: 0.15rem 0 1rem; color: var(--color-neutro-texto); }
+.seccion-cursos .titulo-seccion { margin-bottom: 0.75rem; }
+.seccion-cursos .subtitulo-seccion { margin-top: -0.5rem; }
 
-th {
-  background-color: #0c3f69;
-  color: #000066;
-  font-weight: bold;
-}
-
-td,
-th {
-  padding: 8px;
-  border: 1px solid #ccc;
-}
-
-tr.mat-header-row {
-  background-color: #2196f3;
-  color: rgb(121, 54, 54);
-}
-
-.mat-elevation-z8 {
-  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
-}
-
-
-
-
-.btnGuardar {
-  display: flex;
-  justify-content: flex-end; 
-  padding: 20px; 
-}
-
-.btnGuardar button {
-  background-color: #000066 !important;
-  color: rgb(251, 251, 252) !important;
-  border-radius: 20px !important;
-  width: 150px;
-  height: 40px;
-  border: none; 
-  cursor: pointer; 
-}
-
-.btnGuardar button:hover {
-  background-color: #000099 !important;
-}
-
-.cargando-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 0;
-}
-
-.empty-msg {
-  padding: 16px 0;
-  color: #555;
-}
-
-.msg-rol {
-  padding: 16px;
-  color: #555;
-}
-
-.aviso-inactivo {
-  display: block;
-  font-size: 0.75rem;
-  color: #b00;
-  margin-top: 4px;
-}
-
-.badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.badge-inscrito {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.badge-espera {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
-.instructor-nombre {
-  display: block;
-  font-weight: 500;
-}
-
-.instructor-codigo {
-  display: block;
-  font-size: 0.75rem;
-  color: #555;
+@media (max-width: 599.98px) {
+  .tarjeta-perfil { flex-direction: column; align-items: flex-start; }
+  .cifras { grid-template-columns: 1fr; }
+  .btn-secundario { width: 100%; }
 }

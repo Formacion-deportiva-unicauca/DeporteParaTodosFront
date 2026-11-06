@@ -1,3 +1,5 @@
+import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
+import { SidenavStub } from 'src/app/testing/sidenav-stub';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { BehaviorSubject, of, throwError } from 'rxjs';
@@ -29,7 +31,7 @@ describe('InformacionEstudianteComponent', () => {
   let perfilSubject: BehaviorSubject<string>;
   let mockInscripcionesService: jasmine.SpyObj<InscripcionesService>;
   let mockInstructorService: jasmine.SpyObj<InstructorServisce>;
-  let snackBarOpenSpy: jasmine.Spy;
+  let avisoErrorSpy: jasmine.Spy;
 
   beforeEach(async () => {
     perfilSubject = new BehaviorSubject<string>('Alumno');
@@ -57,12 +59,14 @@ describe('InformacionEstudianteComponent', () => {
           useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'getProfile', 'isAuthenticated', 'verificarUsuario']),
         },
       ],
-    }).compileComponents();
+    })
+    .overrideComponent(InformacionEstudianteComponent, { remove: { imports: [SidenavComponent] }, add: { imports: [SidenavStub] } })
+    .compileComponents();
 
     fixture = TestBed.createComponent(InformacionEstudianteComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    snackBarOpenSpy = spyOn(component['snackBar'], 'open');
+    avisoErrorSpy = spyOn(component['notificaciones'], 'error');
   });
 
   afterEach(() => sessionStorage.removeItem('dpt_perfil'));
@@ -91,13 +95,11 @@ describe('InformacionEstudianteComponent', () => {
       expect(component.cargando).toBeFalse();
     });
 
-    it('muestra snackbar de error y cargando=false cuando getMisCursos falla', () => {
+    it('muestra la notificación de error y cargando=false cuando getMisCursos falla', () => {
       mockInscripcionesService.getMisCursos.and.returnValue(throwError(() => ({ status: 500 })));
       component.cargarCursos();
       expect(component.cargando).toBeFalse();
-      expect(snackBarOpenSpy).toHaveBeenCalledWith(
-        jasmine.any(String), '', jasmine.objectContaining({ panelClass: 'snack-error' })
-      );
+      expect(avisoErrorSpy).toHaveBeenCalledOnceWith('No se pudieron cargar los cursos', jasmine.any(String));
     });
   });
 
@@ -115,52 +117,18 @@ describe('InformacionEstudianteComponent', () => {
     });
   });
 
-  describe('formatGrupo()', () => {
-    it('formatea como "anio-periodo · Grupo <letra>"', () => {
-      expect(component.formatGrupo(mockCurso)).toBe('2024-1 · Grupo A');
-    });
-
-    it('usa "?" para iterable fuera de rango (0)', () => {
-      expect(component.formatGrupo({ ...mockCurso, iterable: 0 })).toBe('2024-1 · Grupo ?');
-    });
-  });
-
-  describe('formatHorario()', () => {
-    it('retorna "Horario por definir" cuando horarios es []', () => {
-      expect(component.formatHorario({ ...mockCurso, horarios: [] })).toBe('Horario por definir');
-    });
-
-    it('incluye dia, horaInicio - horaFin y escenario cuando escenario no es null', () => {
-      expect(component.formatHorario(mockCurso)).toBe('Lunes 08:00 - 10:00 Cancha 1');
-    });
-
-    it('omite escenario si es null', () => {
-      const c = { ...mockCurso, horarios: [{ ...mockCurso.horarios[0], escenario: null }] };
-      expect(component.formatHorario(c)).toBe('Lunes 08:00 - 10:00');
-    });
-  });
-
-  describe('formatEstado()', () => {
-    it('"INSCRITO" → "Inscrito"', () => {
-      expect(component.formatEstado('INSCRITO')).toBe('Inscrito');
-    });
-
-    it('"EN_ESPERA" → "En lista de espera"', () => {
-      expect(component.formatEstado('EN_ESPERA')).toBe('En lista de espera');
-    });
-  });
-
   describe('Tu información (datos del alumno de la sesión)', () => {
     it('carga el nombre y el código desde dpt_perfil al entrar a la vista', () => {
       expect(component.nombreAlumno).toBe('Juan Sebastian Pisso');
       expect(component.codigoAlumno).toBe('1061813673');
     });
 
-    it('muestra nombre, código y el rol en el bloque "Tu información"', () => {
+    it('muestra nombre y código (sin la palabra "Alumno") en el bloque "Tu información"', () => {
       const texto = (fixture.nativeElement as HTMLElement).querySelector('.info-text')!.textContent!;
       expect(texto).toContain('Juan Sebastian Pisso');
       expect(texto).toContain('1061813673');
-      expect(texto).toContain('Alumno');
+      // Se muestra el vínculo con la Universidad, nunca la palabra "Alumno" (lineamiento de roles).
+      expect(texto).not.toContain('Alumno');
     });
 
     it('vuelve a leer dpt_perfil cuando el rol regresa a Alumno', () => {
@@ -271,7 +239,9 @@ describe('InformacionEstudianteComponent › vínculo del alumno', () => {
         { provide: InstructorServisce, useValue: { getInstructores: () => of([]) } },
         { provide: AuthService, useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'getProfile', 'isAuthenticated', 'verificarUsuario']) },
       ],
-    }).compileComponents();
+    })
+    .overrideComponent(InformacionEstudianteComponent, { remove: { imports: [SidenavComponent] }, add: { imports: [SidenavStub] } })
+    .compileComponents();
     fixture = TestBed.createComponent(InformacionEstudianteComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

@@ -1,138 +1,127 @@
 <app-sidenav>
-    <div class="containerButons">
-        <div class="row">
-            <div class="col-lg-4 d-flex justify-content-center">
-                <div class="col-lg-7">
-                    <select class="form-select" aria-label="Default select example">
-                        <option selected>Selecciona</option>
-                        <option value="1">Seleccionados</option>
-                        <option value="2">Semilleros</option>
-                        <option value="3">Recreativo</option>
-                    </select>
-                </div>
-            </div>
+  <div class="pagina-cursos">
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a href="/home" (click)="volver($event)">Inicio</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">Cursos · {{ titulo }}</span>
+    </nav>
 
-            <div class="col-lg-4 d-flex justify-content-center" *ngIf="mostrarFiltroPublico">
-                <div class="col-lg-7">
-                    <label for="filtro-publico" class="form-label small mb-1">Dirigido a</label>
-                    <select id="filtro-publico" class="form-select"
-                        (change)="cambiarFiltroPublico($any($event.target).value)">
-                        <option *ngFor="let f of filtrosPublico" [value]="f.valor" [selected]="f.valor === filtroPublico">{{ f.etiqueta }}</option>
-                    </select>
-                </div>
-            </div>
+    <h1 class="titulo-pagina">Cursos · {{ titulo }}</h1>
 
-            <div class="col-lg-4 d-flex justify-content-center" *ngIf=" perfil === 'Coordinador'">
-                <button class="btnAgregar" (click)="registroDeporte()">
-                    Agregar curso +
-                </button>
-            </div>
-            <div class="col-lg-4 d-flex justify-content-center" *ngIf=" perfil === 'Coordinador'">
-                <button type="button" class="btn btn-light border"
-                    (click)="configurarInscripcion()">Inscripciones</button>
-            </div>
+    <div class="barra-superior">
+      <a href="/home" class="volver" (click)="volver($event)">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon> Volver a categorías
+      </a>
+      <div class="acciones-pagina" *ngIf="perfil === 'Coordinador'">
+        <button type="button" class="btn-principal" (click)="registroDeporte()">
+          <mat-icon aria-hidden="true">add</mat-icon> Agregar curso
+        </button>
+      </div>
+    </div>
+
+    <section class="categoria-actual" aria-label="Categoría seleccionada">
+      <div class="categoria-texto">
+        <span class="eyebrow">Categoría seleccionada</span>
+        <h2 class="categoria-nombre">{{ titulo }}</h2>
+        <p class="categoria-descripcion" *ngIf="categoria?.descripcion">{{ categoria?.descripcion }}</p>
+      </div>
+      <div class="campo" *ngIf="categorias.length > 1">
+        <label for="cambiar-categoria">Cambiar categoría</label>
+        <select id="cambiar-categoria" class="control" (change)="cambiarCategoria($any($event.target).value)">
+          <option *ngFor="let c of categorias" [value]="c.titulo" [selected]="c.titulo === titulo">{{ c.titulo }}</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="filtros" aria-label="Filtros de cursos">
+      <div class="campo campo-busqueda">
+        <label for="buscar-curso">Buscar curso</label>
+        <div class="entrada-busqueda">
+          <mat-icon aria-hidden="true">search</mat-icon>
+          <input id="buscar-curso" type="search" class="control" placeholder="Nombre o línea deportiva"
+            autocomplete="off" [value]="busqueda" (input)="cambiarBusqueda($any($event.target).value)">
         </div>
+      </div>
+      <div class="campo" *ngIf="mostrarFiltroPublico">
+        <label for="filtro-publico">Dirigido a</label>
+        <select id="filtro-publico" class="control" (change)="cambiarFiltroPublico($any($event.target).value)">
+          <option *ngFor="let f of filtrosPublico" [value]="f.valor" [selected]="f.valor === filtroPublico">{{ f.etiqueta }}</option>
+        </select>
+      </div>
+      <dl class="estadisticas">
+        <div><dd>{{ cursos.length }}</dd><dt>Cursos</dt></div>
+        <div><dd>{{ cursosConInscripciones }}</dd><dt>Con inscripciones</dt></div>
+      </dl>
+    </section>
+
+    <div class="encabezado-lista">
+      <h2 class="titulo-seccion">Cursos disponibles</h2>
+      <span class="contador-visibles" role="status">{{ cursosVisibles.length }} de {{ cursos.length }} cursos visibles</span>
     </div>
 
-    <div>
-        <h1 class="title-one text-center ">Categoría seleccionada: {{titulo}}</h1>
-    </div>
-
-    <p class="text-center text-muted" role="status" *ngIf="cursos.length > 0 && cursosVisibles.length === 0">
-        Ningún curso coincide con el filtro.
+    <p class="aviso-vacio" role="status" *ngIf="cursos.length > 0 && cursosVisibles.length === 0">
+      Ningún curso coincide con el filtro.
+    </p>
+    <p class="aviso-vacio" role="status" *ngIf="cursos.length === 0">
+      Esta categoría aún no tiene cursos.
     </p>
 
-    <div class="content-tarjet">
-        <mat-grid-list [cols]="colsize" rowHeight="430"><!-- gutterSize="20px" gutterSize="20px"-->
-            <mat-grid-tile *ngFor="let item of cursosVisibles" [colspan]="1" [rowspan]="1">
-                <mat-card class="mycard shadow fixed-card">
-
-                    <div class="img-container" (click)="gruposCurso(item.categoriaCurso, item.nombre)">
-                        <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
-                            [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" mat-card-image
-                            alt="Imagen de categoría" />
-
-                        <ng-template #imagenPorDefecto>
-                            <img class="img-container" src="assets/imagesSystem/deporte.jpg" mat-card-image
-                                alt="Imagen por defecto" />
-                        </ng-template>
-                    </div>
-
-                    <mat-card-content class="contenido">
-                        <button class="btn-menu" mat-icon-button [matMenuTriggerFor]="menu"
-                            *ngIf="perfil === 'Coordinador'">
-                            <mat-icon>settings</mat-icon>
-                        </button>
-                        <mat-menu #menu="matMenu">
-                            <button mat-menu-item (click)="onUpdate(item.nombre)">
-                                <mat-icon>edit</mat-icon>
-                                <span>Actualizar</span>
-                            </button>
-                            <button mat-menu-item (click)="toggleEstadoCurso(item)">
-                                <mat-icon>{{ item.estadoCurso === 'ACTIVO' ? 'block' : 'check_circle' }}</mat-icon>
-                                <span>{{ item.estadoCurso === 'ACTIVO' ? 'Deshabilitar' : 'Habilitar' }}</span>
-                            </button>
-                            <button mat-menu-item (click)="onDelete(item.nombre)">
-                                <mat-icon>delete</mat-icon>
-                                <span>Eliminar</span>
-                            </button>
-                        </mat-menu>
-                        <mat-card-title class="card_title title-three-nrs">{{item.nombre}}</mat-card-title>
-
-                        <div class="mt-1 mb-2 text-center">
-                            <span class="badge"
-                                [ngClass]="{
-                                    'bg-success': item.estadoCurso === 'ACTIVO',
-                                    'bg-secondary': item.estadoCurso === 'INACTIVO',
-                                    'bg-danger': item.estadoCurso === 'CERRADO'
-                                }">
-                                {{ item.estadoCurso ?? 'SIN ESTADO' }}
-                            </span>
-                        </div>
-
-                        <div class="mt-1 mb-2 text-center">
-                            <span class="badge badge-inscripciones" [ngClass]="claseEstadoInscripciones(item.estadoInscripciones)">
-                                {{ textoEstadoInscripciones(item.estadoInscripciones) }}
-                            </span>
-                        </div>
-
-                        <div class="mt-1 mb-2 text-center">
-                            <span class="badge bg-info text-dark badge-publico">Dirigido a: {{ textoPublico(item.publico) }}</span>
-                        </div>
-
-                        <div class="d-flex justify-content-center">
-                            <button type="button"
-                                style="border: none; background-color: transparent; color: black"
-                                (click)="verInformacion(item)">
-                                Ver información
-                            </button>
-                        </div>
-
-                    </mat-card-content>
-                </mat-card>
-            </mat-grid-tile>
-        </mat-grid-list>
-    </div>
-    <div style="width: 70%; margin: 0 auto">
-    </div>
-
-</app-sidenav>
-
-<!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="title-three-nrs col-11 text-center" id="exampleModalLabel">
-                    {{ cursoSeleccionado?.nombre }}
-                </h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>{{ cursoSeleccionado?.descripcion }}</p>
-                <p><strong>Horario:</strong> {{ cursoSeleccionado?.horario ?? 'Por definir' }}</p>
-            </div>
+    <div class="rejilla-cursos">
+      <mat-card class="tarjeta-curso" *ngFor="let item of cursosVisibles">
+        <div class="imagen-curso">
+          <button type="button" class="abrir-grupos" (click)="gruposCurso(item.categoriaCurso, item.nombre)"
+            [attr.aria-label]="'Ver los grupos del curso ' + item.nombre">
+            <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
+              [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" alt="" />
+            <ng-template #imagenPorDefecto>
+              <img src="assets/imagesSystem/deporte.jpg" alt="" />
+            </ng-template>
+          </button>
+          <span class="chip-estado" [attr.data-estado]="item.estadoCurso"><span class="punto" aria-hidden="true"></span>{{ textoEstadoCurso(item.estadoCurso) }}</span>
         </div>
+
+        <div class="cuerpo-curso">
+          <div class="cabecera-curso">
+            <div class="titulos-curso">
+              <span class="eyebrow-curso">{{ item.categoriaCurso }} · {{ item.deporte }}</span>
+              <h3 class="nombre-curso">{{ item.nombre }}</h3>
+            </div>
+            <ng-container *ngIf="perfil === 'Coordinador'">
+              <button class="btn-menu" mat-icon-button [matMenuTriggerFor]="menu"
+                [attr.aria-label]="'Acciones del curso ' + item.nombre">
+                <app-icono-engranaje></app-icono-engranaje>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onUpdate(item.nombre)">
+                  <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                  <span>Actualizar</span>
+                </button>
+                <button mat-menu-item (click)="toggleEstadoCurso(item)">
+                  <mat-icon fontSet="material-icons-outlined">{{ item.estadoCurso === 'ACTIVO' ? 'do_not_disturb_on' : 'check_circle' }}</mat-icon>
+                  <span>{{ item.estadoCurso === 'ACTIVO' ? 'Deshabilitar' : 'Habilitar' }}</span>
+                </button>
+                <button mat-menu-item class="accion-eliminar" (click)="onDelete(item.nombre)">
+                  <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+                  <span>Eliminar</span>
+                </button>
+              </mat-menu>
+            </ng-container>
+          </div>
+
+          <p class="descripcion-curso">{{ item.descripcion }}</p>
+
+          <span class="badge-publico">Dirigido a: {{ textoPublico(item.publico) }}</span>
+
+          <div class="pie-curso">
+            <span class="badge-inscripciones" [attr.data-estado]="item.estadoInscripciones">
+              {{ textoEstadoInscripciones(item.estadoInscripciones) }}
+            </span>
+            <button type="button" class="ver-info" (click)="verInformacion(item)">
+              Ver información <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-card>
     </div>
-</div>
-<!--data-bs-target="#exampleModal"-->
+  </div>
+</app-sidenav>

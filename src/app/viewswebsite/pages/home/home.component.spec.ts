@@ -8,21 +8,21 @@ import { PerfilService } from 'src/app/services/perfil.service';
 import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { BreakpointObserver } from '@angular/cdk/layout';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
   let categoriaServiceSpy: jasmine.SpyObj<CategoriaService>;
-  let snackSpy: jasmine.SpyObj<MatSnackBar>;
+  let notificacionesSpy: jasmine.SpyObj<NotificacionService>;
   let tokenReadySubject: Subject<void>;
 
   beforeEach(async () => {
     tokenReadySubject = new Subject<void>();
     categoriaServiceSpy = jasmine.createSpyObj('CategoriaService', ['getCategorias']);
     categoriaServiceSpy.getCategorias.and.returnValue(of([]));
-    snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+    notificacionesSpy = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
 
     const imagenSpy   = jasmine.createSpyObj('ImagenService', ['getimagen']);
     const dialogSpy   = jasmine.createSpyObj('MatDialog', ['open']);
@@ -41,13 +41,13 @@ describe('HomeComponent', () => {
         { provide: Router,                  useValue: routerSpy },
         { provide: MatDialog,               useValue: dialogSpy },
         { provide: BreakpointObserver,      useValue: bpStub },
+        { provide: NotificacionService,     useValue: notificacionesSpy },
       ],
     })
     .overrideComponent(HomeComponent, {
       set: {
         imports:  [],
         template: '<div></div>',
-        providers: [{ provide: MatSnackBar, useValue: snackSpy }],
       },
     })
     .compileComponents();
@@ -97,15 +97,12 @@ describe('HomeComponent', () => {
 
   // ── loadCategorias: feedback de error ────────────────────────────────────
 
-  it('error HTTP en getCategorias() muestra snackbar al usuario', () => {
+  it('error HTTP en getCategorias() muestra la notificación de error al usuario', () => {
     sessionStorage.setItem('dpt_token', 'token');
     categoriaServiceSpy.getCategorias.and.returnValue(throwError(() => new Error('500')));
     spyOn(console, 'error');
     fixture.detectChanges();
-    expect(snackSpy.open).toHaveBeenCalledWith(
-      'No se pudieron cargar las categorias, intenta de nuevo',
-      'Cerrar',
-      jasmine.objectContaining({ duration: 5000 }),
-    );
+    expect(notificacionesSpy.error).toHaveBeenCalledOnceWith(
+      'No se pudieron cargar las categorías', 'Revise su conexión e intente de nuevo.');
   });
 });

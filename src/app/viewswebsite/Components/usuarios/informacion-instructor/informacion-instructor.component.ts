@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
@@ -9,7 +11,8 @@ import { PerfilService } from 'src/app/services/perfil.service';
 import { GrupoService } from 'src/app/services/grupo.service';
 import { InstructorServisce } from 'src/app/services/instructor.service';
 import { MiGrupoInstructorDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
-import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla-grupos-instructor.component';
+import { TarjetasGruposInstructorComponent } from '../tarjetas-grupos-instructor/tarjetas-grupos-instructor.component';
+import { horariosDeHoy, nombreDiaDeHoy } from 'src/app/shared/clases-hoy.util';
 
 @Component({
   selector: 'app-informacin-instructor',
@@ -18,8 +21,9 @@ import { TablaGruposInstructorComponent } from '../tabla-grupos-instructor/tabla
     CommonModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    MatIconModule,
     SidenavComponent,
-    TablaGruposInstructorComponent,
+    TarjetasGruposInstructorComponent,
   ],
   templateUrl: './informacion-instructor.component.html',
   styleUrls: ['./informacion-instructor.component.css'],
@@ -34,7 +38,7 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
   private perfilSub: Subscription = Subscription.EMPTY;
 
   constructor(
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
     private perfilService: PerfilService,
     private grupoService: GrupoService,
     private instructorService: InstructorServisce,
@@ -70,10 +74,7 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.cargandoPerfil = false;
-        this.snackBar.open('No se pudo cargar tu información de instructor.', '', {
-          duration: 4000,
-          panelClass: 'snack-error',
-        });
+        this.notificaciones.error('No se pudo cargar tu información', 'Revise su conexión e intente de nuevo.');
       },
     });
   }
@@ -87,12 +88,33 @@ export class InformacinInstructorComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.cargando = false;
-        this.snackBar.open('Error al cargar los grupos. Intenta de nuevo.', '', {
-          duration: 4000,
-          panelClass: 'snack-error',
-        });
+        this.notificaciones.error('No se pudieron cargar los grupos', 'Revise su conexión e intente de nuevo.');
       },
     });
+  }
+
+  /** Iniciales para el avatar (hasta dos): "Luis Alexis Mendez" → "LA". */
+  get iniciales(): string {
+    const partes = (this.nombreInstructor ?? '').trim().split(/\s+/).filter(Boolean);
+    return partes.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || '?';
+  }
+
+  get totalInscritos(): number {
+    return this.grupos.reduce((suma, g) => suma + (g.inscritos ?? 0), 0);
+  }
+
+  /** Cuántos de sus grupos tienen clase hoy (según el día de la semana de sus horarios). */
+  get gruposConClaseHoy(): number {
+    return this.grupos.filter(g => horariosDeHoy(g.horarios).length > 0).length;
+  }
+
+  get diaHoy(): string {
+    return nombreDiaDeHoy();
+  }
+
+  irAInicio(evento: Event): void {
+    evento.preventDefault();
+    void this.router.navigate(['/home']);
   }
 
   verDeportistas(g: MiGrupoInstructorDTO): void {

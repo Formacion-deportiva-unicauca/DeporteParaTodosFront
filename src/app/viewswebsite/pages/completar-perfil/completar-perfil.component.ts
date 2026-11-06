@@ -7,7 +7,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { Subscription } from 'rxjs';
 import { PerfilService } from 'src/app/services/perfil.service';
@@ -68,7 +69,7 @@ export class CompletarPerfilComponent implements OnInit, OnDestroy {
     private oauthService: OAuthService,
     private perfilService: PerfilService,
     private router: Router,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
     private catalogoService: CatalogoService,
   ) {}
 
@@ -134,21 +135,15 @@ export class CompletarPerfilComponent implements OnInit, OnDestroy {
     // Solo se envían los datos que corresponden al tipo elegido.
     this.perfilService.registrarPerfil(datosSegunTipo({ ...this.perfil, role: '' })).subscribe({
       next: () => {
-        this.snackBar.open('Registro exitoso, bienvenido/a', 'Cerrar', {
-          duration: 4000,
-          panelClass: ['snack-success'],
-        });
+        this.notificaciones.exito('Registro exitoso', 'Bienvenido/a a Deporte para Todos.');
         void this.router.navigate(['/home']);
       },
       error: err => {
         console.error('Error al completar perfil:', err);
         const mensaje = err?.status === 422 && err.error?.mensaje
           ? err.error.mensaje
-          : 'No se pudo completar el registro, intenta de nuevo';
-        this.snackBar.open(mensaje, 'Cerrar', {
-          duration: 6000,
-          panelClass: ['snack-error'],
-        });
+          : 'Intente de nuevo.';
+        this.notificaciones.error('No se pudo completar el registro', mensaje);
       },
     });
   }

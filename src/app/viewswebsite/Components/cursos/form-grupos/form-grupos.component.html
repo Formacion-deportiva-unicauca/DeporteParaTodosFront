@@ -1,115 +1,166 @@
-<button mat-icon-button class="close-button" matDialogClose aria-label="Cerrar diálogo">
-  <mat-icon>close</mat-icon>
-</button>
+<form (ngSubmit)="onSubmit(grupoForm)" #grupoForm="ngForm" class="dlg-form" novalidate>
+  <header class="dlg-cabecera">
+    <div>
+      <span class="dlg-eyebrow">Gestión de grupos</span>
+      <h2 mat-dialog-title class="dlg-titulo">{{ isEditing ? 'Editar grupo' : 'Nuevo grupo' }}</h2>
+      <p class="dlg-subtitulo">
+        {{ isEditing ? 'Actualice los datos, el calendario y las inscripciones del grupo.'
+                     : 'Defina los datos, el calendario y las inscripciones del nuevo grupo.' }}
+      </p>
+    </div>
+    <button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
 
-<mat-dialog-content class="dialog-content">
-  <header class="title-two">{{ isEditing ? 'Editar grupo' : 'Registrar grupo' }}</header>
+  <mat-dialog-content class="dlg-cuerpo">
+    <!-- Datos que no se pueden cambiar: tarjeta de solo lectura en lugar de campos deshabilitados -->
+    <div class="dlg-contexto">
+      <dl>
+        <div><dt>Categoría</dt><dd>{{ categoriaGrupo }}</dd></div>
+        <div><dt>Curso</dt><dd>{{ cursoGrupo }}</dd></div>
+        <div *ngIf="isEditing"><dt>Año</dt><dd>{{ grupo.anio }}</dd></div>
+      </dl>
+    </div>
 
-  <form (ngSubmit)="onSubmit(grupoForm)" #grupoForm="ngForm" class="form-content">
-    <br>
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Categoria</mat-label>
-      <input matInput [disabled]="true" placeholder="categoria" [(ngModel)]="categoriaGrupo" name="categoria">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Deporte</mat-label>
-      <input matInput [disabled]="true" placeholder="deporte" [(ngModel)]="cursoGrupo" name="deporte">
-    </mat-form-field>
-
-    <mat-form-field *ngIf="isEditing" appearance="outline" class="form-field">
-      <mat-label>Año</mat-label>
-      <input matInput [disabled]="true" placeholder="anio" [(ngModel)]="grupo.anio" name="anio">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Cupos</mat-label>
-      <input matInput placeholder="cupos" [(ngModel)]="grupo.cupos" name="cupos" type="number" min="1" step="1">
-    </mat-form-field>
-    <p *ngIf="errorCupos" class="error-fecha" id="error-cupos" role="alert">{{ errorCupos }}</p>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Instructor</mat-label>
-      <mat-select [(ngModel)]="grupo.idInstructor" name="instructor" placeholder="Instructor">
-        <mat-option [value]="null">Sin definir</mat-option>
-        <!-- BUG 1 FIX: backend devuelve estructura plana, no tiene .perfil anidado -->
-        <mat-option *ngFor="let instr of instructores" [value]="instr.id">
-          {{ instr.nombre }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-
-
-    <!-- Fechas: calendario (mat-datepicker, solo lectura = sin digitación manual). El modelo viaja como texto 'yyyy-MM-dd' en hora local. -->
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Fecha de inicio del grupo</mat-label>
-      <input matInput readonly [matDatepicker]="picker_fechaCreacion" [ngModel]="fechasDate.fechaCreacion"
-        (ngModelChange)="alElegirFecha('fechaCreacion', $event)" name="fechaCreacion" placeholder="dd/mm/aaaa"
-        (click)="picker_fechaCreacion.open()">
-      <button mat-icon-button matSuffix type="button" *ngIf="puedeLimpiar('fechaCreacion')"
-        aria-label="Quitar fecha de inicio del grupo" (click)="limpiarFecha('fechaCreacion')">
-        <mat-icon>clear</mat-icon>
-      </button>
-      <mat-datepicker-toggle matSuffix [for]="picker_fechaCreacion" aria-label="Abrir calendario de fecha de inicio del grupo"></mat-datepicker-toggle>
-      <mat-datepicker #picker_fechaCreacion [touchUi]="touchUi"></mat-datepicker>
-    </mat-form-field>
-    <p *ngIf="fechaVaciada('fechaCreacion')" class="error-fecha" id="error-vacia-fechaCreacion" role="alert">{{ mensajeFechaNoBorrable }}</p>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Fecha de finalización del grupo</mat-label>
-      <input matInput readonly [matDatepicker]="picker_fechaFinalizacion" [min]="fechasDate.fechaCreacion" [ngModel]="fechasDate.fechaFinalizacion"
-        (ngModelChange)="alElegirFecha('fechaFinalizacion', $event)" name="fechaFinalizacion" placeholder="dd/mm/aaaa"
-        (click)="picker_fechaFinalizacion.open()">
-      <button mat-icon-button matSuffix type="button" *ngIf="puedeLimpiar('fechaFinalizacion')"
-        aria-label="Quitar fecha de finalización del grupo" (click)="limpiarFecha('fechaFinalizacion')">
-        <mat-icon>clear</mat-icon>
-      </button>
-      <mat-datepicker-toggle matSuffix [for]="picker_fechaFinalizacion" aria-label="Abrir calendario de fecha de finalización del grupo"></mat-datepicker-toggle>
-      <mat-datepicker #picker_fechaFinalizacion [touchUi]="touchUi"></mat-datepicker>
-    </mat-form-field>
-    <p *ngIf="fechaVaciada('fechaFinalizacion')" class="error-fecha" id="error-vacia-fechaFinalizacion" role="alert">{{ mensajeFechaNoBorrable }}</p>
-    <p *ngIf="errorFinalizacion" class="error-fecha" id="error-finalizacion" role="alert">{{ errorFinalizacion }}</p>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Apertura de inscripciones</mat-label>
-      <input matInput readonly [matDatepicker]="picker_fechaInscripcionApertura" [ngModel]="fechasDate.fechaInscripcionApertura"
-        (ngModelChange)="alElegirFecha('fechaInscripcionApertura', $event)" name="fechaInscripcionApertura" placeholder="dd/mm/aaaa"
-        (click)="picker_fechaInscripcionApertura.open()">
-      <button mat-icon-button matSuffix type="button" *ngIf="puedeLimpiar('fechaInscripcionApertura')"
-        aria-label="Quitar apertura de inscripciones" (click)="limpiarFecha('fechaInscripcionApertura')">
-        <mat-icon>clear</mat-icon>
-      </button>
-      <mat-datepicker-toggle matSuffix [for]="picker_fechaInscripcionApertura" aria-label="Abrir calendario de apertura de inscripciones"></mat-datepicker-toggle>
-      <mat-datepicker #picker_fechaInscripcionApertura [touchUi]="touchUi"></mat-datepicker>
-      <mat-hint>Si lo dejas vacío, las inscripciones están abiertas desde ya</mat-hint>
-    </mat-form-field>
-    <p *ngIf="fechaVaciada('fechaInscripcionApertura')" class="error-fecha" id="error-vacia-fechaInscripcionApertura" role="alert">{{ mensajeFechaNoBorrable }}</p>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Cierre de inscripciones</mat-label>
-      <input matInput readonly [matDatepicker]="picker_fechaIncripcionCierre" [min]="fechasDate.fechaInscripcionApertura" [ngModel]="fechasDate.fechaIncripcionCierre"
-        (ngModelChange)="alElegirFecha('fechaIncripcionCierre', $event)" name="fechaIncripcionCierre" placeholder="dd/mm/aaaa"
-        (click)="picker_fechaIncripcionCierre.open()">
-      <mat-datepicker-toggle matSuffix [for]="picker_fechaIncripcionCierre" aria-label="Abrir calendario de cierre de inscripciones"></mat-datepicker-toggle>
-      <mat-datepicker #picker_fechaIncripcionCierre [touchUi]="touchUi"></mat-datepicker>
-      <mat-hint>Obligatorio. El último día es inclusivo</mat-hint>
-    </mat-form-field>
-    <p *ngIf="errorCierreObligatorio" class="error-fecha" id="error-cierre-obligatorio" role="alert">{{ errorCierreObligatorio }}</p>
-    <p *ngIf="errorCierreInscripcion" class="error-fecha" id="error-cierre-inscripcion" role="alert">{{ errorCierreInscripcion }}</p>
-
-    <div class="form-field buttonImage">
-      <label for="imagen">Imagen del grupo</label>
-      <input type="file" id="imagen" (change)="onFileSelected($event)" accept="image/*" [required]="!isEditing" />
-      <div *ngIf="imagenPreview" class="preview">
-        <img [src]="imagenPreview" alt="Vista previa" class="image-preview">
+    <!-- 1 · Datos del grupo -->
+    <section class="dlg-seccion" aria-labelledby="sec-datos">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">1</span>
+        <div>
+          <h3 id="sec-datos" class="dlg-seccion-titulo">Datos del grupo</h3>
+          <p class="dlg-seccion-ayuda">Cuántas personas caben y quién lo dirige.</p>
+        </div>
       </div>
-    </div>
+      <div class="dlg-rejilla">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Cupos</mat-label>
+          <input matInput placeholder="cupos" [(ngModel)]="grupo.cupos" name="cupos" type="number" min="1" step="1">
+        </mat-form-field>
 
-    <p *ngIf="errorServidor" class="error-fecha" id="error-servidor" role="alert">{{ errorServidor }}</p>
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Instructor</mat-label>
+          <mat-select [(ngModel)]="grupo.idInstructor" name="instructor" placeholder="Instructor">
+            <mat-option [value]="null">Sin definir</mat-option>
+            <!-- El backend devuelve estructura plana, no tiene .perfil anidado -->
+            <mat-option *ngFor="let instr of instructores" [value]="instr.id">
+              {{ instr.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <p *ngIf="errorCupos" class="error-fecha dlg-ancho-completo" id="error-cupos" role="alert">{{ errorCupos }}</p>
+      </div>
+    </section>
 
-    <div class="form-buttons">
-      <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
-      <button mat-raised-button class="aceptar" type="submit" [disabled]="!formularioValido">Guardar</button>
-    </div>
-  </form>
-</mat-dialog-content>
+    <!-- 2 · Calendario. Fechas: mat-datepicker de solo lectura (sin digitación manual); el modelo viaja como 'yyyy-MM-dd' en hora local. -->
+    <section class="dlg-seccion" aria-labelledby="sec-calendario">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">2</span>
+        <div>
+          <h3 id="sec-calendario" class="dlg-seccion-titulo">Calendario del grupo</h3>
+          <p class="dlg-seccion-ayuda">Cuándo empieza y cuándo termina.</p>
+        </div>
+      </div>
+      <div class="dlg-rejilla">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Fecha de inicio del grupo</mat-label>
+          <input matInput readonly [matDatepicker]="picker_fechaCreacion" [ngModel]="fechasDate.fechaCreacion"
+            (ngModelChange)="alElegirFecha('fechaCreacion', $event)" name="fechaCreacion" placeholder="dd/mm/aaaa"
+            (click)="picker_fechaCreacion.open()">
+          <button mat-icon-button matSuffix type="button" *ngIf="puedeLimpiar('fechaCreacion')"
+            aria-label="Quitar fecha de inicio del grupo" (click)="limpiarFecha('fechaCreacion')">
+            <mat-icon>clear</mat-icon>
+          </button>
+          <mat-datepicker-toggle matSuffix [for]="picker_fechaCreacion" aria-label="Abrir calendario de fecha de inicio del grupo"></mat-datepicker-toggle>
+          <mat-datepicker #picker_fechaCreacion [touchUi]="touchUi"></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Fecha de finalización del grupo</mat-label>
+          <input matInput readonly [matDatepicker]="picker_fechaFinalizacion" [min]="fechasDate.fechaCreacion" [ngModel]="fechasDate.fechaFinalizacion"
+            (ngModelChange)="alElegirFecha('fechaFinalizacion', $event)" name="fechaFinalizacion" placeholder="dd/mm/aaaa"
+            (click)="picker_fechaFinalizacion.open()">
+          <button mat-icon-button matSuffix type="button" *ngIf="puedeLimpiar('fechaFinalizacion')"
+            aria-label="Quitar fecha de finalización del grupo" (click)="limpiarFecha('fechaFinalizacion')">
+            <mat-icon>clear</mat-icon>
+          </button>
+          <mat-datepicker-toggle matSuffix [for]="picker_fechaFinalizacion" aria-label="Abrir calendario de fecha de finalización del grupo"></mat-datepicker-toggle>
+          <mat-datepicker #picker_fechaFinalizacion [touchUi]="touchUi"></mat-datepicker>
+        </mat-form-field>
+        <p *ngIf="fechaVaciada('fechaCreacion')" class="error-fecha dlg-ancho-completo" id="error-vacia-fechaCreacion" role="alert">{{ mensajeFechaNoBorrable }}</p>
+        <p *ngIf="fechaVaciada('fechaFinalizacion')" class="error-fecha dlg-ancho-completo" id="error-vacia-fechaFinalizacion" role="alert">{{ mensajeFechaNoBorrable }}</p>
+        <p *ngIf="errorFinalizacion" class="error-fecha dlg-ancho-completo" id="error-finalizacion" role="alert">{{ errorFinalizacion }}</p>
+      </div>
+    </section>
+
+    <!-- 3 · Inscripciones -->
+    <section class="dlg-seccion" aria-labelledby="sec-inscripciones">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">3</span>
+        <div>
+          <h3 id="sec-inscripciones" class="dlg-seccion-titulo">Inscripciones</h3>
+          <p class="dlg-seccion-ayuda">Periodo en que las personas pueden inscribirse.</p>
+        </div>
+      </div>
+      <div class="dlg-rejilla">
+        <mat-form-field appearance="outline" class="form-field" subscriptSizing="dynamic">
+          <mat-label>Apertura de inscripciones</mat-label>
+          <input matInput readonly [matDatepicker]="picker_fechaInscripcionApertura" [ngModel]="fechasDate.fechaInscripcionApertura"
+            (ngModelChange)="alElegirFecha('fechaInscripcionApertura', $event)" name="fechaInscripcionApertura" placeholder="dd/mm/aaaa"
+            (click)="picker_fechaInscripcionApertura.open()">
+          <button mat-icon-button matSuffix type="button" *ngIf="puedeLimpiar('fechaInscripcionApertura')"
+            aria-label="Quitar apertura de inscripciones" (click)="limpiarFecha('fechaInscripcionApertura')">
+            <mat-icon>clear</mat-icon>
+          </button>
+          <mat-datepicker-toggle matSuffix [for]="picker_fechaInscripcionApertura" aria-label="Abrir calendario de apertura de inscripciones"></mat-datepicker-toggle>
+          <mat-datepicker #picker_fechaInscripcionApertura [touchUi]="touchUi"></mat-datepicker>
+          <mat-hint>Si lo dejas vacío, las inscripciones están abiertas desde ya</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" subscriptSizing="dynamic">
+          <mat-label>Cierre de inscripciones</mat-label>
+          <input matInput readonly [matDatepicker]="picker_fechaIncripcionCierre" [min]="fechasDate.fechaInscripcionApertura" [ngModel]="fechasDate.fechaIncripcionCierre"
+            (ngModelChange)="alElegirFecha('fechaIncripcionCierre', $event)" name="fechaIncripcionCierre" placeholder="dd/mm/aaaa"
+            (click)="picker_fechaIncripcionCierre.open()">
+          <mat-datepicker-toggle matSuffix [for]="picker_fechaIncripcionCierre" aria-label="Abrir calendario de cierre de inscripciones"></mat-datepicker-toggle>
+          <mat-datepicker #picker_fechaIncripcionCierre [touchUi]="touchUi"></mat-datepicker>
+          <mat-hint>Obligatorio. El último día es inclusivo</mat-hint>
+        </mat-form-field>
+        <p *ngIf="fechaVaciada('fechaInscripcionApertura')" class="error-fecha dlg-ancho-completo" id="error-vacia-fechaInscripcionApertura" role="alert">{{ mensajeFechaNoBorrable }}</p>
+        <p *ngIf="errorCierreObligatorio" class="error-fecha dlg-ancho-completo" id="error-cierre-obligatorio" role="alert">{{ errorCierreObligatorio }}</p>
+        <p *ngIf="errorCierreInscripcion" class="error-fecha dlg-ancho-completo" id="error-cierre-inscripcion" role="alert">{{ errorCierreInscripcion }}</p>
+      </div>
+    </section>
+
+    <!-- 4 · Imagen -->
+    <section class="dlg-seccion" aria-labelledby="sec-imagen">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">4</span>
+        <div>
+          <h3 id="sec-imagen" class="dlg-seccion-titulo">Imagen del grupo</h3>
+          <p class="dlg-seccion-ayuda">{{ isEditing ? 'Opcional: si no elige otra, se conserva la actual.' : 'Opcional: si no elige una, se usa la imagen del curso.' }}</p>
+        </div>
+      </div>
+      <div class="selector-imagen">
+        <input type="file" id="imagen" class="archivo-oculto" (change)="onFileSelected($event)" accept="image/*" />
+        <label for="imagen" class="boton-archivo">
+          <mat-icon aria-hidden="true">upload</mat-icon>
+          {{ imagenPreview || selectedFile ? 'Cambiar imagen' : 'Seleccionar imagen' }}
+        </label>
+        <span class="nombre-archivo" *ngIf="selectedFile">{{ selectedFile.name }}</span>
+        <span class="ayuda-archivo">Formatos JPG o PNG.</span>
+        <img *ngIf="imagenPreview" [src]="imagenPreview" alt="Vista previa de la imagen del grupo" class="image-preview">
+      </div>
+    </section>
+
+    <p *ngIf="errorServidor" class="error-servidor" id="error-servidor" role="alert">{{ errorServidor }}</p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
+    <button mat-button class="aceptar" type="submit" [disabled]="!formularioValido">
+      <mat-icon aria-hidden="true">check_circle_outline</mat-icon>
+      {{ isEditing ? 'Guardar cambios' : 'Crear grupo' }}
+    </button>
+  </mat-dialog-actions>
+</form>

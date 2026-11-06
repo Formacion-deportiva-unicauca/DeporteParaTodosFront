@@ -1,0 +1,170 @@
+/*
+ * Ajustes globales sobre Bootstrap y Angular Material para cumplir el lineamiento UX-UI de la División TIC.
+ * Reparto de responsabilidades: Material para los componentes interactivos (botones, campos, diálogos, menús) y
+ * Bootstrap para la grilla y las utilidades. Todo lo de aquí usa los tokens de tokens.css.
+ */
+
+/* ── Base ── */
+body {
+  font-family: var(--fuente-cuerpo);
+  font-size: var(--texto-cuerpo-1);
+  color: var(--color-neutro-texto);
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--fuente-titulos);
+  color: var(--color-primario);
+}
+
+a {
+  color: var(--color-terciario);
+}
+
+/* ── Bootstrap: variables de color ── */
+:root {
+  --bs-primary: var(--color-primario);
+  --bs-primary-rgb: 0, 0, 102;
+  --bs-danger: var(--color-error-texto);
+  --bs-danger-rgb: 154, 65, 0;
+  --bs-success: var(--color-accesibilidad);
+  --bs-success-rgb: 36, 147, 0;
+  --bs-info: var(--color-terciario);
+  --bs-info-rgb: 29, 114, 211;
+  --bs-body-font-family: var(--fuente-cuerpo);
+  --bs-body-font-size: var(--texto-cuerpo-1);
+  --bs-body-color: var(--color-neutro-texto);
+  --bs-link-color: var(--color-terciario);
+  --bs-link-hover-color: var(--color-primario-light);
+  --bs-border-radius: var(--radio-campo);
+  --bs-border-radius-lg: var(--radio-tarjeta);
+}
+
+/* ── Bootstrap: botones (Button 1: Open Sans semibold 14px en mayúsculas, 1.25px; totalmente redondeados) ── */
+.btn {
+  --bs-btn-border-radius: var(--radio-total);
+  --bs-btn-font-family: var(--fuente-cuerpo);
+  --bs-btn-font-size: var(--texto-boton-1);
+  --bs-btn-font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.25px;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--color-primario);
+  --bs-btn-border-color: var(--color-primario);
+  --bs-btn-color: var(--color-sobre-primario);
+  --bs-btn-hover-bg: var(--color-primario-light);
+  --bs-btn-hover-border-color: var(--color-primario-light);
+  --bs-btn-hover-color: var(--color-sobre-primario);
+  --bs-btn-active-bg: var(--color-primario-dark);
+  --bs-btn-active-border-color: var(--color-primario-dark);
+  --bs-btn-active-color: var(--color-sobre-primario);
+  --bs-btn-disabled-bg: var(--color-primario);
+  --bs-btn-disabled-border-color: var(--color-primario);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--color-primario);
+  --bs-btn-border-color: var(--color-primario);
+  --bs-btn-hover-bg: var(--color-primario);
+  --bs-btn-hover-border-color: var(--color-primario);
+  --bs-btn-active-bg: var(--color-primario-dark);
+  --bs-btn-active-border-color: var(--color-primario-dark);
+}
+
+.btn-danger {
+  --bs-btn-bg: var(--color-error-texto);
+  --bs-btn-border-color: var(--color-error-texto);
+  --bs-btn-color: var(--color-sobre-error);
+  --bs-btn-hover-bg: #7f3500;
+  --bs-btn-hover-border-color: #7f3500;
+  --bs-btn-hover-color: var(--color-sobre-error);
+  --bs-btn-active-bg: #5c2600;
+  --bs-btn-active-border-color: #5c2600;
+  --bs-btn-active-color: var(--color-sobre-error);
+}
+
+/* ── Bootstrap: campos ── */
+.form-control,
+.form-select {
+  border-radius: var(--radio-campo);
+  color: var(--color-neutro-texto);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-primario-light);
+  box-shadow: 0 0 0 0.2rem rgba(80, 86, 172, 0.25);
+}
+
+/* ── Bootstrap: insignias y estados ── */
+.badge {
+  border-radius: var(--radio-total);
+}
+
+/* Error: rol "Error" del lineamiento (naranja oscuro, texto blanco). */
+.badge.bg-danger,
+.text-bg-danger {
+  color: var(--color-sobre-error) !important;
+}
+
+.text-danger,
+.invalid-feedback {
+  color: var(--color-error-texto) !important;
+}
+
+.alert-danger {
+  --bs-alert-bg: var(--color-error-contenedor);
+  --bs-alert-color: var(--color-sobre-error-contenedor);
+  --bs-alert-border-color: var(--color-error);
+}
+
+/*
+ * ── Material: formas y tipografía del lineamiento ──
+ * Los estilos de los componentes de Material se inyectan al final del <head> y, con igual especificidad,
+ * ganarían a estas reglas; por eso llevan el prefijo "html" (especificidad mayor).
+ */
+html .mat-mdc-card {
+  border-radius: var(--radio-tarjeta);
+}
+
+html .mat-mdc-dialog-surface {
+  border-radius: var(--radio-dialogo);
+}
+
+html .mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  border-radius: var(--radio-extra-pequeno);
+}
+
+html .mat-mdc-unelevated-button,
+html .mat-mdc-raised-button,
+html .mat-mdc-outlined-button,
+html .mat-mdc-button {
+  border-radius: var(--radio-total);
+  text-transform: uppercase;
+  letter-spacing: 1.25px;
+}
+
+/*
+ * ── Notificaciones (NotificacionService) ──
+ * El contenedor del snackbar de Material es oscuro por defecto; aquí se vuelve una tarjeta blanca con radio de 4px
+ * (Snackbars: forma "extra pequeño") y el contenido lo dibuja NotificacionComponent.
+ */
+html .notificacion-panel {
+  --mdc-snackbar-container-color: #ffffff;
+  --mdc-snackbar-supporting-text-color: var(--color-neutro-texto);
+  width: min(440px, calc(100vw - 2rem));
+  max-width: none;
+  /* Debajo de la barra superior (64px) + un respiro: no tapa el menú de usuario mientras dura */
+  margin: 4.75rem 1rem 0 !important;
+}
+html .notificacion-panel .mdc-snackbar__surface {
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border-radius: var(--radio-extra-pequeno);
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+html .notificacion-panel .mdc-snackbar__label { padding: 0; }

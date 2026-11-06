@@ -109,7 +109,8 @@ describe('ListDeportistasdeCursoComponent', () => {
     spyOn(component['inscripcionService'], 'getListaEspera').and.returnValue(of([]));
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
-    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
     spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of({} as any));
     spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
 
@@ -141,11 +142,7 @@ describe('ListDeportistasdeCursoComponent', () => {
 
       component.promover(mockAlumnoEspera);
 
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining(mockAlumnoEspera.nombre),
-        'Cerrar',
-        jasmine.objectContaining({ panelClass: ['snack-success'] })
-      );
+      expect(component['notificaciones'].exito).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(mockAlumnoEspera.nombre));
     });
 
     it('muestra mensaje de conflicto cuando promoverAlumno falla con 409', () => {
@@ -154,11 +151,7 @@ describe('ListDeportistasdeCursoComponent', () => {
 
       component.promover(mockAlumnoEspera);
 
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'El alumno ya está inscrito en el grupo',
-        'Cerrar',
-        jasmine.objectContaining({ panelClass: ['snack-error'] })
-      );
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('El alumno ya está inscrito en el grupo'));
     });
   });
 
@@ -188,9 +181,7 @@ describe('ListDeportistasdeCursoComponent', () => {
     it('cargarHistorial(): muestra snackbar de error si getClase() falla', () => {
       spyOn(component['claseService'], 'getClase').and.returnValue(throwError(() => new Error('net')));
       component.cargarHistorial();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Error'), 'Cerrar', jasmine.any(Object)
-      );
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('Error'));
     });
 
     describe('cargarHistorial(): interpreta la respuesta de /clasesGrupo con interpretarListado', () => {
@@ -214,7 +205,7 @@ describe('ListDeportistasdeCursoComponent', () => {
         expect(Array.isArray(component.clases)).toBeTrue();
         expect(component.historialVisible).toBeTrue();
         expect(textoPantalla()).toContain('No hay clases registradas para este grupo.');
-        expect(component['snackBar'].open).not.toHaveBeenCalledWith(errorHistorial, jasmine.anything(), jasmine.anything());
+        expect(component['notificaciones'].error).not.toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(errorHistorial));
       });
 
       const inesperados: [string, any][] = [
@@ -228,7 +219,7 @@ describe('ListDeportistasdeCursoComponent', () => {
         it(`${nombre}: avisa del error, no lo toma por historial vacío y no deja datos incorrectos`, () => {
           spyOn(component['claseService'], 'getClase').and.returnValue(of(cuerpo));
           expect(() => { component.cargarHistorial(); fixture.detectChanges(); }).not.toThrow();
-          expect(component['snackBar'].open).toHaveBeenCalledWith(errorHistorial, 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+          expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(errorHistorial));
           expect(component.historialVisible).toBeFalse();
           expect(component.clases).toEqual([]);
           expect(textoPantalla()).not.toContain('No hay clases registradas para este grupo.');
@@ -243,7 +234,7 @@ describe('ListDeportistasdeCursoComponent', () => {
         component.cargarHistorial();
         expect(component.clases).toEqual([mockClase]);
         expect(component.historialVisible).toBeTrue();
-        expect(component['snackBar'].open).toHaveBeenCalledWith(errorHistorial, 'Cerrar', jasmine.any(Object));
+        expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(errorHistorial));
       });
     });
 
@@ -293,9 +284,7 @@ describe('ListDeportistasdeCursoComponent', () => {
 
       expect(component['asistenciaService'].getAtencionesClase).toHaveBeenCalledWith(mockClase.codigo);
       expect(component.clasesAtenciones[mockClase.codigo]).toEqual([mockAtencion]);
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining('eliminada'), 'Cerrar', jasmine.any(Object)
-      );
+      expect(component['notificaciones'].exito).toHaveBeenCalledWith('Asistencia eliminada', jasmine.any(String));
     });
 
     it('eliminarAtencion(): tras errorStatus muestra snack de error', () => {
@@ -306,9 +295,7 @@ describe('ListDeportistasdeCursoComponent', () => {
 
       component.eliminarAtencion(mockAtencion, mockClase);
 
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Error'), 'Cerrar', jasmine.any(Object)
-      );
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('Error'));
     });
   });
 });
@@ -361,7 +348,8 @@ describe('ListDeportistasdeCursoComponent — rol Instructor', () => {
     spyOn(component['inscripcionService'], 'getListaEspera').and.returnValue(of([]));
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
-    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
     spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of({} as any));
     spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
 
@@ -458,7 +446,8 @@ describe('ListDeportistasdeCursoComponent — novedad de clase no realizada', ()
     spyOn(component['inscripcionService'], 'getDisponibilidad').and.returnValue(of({ cuposTotales: 10, cuposDisponibles: 5, tamanoListaEspera: 0 }));
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
-    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
     spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of({} as any));
     spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([mockNovedad]));
 
@@ -515,10 +504,7 @@ describe('ListDeportistasdeCursoComponent — novedad de clase no realizada', ()
     component.registrarNovedad();
     expect(component['novedadClaseService'].registrarNovedad).toHaveBeenCalled();
     expect(component.mostrarFormNovedad).toBeFalse();
-    expect(component['snackBar'].open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Novedad registrada'), 'Cerrar',
-      jasmine.objectContaining({ panelClass: ['snack-success'] })
-    );
+    expect(component['notificaciones'].exito).toHaveBeenCalledWith('Novedad registrada', jasmine.stringContaining('no realizada'));
   });
 
   it('cargarNovedades() carga la lista de novedades del grupo', () => {

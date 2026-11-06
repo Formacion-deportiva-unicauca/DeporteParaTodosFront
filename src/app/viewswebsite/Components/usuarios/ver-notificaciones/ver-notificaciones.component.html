@@ -1,15 +1,35 @@
+<header class="dlg-cabecera">
+  <div>
+    <span class="dlg-eyebrow">Centro de mensajes</span>
+    <h2 mat-dialog-title class="dlg-titulo">Notificaciones</h2>
+    <p class="dlg-subtitulo">
+      {{ alertas.length === 0 ? 'Está al día: no tiene mensajes nuevos.'
+         : 'Tiene ' + alertas.length + (alertas.length === 1 ? ' notificación.' : ' notificaciones.') }}
+    </p>
+  </div>
+  <button mat-icon-button type="button" class="close-button" aria-label="Cerrar diálogo" (click)="onClose()">
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
 
-
-<div class="notificaciones-modal">
-    <h2 mat-dialog-title>Notificaciones</h2>
-    <mat-dialog-content>
-      <div *ngFor="let notificacion of alertas"><!---->
+<mat-dialog-content class="dlg-cuerpo">
+  <ul class="lista-notificaciones" *ngIf="alertas.length > 0">
+    <li *ngFor="let notificacion of alertas">
+      <span class="icono-notificacion" aria-hidden="true"><mat-icon aria-hidden="true">notifications</mat-icon></span>
+      <div>
         <h3>{{ notificacion.asunto }}</h3>
         <p>{{ notificacion.descripcion }}</p>
-        <mat-divider></mat-divider>
       </div>
-    </mat-dialog-content>
-    <mat-dialog-actions>
-      <button mat-button  class="cancelar" (click)="onClose()">Cerrar</button>
-    </mat-dialog-actions>
+    </li>
+  </ul>
+
+  <div class="sin-notificaciones" *ngIf="alertas.length === 0">
+    <span class="icono-vacio" aria-hidden="true"><mat-icon aria-hidden="true">notifications_none</mat-icon></span>
+    <p class="vacio-titulo">No tienes notificaciones por ahora</p>
+    <p class="vacio-texto">Cuando haya novedades sobre tus cursos aparecerán aquí.</p>
   </div>
+</mat-dialog-content>
+
+<mat-dialog-actions class="dlg-pie">
+  <button mat-button type="button" class="aceptar" (click)="onClose()">Cerrar</button>
+</mat-dialog-actions>

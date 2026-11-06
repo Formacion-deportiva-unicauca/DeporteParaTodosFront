@@ -1,0 +1,84 @@
+:host { display: block; }
+
+/* Primario, píldora, Button 2 en mayúsculas (lineamiento UX-UI División TIC) */
+.btn-google {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  /* Espacio a los lados: el texto queda centrado aunque el icono esté a la izquierda */
+  padding: 0.5rem 3.5rem;
+  border: 2px solid var(--color-primario);
+  border-radius: var(--radio-total);
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  font: 600 var(--texto-boton-2) var(--fuente-cuerpo);
+  letter-spacing: 1.25px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 102, 0.25);
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.btn-google:hover:not(:disabled) {
+  background: var(--color-primario-light);
+  border-color: var(--color-primario-light);
+  box-shadow: 0 6px 16px rgba(0, 0, 102, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-google:active:not(:disabled) {
+  background: var(--color-primario-dark);
+  border-color: var(--color-primario-dark);
+  box-shadow: 0 2px 6px rgba(0, 0, 102, 0.3);
+  transform: none;
+}
+
+.btn-google:focus-visible {
+  outline: 3px solid var(--color-terciario);
+  outline-offset: 3px;
+}
+
+/* Mientras redirige: no responde a clics y muestra el avance */
+.btn-google:disabled {
+  cursor: progress;
+  background: var(--color-primario-light);
+  border-color: var(--color-primario-light);
+  box-shadow: none;
+}
+
+.icono-google {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--color-tonal-95);
+  border-top-color: var(--color-primario);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-google { transition: none; }
+  .spinner { animation-duration: 3s; }
+}
+
+@media (max-width: 575.98px) {
+  .btn-google { padding: 0.5rem 3rem 0.5rem 3.25rem; font-size: var(--texto-boton-1); }
+}

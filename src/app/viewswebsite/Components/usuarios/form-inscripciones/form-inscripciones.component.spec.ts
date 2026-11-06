@@ -425,3 +425,93 @@ describe('FormInscripcionesComponent › vínculo del instructor y edición', ()
       expect(fixture.nativeElement.querySelector(`[name="${n}"]`)).toBeNull());
   });
 });
+
+// ── Diseño del diálogo (cabecera, pasos y pie de acciones, según el prototipo) ──
+
+describe('FormInscripcionesComponent › diseño del diálogo', () => {
+  const q = <T extends HTMLElement>(fixture: ComponentFixture<FormInscripcionesComponent>, s: string): T =>
+    (fixture.nativeElement as HTMLElement).querySelector(s) as T;
+  const texto = (fixture: ComponentFixture<FormInscripcionesComponent>, s: string): string =>
+    (q(fixture, s)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const pasos = (fixture: ComponentFixture<FormInscripcionesComponent>): string[] =>
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.dlg-paso')).map(p => (p.textContent ?? '').trim());
+  const botonesPie = (fixture: ComponentFixture<FormInscripcionesComponent>): string[] =>
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.dlg-pie button')).map(b => (b.textContent ?? '').replace(/\s+/g, ' ').trim());
+
+  describe('inscribir (agregar deportista al grupo)', () => {
+    it('la cabecera tiene etiqueta, título y la indicación de buscar primero el correo', async () => {
+      const { fixture } = await setupTestBed({ modo: 'inscribir' });
+      fixture.detectChanges();
+      expect(texto(fixture, '.dlg-eyebrow')).toBe('Gestión de deportistas');
+      expect(texto(fixture, 'h2[mat-dialog-title].dlg-titulo')).toBe('Agregar deportista al grupo');
+      expect(texto(fixture, '.dlg-subtitulo')).toContain('Busque primero el correo');
+      expect(q(fixture, '.dlg-cabecera button.close-button').getAttribute('aria-label')).toBe('Cerrar diálogo');
+    });
+
+    it('paso 1: buscar deportista; el botón principal queda deshabilitado hasta que se busque', async () => {
+      const { fixture } = await setupTestBed({ modo: 'inscribir' });
+      fixture.detectChanges();
+      expect(texto(fixture, '.dlg-seccion-titulo')).toBe('Buscar deportista');
+      expect(pasos(fixture)).toEqual(['1']);
+      expect(botonesPie(fixture)).toEqual(['Cancelar', 'add Registrar e inscribir']);
+      expect(q<HTMLButtonElement>(fixture, '.dlg-pie button.aceptar').disabled).toBeTrue();
+    });
+
+    it('persona encontrada: muestra su nombre y correo y el botón principal pasa a "Inscribir"', async () => {
+      const { fixture, component } = await setupTestBed({ modo: 'inscribir' });
+      component.estado = 'encontrado';
+      component.perfilEncontrado = { nombre: 'Isabella Carvajal', correo: 'isacarvajal@unicauca.edu.co' } as any;
+      fixture.detectChanges();
+      expect(texto(fixture, '.resultado.encontrado')).toContain('Isabella Carvajal');
+      expect(botonesPie(fixture)).toEqual(['Cancelar', 'add Inscribir']);
+      spyOn(component, 'inscribirEncontrado');
+      q<HTMLButtonElement>(fixture, '.dlg-pie button.aceptar').click();
+      expect(component.inscribirEncontrado).toHaveBeenCalled();
+    });
+
+    it('correo de Instructor o Coordinador: avisa con rol de alerta y el pie solo ofrece "Cerrar"', async () => {
+      const { fixture, component } = await setupTestBed({ modo: 'inscribir' });
+      component.estado = 'rol_invalido';
+      fixture.detectChanges();
+      expect(q(fixture, '.resultado.rol-invalido').getAttribute('role')).toBe('alert');
+      expect(botonesPie(fixture)).toEqual(['Cerrar']);
+    });
+
+    it('persona no encontrada: avisa, y el paso 2 y 3 completan los datos', async () => {
+      const { fixture, component } = await setupTestBed({ modo: 'inscribir' });
+      component.estado = 'no_encontrado';
+      fixture.detectChanges();
+      expect(texto(fixture, '.aviso-no-encontrado')).toContain('No existe un deportista con ese correo');
+      expect(pasos(fixture)).toEqual(['1', '2', '3']);
+      const titulos = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.dlg-seccion-titulo')).map(t => (t.textContent ?? '').trim());
+      expect(titulos).toEqual(['Buscar deportista', 'Información personal', 'Información institucional']);
+      expect(botonesPie(fixture)).toEqual(['Cancelar', 'add Registrar e inscribir']);
+    });
+  });
+
+  describe('otros modos', () => {
+    it('editar: "Editar deportista", sin sección institucional y con "Guardar cambios"', async () => {
+      const { fixture } = await setupTestBed({ modo: 'editar', alumno: alumnoMock });
+      fixture.detectChanges();
+      expect(texto(fixture, 'h2[mat-dialog-title].dlg-titulo')).toBe('Editar deportista');
+      expect(pasos(fixture)).toEqual(['1']);
+      expect(botonesPie(fixture)[1]).toContain('Guardar cambios');
+    });
+
+    it('registro de usuario: dos pasos, personal e institucional', async () => {
+      const { fixture } = await setupTestBed(null);
+      fixture.detectChanges();
+      expect(texto(fixture, '.dlg-eyebrow')).toBe('Registro');
+      expect(texto(fixture, 'h2[mat-dialog-title].dlg-titulo')).toBe('Registro de usuario');
+      expect(pasos(fixture)).toEqual(['1', '2']);
+      expect(q(fixture, '.dlg-aviso').textContent).toContain('Los campos marcados con * son obligatorios');
+    });
+
+    it('los botones usan los estilos reales de Material: principal azul con texto blanco, secundario con contorno', async () => {
+      const { fixture } = await setupTestBed(null);
+      fixture.detectChanges();
+      expect(getComputedStyle(q(fixture, '.dlg-pie button.cancelar')).color).toBe('rgb(0, 0, 102)');
+      expect(getComputedStyle(q(fixture, '.dlg-pie button.cancelar')).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    });
+  });
+});

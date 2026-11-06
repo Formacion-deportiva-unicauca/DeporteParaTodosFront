@@ -55,7 +55,8 @@ describe('ListDeportistasdeCursoComponent — faltas acumuladas del grupo', () =
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Prof' } as any));
     spyOn(component['claseService'], 'getClase').and.returnValue(of([]));
-    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
     spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
     fixture.detectChanges();
   };
@@ -131,7 +132,7 @@ describe('ListDeportistasdeCursoComponent — faltas acumuladas del grupo', () =
         fixture.detectChanges();
         expect(component.clasesAtenciones[7]).toBeUndefined();
         expect(el().textContent).not.toContain('Sin asistentes registrados');
-        expect(component['snackBar'].open).toHaveBeenCalledWith(msgError, 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+        expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(msgError));
       });
 
       it(`eliminar una asistencia: si al releer las atenciones llega ${nombre}, no se silencia ni se toma como lista vacía`, () => {
@@ -140,7 +141,7 @@ describe('ListDeportistasdeCursoComponent — faltas acumuladas del grupo', () =
         component.clasesAtenciones[7] = [{ idPerfil: '1', idClase: 7, estaAtendido: true }];
         component.eliminarAtencion({ idPerfil: '1', idClase: 7, estaAtendido: true }, clase);
         expect(component.clasesAtenciones[7]).toEqual([{ idPerfil: '1', idClase: 7, estaAtendido: true }]);   // se conserva lo anterior
-        expect(component['snackBar'].open).toHaveBeenCalledWith(msgError, 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+        expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(msgError));
       });
     }
 
@@ -148,7 +149,7 @@ describe('ListDeportistasdeCursoComponent — faltas acumuladas del grupo', () =
       spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of({ confirmado: true }) } as any);
       spyOn(component['asistenciaService'], 'getAtencionesClase').and.returnValue(throwError(() => new Error('red')));
       component.eliminarAtencion({ idPerfil: '1', idClase: 7, estaAtendido: true }, clase);
-      expect(component['snackBar'].open).toHaveBeenCalledWith(msgError, 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(msgError));
     });
 
     it('eliminar una asistencia con GC-0002 al releer: la lista queda vacía sin error', () => {
@@ -156,7 +157,7 @@ describe('ListDeportistasdeCursoComponent — faltas acumuladas del grupo', () =
       spyOn(component['asistenciaService'], 'getAtencionesClase').and.returnValue(of({ codigoError: 'GC-0002' } as any));
       component.eliminarAtencion({ idPerfil: '1', idClase: 7, estaAtendido: true }, clase);
       expect(component.clasesAtenciones[7]).toEqual([]);
-      expect(component['snackBar'].open).not.toHaveBeenCalledWith(msgError, jasmine.anything(), jasmine.anything());
+      expect(component['notificaciones'].error).not.toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(msgError));
     });
 
     it('la columna "Asistió" dice Sí o No (no un texto dañado)', () => {

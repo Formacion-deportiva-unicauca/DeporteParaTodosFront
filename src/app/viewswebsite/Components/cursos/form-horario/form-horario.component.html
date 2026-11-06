@@ -1,69 +1,102 @@
-<button mat-icon-button style="float: right;" (click)="onCerrar()">
-  <mat-icon>close</mat-icon>
-</button>
+<div class="dlg-form">
+  <header class="dlg-cabecera">
+    <div>
+      <span class="dlg-eyebrow">{{ esNuevoGrupo ? 'Paso 2 de 2 · Nuevo grupo' : 'Gestión de grupos' }}</span>
+      <h2 mat-dialog-title class="dlg-titulo">{{ esNuevoGrupo ? 'Horarios del grupo' : 'Gestionar horarios' }}</h2>
+      <p class="dlg-subtitulo">
+        {{ esNuevoGrupo ? 'El grupo ya fue creado. Defina los días, las horas y el escenario en que se reúne.'
+                        : 'Consulte, agregue o elimine los días y las horas en que se reúne el grupo.' }}
+      </p>
+    </div>
+    <button mat-icon-button type="button" class="close-button" aria-label="Cerrar diálogo" (click)="onCerrar()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
 
-<mat-dialog-content class="dialog-content">
-  <header class="title-two">Gestionar Horarios</header>
+  <mat-dialog-content class="dlg-cuerpo">
+    <p class="dlg-aviso aviso-sin-horario" role="status" *ngIf="mostrarAvisoSinHorario">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      Sin horario, el instructor no podrá registrar la asistencia de este grupo. Puede definirlo ahora o más tarde desde «Gestionar horarios».
+    </p>
 
-  <!-- Horarios existentes -->
-  <section class="seccion-horarios">
-    <h4 class="subtitle">Horarios registrados</h4>
-
-    <div *ngFor="let h of horarios" class="horario-row">
-      <span class="horario-text">{{ h.dia }} · {{ h.horaInicio }} - {{ h.horaFin }} · {{ h.escenario }}</span>
-
-      <div *ngIf="confirmandoEliminacionId === h.id; else botonEliminar" class="confirmar-row">
-        <span class="confirmar-label">¿Eliminar?</span>
-        <button mat-button color="warn" (click)="eliminarHorario(h.id)">Sí</button>
-        <button mat-button (click)="cancelarEliminacion()">No</button>
+    <!-- 1 · Horarios existentes -->
+    <section class="dlg-seccion seccion-horarios" aria-labelledby="titulo-registrados">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">1</span>
+        <div>
+          <h3 id="titulo-registrados" class="dlg-seccion-titulo">Horarios registrados</h3>
+          <p class="dlg-seccion-ayuda">Los días y las horas en que el grupo ya tiene clase.</p>
+        </div>
       </div>
-      <ng-template #botonEliminar>
-        <button mat-icon-button (click)="confirmarEliminacion(h.id)">
-          <mat-icon>delete_outline</mat-icon>
+
+      <p *ngIf="errorCargaHorarios" class="error-servidor" role="alert">
+        No se pudieron cargar los horarios. Cierre el diálogo y vuelva a abrirlo.
+      </p>
+
+      <div *ngFor="let h of horarios" class="horario-row">
+        <span class="horario-text">{{ nombreDia(h.dia) }} · {{ horaCorta(h.horaInicio) }} – {{ horaCorta(h.horaFin) }} · {{ h.escenario }}</span>
+
+        <div *ngIf="confirmandoEliminacionId === h.id; else botonEliminar" class="confirmar-row"
+             role="group" aria-label="Confirmar eliminación del horario">
+          <span class="confirmar-label">¿Eliminar?</span>
+          <button mat-button type="button" class="btn-eliminar" (click)="eliminarHorario(h.id)">Sí</button>
+          <button mat-button type="button" class="cancelar" (click)="cancelarEliminacion()">No</button>
+        </div>
+        <ng-template #botonEliminar>
+          <button mat-icon-button type="button" class="btn-icono-horario" (click)="confirmarEliminacion(h.id)"
+                  [attr.aria-label]="'Eliminar el horario del ' + h.dia + ' de ' + h.horaInicio + ' a ' + h.horaFin">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </ng-template>
+      </div>
+
+      <p *ngIf="horarios.length === 0 && !errorCargaHorarios" class="sin-datos">Sin horarios registrados.</p>
+    </section>
+
+    <!-- 2 · Agregar nuevo horario -->
+    <section class="dlg-seccion" aria-labelledby="titulo-agregar">
+      <div class="dlg-seccion-cabecera">
+        <span class="dlg-paso" aria-hidden="true">2</span>
+        <div>
+          <h3 id="titulo-agregar" class="dlg-seccion-titulo">Agregar horario</h3>
+          <p class="dlg-seccion-ayuda">Elija uno o varios días con la misma hora y escenario.</p>
+        </div>
+      </div>
+
+      <div class="dias-chips" role="group" aria-label="Días de la semana">
+        <button *ngFor="let d of dias" type="button" class="dia-chip"
+                [class.dia-activo]="d.seleccionado" [attr.aria-pressed]="d.seleccionado"
+                [attr.aria-label]="nombreDia(d.valor)" (click)="d.seleccionado = !d.seleccionado">
+          {{ d.label }}
         </button>
-      </ng-template>
-    </div>
+      </div>
 
-    <p *ngIf="horarios.length === 0" class="sin-datos">Sin horarios registrados.</p>
-  </section>
+      <div class="row-times">
+        <mat-form-field appearance="outline" class="form-field-half">
+          <mat-label>Hora inicio</mat-label>
+          <input matInput type="time" [(ngModel)]="horaInicio" name="horaInicio">
+        </mat-form-field>
 
-  <!-- Agregar nuevo horario -->
-  <section>
-    <h4 class="subtitle">Agregar horario</h4>
+        <mat-form-field appearance="outline" class="form-field-half">
+          <mat-label>Hora fin</mat-label>
+          <input matInput type="time" [(ngModel)]="horaFin" name="horaFin">
+        </mat-form-field>
+      </div>
+      <p *ngIf="errorHoras" class="error-horas" role="alert">{{ errorHoras }}</p>
 
-    <div class="dias-chips">
-      <span *ngFor="let d of dias"
-            class="dia-chip"
-            [class.dia-activo]="d.seleccionado"
-            (click)="d.seleccionado = !d.seleccionado">
-        {{ d.label }}
-      </span>
-    </div>
-
-    <div class="row-times">
-      <mat-form-field appearance="outline" class="form-field-half">
-        <mat-label>Hora inicio</mat-label>
-        <input matInput type="time" [(ngModel)]="horaInicio" name="horaInicio">
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Escenario</mat-label>
+        <mat-select [(ngModel)]="escenarioSeleccionado" name="escenario">
+          <mat-option *ngFor="let e of escenarios" [value]="e.nombre">{{ e.nombre }}</mat-option>
+        </mat-select>
       </mat-form-field>
+    </section>
+  </mat-dialog-content>
 
-      <mat-form-field appearance="outline" class="form-field-half">
-        <mat-label>Hora fin</mat-label>
-        <input matInput type="time" [(ngModel)]="horaFin" name="horaFin">
-      </mat-form-field>
-    </div>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Escenario</mat-label>
-      <mat-select [(ngModel)]="escenarioSeleccionado" name="escenario">
-        <mat-option *ngFor="let e of escenarios" [value]="e.nombre">{{ e.nombre }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-  </section>
-</mat-dialog-content>
-
-<mat-dialog-actions align="end">
-  <button mat-button (click)="onCerrar()">Cerrar</button>
-  <button mat-raised-button color="primary" (click)="guardar()" [disabled]="!puedeGuardar()">
-    Agregar
-  </button>
-</mat-dialog-actions>
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCerrar()">{{ etiquetaCerrar }}</button>
+    <button mat-button type="button" class="aceptar" (click)="guardar()" [disabled]="!puedeGuardar()">
+      Agregar
+    </button>
+  </mat-dialog-actions>
+</div>

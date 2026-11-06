@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { Router, provideRouter } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -54,7 +53,8 @@ describe('GestionInscripcionesCoordinadorComponent', () => {
     await TestBed.inject(Router).navigateByUrl(url);
     fixture = TestBed.createComponent(GestionInscripcionesCoordinadorComponent);
     component = fixture.componentInstance;
-    spyOn(component['snackBar'], 'open');
+    spyOn(component['notificaciones'], 'exito');
+    spyOn(component['notificaciones'], 'error');
     fixture.detectChanges();
   }
 
@@ -101,9 +101,9 @@ describe('GestionInscripcionesCoordinadorComponent', () => {
       expect(component.textoNivel('LLENO')).toBe('Lleno');
       expect(component.textoNivel('POR_LLENAR')).toBe('Por llenar');
       expect(component.textoNivel('CON_CUPO')).toBe('Con cupo');
-      expect(component.claseNivel('LLENO')).toContain('danger');
-      expect(component.claseNivel('POR_LLENAR')).toContain('warning');
-      expect(component.claseNivel('CON_CUPO')).toContain('success');
+      expect(component.claseNivel('LLENO')).toBe('nivel-lleno');
+      expect(component.claseNivel('POR_LLENAR')).toBe('nivel-por-llenar');
+      expect(component.claseNivel('CON_CUPO')).toBe('nivel-con-cupo');
     });
 
     it('selecciona y deselecciona un grupo', () => {
@@ -210,8 +210,7 @@ describe('GestionInscripcionesCoordinadorComponent', () => {
 
       component.aplicar();
 
-      expect(component['snackBar'].open).toHaveBeenCalled();
-      expect((component['snackBar'].open as jasmine.Spy).calls.mostRecent().args[0]).toContain('1 grupo');
+      expect(component['notificaciones'].exito).toHaveBeenCalledOnceWith('Periodo aplicado', jasmine.stringContaining('1 grupo'));
       expect(component.seleccionados.length).toBe(0);
       expect(grupoService.getOcupacion).toHaveBeenCalledTimes(1);
     });
@@ -223,7 +222,7 @@ describe('GestionInscripcionesCoordinadorComponent', () => {
 
       component.aplicar();
 
-      expect((component['snackBar'].open as jasmine.Spy).calls.mostRecent().args[0]).toBe('Fechas inválidas');
+      expect(component['notificaciones'].error).toHaveBeenCalledOnceWith('No se pudo aplicar el periodo', 'Fechas inválidas');
       expect(component.seleccionados.length).toBe(1);
       expect(component.aplicando).toBeFalse();
     });

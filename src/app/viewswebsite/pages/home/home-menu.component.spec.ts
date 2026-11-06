@@ -101,4 +101,99 @@ describe('HomeComponent › menú lateral según el rol', () => {
     expect(el().querySelector('app-header')).toBeNull();
     expect(el().querySelectorAll('h1.title-one:not(.modal-title)').length).toBe(1);
   });
+
+  describe('diseño del inicio (lineamiento UX-UI)', () => {
+    it('la rejilla de tarjetas es una grilla CSS responsive, no un mat-grid-list de alto fijo', () => {
+      expect(el().querySelector('mat-grid-list')).toBeNull();
+      const rejilla = el().querySelector('.rejilla') as HTMLElement;
+      expect(getComputedStyle(rejilla).display).toBe('grid');
+    });
+
+    it('ya no muestra el texto de prueba "NOTA:" sino una descripción', () => {
+      expect(el().textContent).not.toContain('NOTA:');
+      expect(el().querySelector('.descripcion')?.textContent).toContain('Administre las categorías deportivas');
+    });
+
+    it('Instructor: el mensaje habla de gestionar la asistencia y los cursos a su cargo', () => {
+      perfil$.next('Instructor');
+      fixture.detectChanges();
+      const texto = el().querySelector('.descripcion')?.textContent ?? '';
+      expect(texto).toContain('Gestione la asistencia');
+      expect(texto).toContain('cursos a su cargo');
+      expect(texto).not.toContain('Administre');
+      expect(el().querySelector('.chip-rol')?.textContent).toContain('Rol: Instructor');
+    });
+
+    describe('Alumno: consulta sus cursos e inscribe; se muestra su tipo de vínculo', () => {
+      afterEach(() => sessionStorage.removeItem('dpt_perfil'));
+
+      for (const tipo of ['Estudiante', 'Docente', 'Administrativo', 'Contratista']) {
+        it(`${tipo}: mensaje de consulta e inscripción y rol "${tipo}"`, () => {
+          sessionStorage.setItem('dpt_perfil', JSON.stringify({ tipoAlumno: tipo }));
+          perfil$.next('Alumno');
+          fixture.detectChanges();
+          const texto = el().querySelector('.descripcion')?.textContent ?? '';
+          expect(texto).toContain('Consulte sus cursos');
+          expect(texto).toContain('inscríbase');
+          expect(el().querySelector('.chip-rol')?.textContent).toContain(`Rol: ${tipo}`);
+          expect(el().textContent).not.toContain('Alumno');
+        });
+      }
+    });
+
+    it('muestra el rol del usuario en una insignia', () => {
+      expect(el().querySelector('.chip-rol')?.textContent).toContain('Rol: Coordinador');
+    });
+
+    it('cada tarjeta tiene imagen accionable con nombre accesible, descripción y enlace "Ver información"', () => {
+      const tarjeta = el().querySelector('mat-card') as HTMLElement;
+      const imagen = tarjeta.querySelector('button.img-container') as HTMLButtonElement;
+      expect(imagen.getAttribute('aria-label')).toBe('Ver cursos de Seleccionados');
+      expect(tarjeta.querySelector('.descripcion-categoria')?.textContent).toContain('d');
+      expect(tarjeta.querySelector('.enlace-tarjeta')?.textContent).toContain('Ver información');
+    });
+
+    it('ya no incluye el modal de Bootstrap: "Ver información" usa un diálogo de Material', () => {
+      expect(el().querySelector('#exampleModal')).toBeNull();
+      expect(el().querySelector('.modal')).toBeNull();
+    });
+
+    /** Columnas esperadas según el ancho de la ventana: 1 en móvil, 2 hasta 1099px y 3 desde 1100px. */
+    const columnasEsperadas = (): number =>
+      window.matchMedia('(min-width: 1100px)').matches ? 3 : window.matchMedia('(min-width: 576px)').matches ? 2 : 1;
+
+    it('la rejilla usa 1, 2 o 3 columnas iguales según el ancho de la ventana (3 por fila en escritorio, como el prototipo)', () => {
+      const rejilla = el().querySelector('.rejilla') as HTMLElement;
+      const columnas = getComputedStyle(rejilla).gridTemplateColumns.split(' ').filter(Boolean).map(parseFloat);
+      expect(columnas.length).toBe(columnasEsperadas());
+      columnas.forEach(c => expect(Math.abs(c - columnas[0])).toBeLessThan(1));
+    });
+
+    it('en una pantalla ancha (contenedor de 1380px) las tarjetas miden unos 444px: ni diminutas ni enormes', () => {
+      const rejilla = el().querySelector('.rejilla') as HTMLElement;
+      rejilla.style.width = '1380px';
+      const ancho = parseFloat(getComputedStyle(rejilla).gridTemplateColumns.split(' ')[0]);
+      if (columnasEsperadas() === 3) {
+        expect(ancho).toBeGreaterThan(420);
+        expect(ancho).toBeLessThan(460);
+      } else {
+        expect(ancho).toBeGreaterThan(300); // ventana de pruebas más angosta: 2 columnas de ~678px
+      }
+    });
+
+    it('las tarjetas de la rejilla se alinean al inicio, bajo el título de la sección', () => {
+      const rejilla = el().querySelector('.rejilla') as HTMLElement;
+      expect(getComputedStyle(rejilla).justifyContent).toMatch(/start|flex-start|normal/);
+    });
+
+    it('las tarjetas tienen 12px de radio', () => {
+      const tarjeta = el().querySelector('mat-card') as HTMLElement;
+      expect(getComputedStyle(tarjeta).borderTopLeftRadius).toBe('12px');
+    });
+
+    it('el título de la página usa Titillium Web', () => {
+      const h1 = el().querySelector('h1.title-one:not(.modal-title)') as HTMLElement;
+      expect(getComputedStyle(h1).fontFamily.toLowerCase()).toContain('titillium web');
+    });
+  });
 });

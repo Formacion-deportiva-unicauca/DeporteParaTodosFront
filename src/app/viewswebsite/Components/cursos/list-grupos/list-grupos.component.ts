@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
-import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -9,7 +8,9 @@ import { FormGruposComponent } from '../../cursos/form-grupos/form-grupos.compon
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DialogComponent } from '../../dialog/dialog.component';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { IconoEngranajeComponent } from 'src/app/shared/icono-engranaje/icono-engranaje.component';
+import { formatoHora12 } from 'src/app/shared/ventana-registro.util';
+import { textoEstadoInscripciones } from 'src/app/shared/estado-inscripciones';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
 import { avisoInscripcionGrupo, etiquetaInscripcionGrupo, inscripcionesAbiertasDeGrupo } from 'src/app/shared/fecha-grupo.util';
@@ -21,7 +22,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { InstructorServisce } from 'src/app/services/instructor.service';
 import { HorarioService } from 'src/app/services/horario.service';
 import { HorarioDTO } from 'src/app/Models/DTOs/horario-dto';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { FormHorarioComponent } from '../form-horario/form-horario.component';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
@@ -33,7 +34,7 @@ import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-i
   standalone: true,
   imports: [
     CommonModule,
-    MatGridListModule,
+    IconoEngranajeComponent,
     MatCardModule,
     MatIconModule,
     MatMenuModule,
@@ -42,15 +43,13 @@ import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-i
     NgIf,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatSnackBarModule,
   ],
   templateUrl: './list-grupos.component.html',
   styleUrls: ['./list-grupos.component.css'],
 })
 export class ListGruposComponent implements OnInit {
   curso: CursoDTO | null = null;
-  public colsize = 3;
-  public isMobile: boolean = false;
+  imagenCurso: string | null = null;
   public grupos: GrupoDTO[] = [];
   categoria: string | null = '';
   titulo: string | null = '';
@@ -58,7 +57,6 @@ export class ListGruposComponent implements OnInit {
   disponibilidad: Record<string, DisponibilidadDTO> = {};
 
   constructor(
-    private breakPointObserver: BreakpointObserver,
     private router: Router,
     private route: ActivatedRoute,
     private grupoService: GrupoService,
@@ -67,7 +65,7 @@ export class ListGruposComponent implements OnInit {
     private imagenService: ImagenService,
     private instructorService: InstructorServisce,
     private horarioservice: HorarioService,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
     private inscripcionesService: InscripcionesService,
     private cursodeportivoService: CursodeportivoService,
   ) { }
@@ -86,17 +84,6 @@ export class ListGruposComponent implements OnInit {
 
     });
 
-    this.breakPointObserver
-      .observe([Breakpoints.Handset])
-      .subscribe((result) => {
-        this.isMobile = result.matches;
-        if (this.isMobile) {
-          this.colsize = 1;
-        } else {
-          this.colsize = 3;
-        }
-      });
-
     this.perfilService.perfil$.subscribe(perfil => {
       this.perfil = perfil;
     });
@@ -104,7 +91,10 @@ export class ListGruposComponent implements OnInit {
 
   private loadGrupos(categoria: any, nombreCurso: any): void {
     this.cursodeportivoService.getCurso(categoria, nombreCurso).subscribe({
-      next: (curso) => { this.curso = curso; },
+      next: (curso) => {
+        this.curso = curso;
+        this.cargarImagenCurso(curso);
+      },
       error: () => {},
     });
 
@@ -119,15 +109,6 @@ export class ListGruposComponent implements OnInit {
             (horarios: any) => { itemgrupo.horarios = Array.isArray(horarios) ? horarios : []; }
           );
 
-          if (itemgrupo.imagenGrupo != null) {
-            this.imagenService.getimagen(itemgrupo.imagenGrupo).subscribe(
-              (imagenTemp) => {
-                itemgrupo.imagenBase64 = imagenTemp.datosBase64;
-                itemgrupo.tipoArchivo = imagenTemp.tipoArchivo;
-              }
-            );
-          }
-
           this.inscripcionesService.getDisponibilidad(categoria, nombreCurso, itemgrupo.anio!, itemgrupo.iterable!).subscribe({
             next: (disp) => {
               this.disponibilidad[this.dispKey(itemgrupo.anio, itemgrupo.iterable)] = disp;
@@ -136,8 +117,67 @@ export class ListGruposComponent implements OnInit {
           });
         });
       },
-      (error) => console.error('Error al obtener los grupos', error)
+      (error) => {
+        console.error('Error al obtener los grupos', error);
+        this.notificaciones.error('No se pudieron cargar los grupos', 'Revise su conexión e intente de nuevo.');
+      }
     );
+  }
+
+  /** La imagen del resumen es la del curso (los grupos ya no muestran imagen propia en su tarjeta). */
+  private cargarImagenCurso(curso: CursoDTO): void {
+    if (curso?.idImagen == null) return;
+    this.imagenService.getimagen(curso.idImagen).subscribe({
+      next: (img) => { this.imagenCurso = img?.datosBase64 ? `data:${img.tipoArchivo};base64,${img.datosBase64}` : null; },
+      error: () => { this.imagenCurso = null; },
+    });
+  }
+
+  readonly textoEstadoInscripciones = textoEstadoInscripciones;
+
+  textoEstadoCurso(estado?: string | null): string {
+    if (estado === 'ACTIVO') return 'activo';
+    if (estado === 'INACTIVO') return 'inactivo';
+    if (estado === 'CERRADO') return 'cerrado';
+    return 'sin estado';
+  }
+
+  inscritosDe(disp: DisponibilidadDTO): number {
+    return Math.max(0, disp.cuposTotales - disp.cuposDisponibles);
+  }
+
+  porcentajeOcupacion(disp: DisponibilidadDTO): number {
+    return disp.cuposTotales > 0 ? Math.min(100, Math.round((this.inscritosDe(disp) / disp.cuposTotales) * 100)) : 0;
+  }
+
+  get totalInscritos(): number {
+    return Object.values(this.disponibilidad).reduce((suma, d) => suma + this.inscritosDe(d), 0);
+  }
+
+  get totalCuposDisponibles(): number {
+    return Object.values(this.disponibilidad).reduce((suma, d) => suma + Math.max(0, d.cuposDisponibles), 0);
+  }
+
+  /** Iniciales para el avatar: primera y última palabra del nombre ("Katerinn Natalia Arcos Daza" → "KD"). */
+  iniciales(nombre?: string | null): string {
+    const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) return '?';
+    const ultima = partes.length > 1 ? partes[partes.length - 1] : '';
+    return (partes[0][0] + (ultima[0] ?? '')).toUpperCase();
+  }
+
+  horaCorta(hora: string): string {
+    return formatoHora12(hora);
+  }
+
+  volver(evento?: Event): void {
+    evento?.preventDefault();
+    void this.router.navigate(['/cursos_deportivos', this.categoria]);
+  }
+
+  irAInicio(evento?: Event): void {
+    evento?.preventDefault();
+    void this.router.navigate(['/home']);
   }
 
   private cargarNombreInstructor(grupo: GrupoDTO): void {
@@ -160,7 +200,6 @@ export class ListGruposComponent implements OnInit {
         anio: item.anio!,
         iterable: item.iterable!,
       },
-      width: '500px',
     });
     dialogRef.afterClosed().subscribe(resultado => {
       if (resultado) {
@@ -179,6 +218,7 @@ export class ListGruposComponent implements OnInit {
     dialogRef.afterClosed().subscribe((resultado) => {
       if (resultado) {
         this.loadGrupos(this.categoria, this.titulo);
+        this.notificaciones.exito('Grupo actualizado', 'Los cambios del grupo se guardaron correctamente.');
       }
     });
   }
@@ -198,9 +238,9 @@ export class ListGruposComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.confirmado) {
         this.loadGrupos(this.categoria, this.titulo);
-        this.snackBar.open('Grupo eliminado correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito('Grupo eliminado', `${item.anio}-${this.letraDeIterable(item.iterable)} ya no aparece en el curso.`);
       } else if (result?.errorStatus !== undefined) {
-        this.snackBar.open('Error al eliminar el grupo, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo eliminar el grupo', 'Error al eliminar el grupo, intente de nuevo.');
       }
     });
   }
@@ -217,16 +257,39 @@ export class ListGruposComponent implements OnInit {
     return `Este grupo tiene ${partes.join(' y ')}. Al eliminarlo se cancelarán sus inscripciones y cada alumno recuperará su cupo de curso.`;
   }
 
+  /** Crear un grupo es de dos pasos: 1) datos del grupo, 2) sus horarios (opcional; sin horario el instructor no puede registrar asistencia). */
   nuevoGrupo(): void {
     const dialogRef = this.dialog.open(FormGruposComponent, {
       data: { categoria: this.categoria, curso: this.titulo, anio: 0 }
     });
 
-    dialogRef.afterClosed().subscribe((resultado) => {
-      if (resultado) {
-        this.ngOnInit();
+    dialogRef.afterClosed().subscribe((creado) => {
+      if (!creado) return;
+      this.loadGrupos(this.categoria, this.titulo);
+      const grupo = typeof creado === 'object' ? (creado as GrupoDTO) : null;
+      this.notificaciones.exito('Grupo creado', grupo?.iterable
+        ? `El Grupo ${this.letraDeIterable(grupo.iterable)} se creó correctamente.`
+        : 'El grupo se creó correctamente.');
+      if (grupo?.anio != null && grupo.iterable != null) this.definirHorariosDelGrupoNuevo(grupo);
+    });
+  }
+
+  private definirHorariosDelGrupoNuevo(grupo: GrupoDTO): void {
+    this.dialog.open(FormHorarioComponent, {
+      data: { categoria: this.categoria, curso: this.titulo, anio: grupo.anio!, iterable: grupo.iterable!, nuevoGrupo: true },
+    }).afterClosed().subscribe((guardoHorarios) => {
+      this.loadGrupos(this.categoria, this.titulo);
+      if (guardoHorarios) {
+        this.notificaciones.exito('Horarios guardados', 'El grupo ya tiene su horario y el instructor podrá registrar la asistencia.');
+      } else {
+        this.notificaciones.info('Grupo sin horario', 'Puede definirlo después desde «Gestionar horarios» en el menú del grupo.');
       }
     });
+  }
+
+  /** El grupo ya cargó sus horarios y no tiene ninguno (mientras cargan es undefined: no se avisa). */
+  sinHorariosCargados(grupo: GrupoDTO): boolean {
+    return Array.isArray(grupo.horarios) && grupo.horarios.length === 0;
   }
 
   puedeInscribirse(): boolean {
@@ -260,13 +323,13 @@ export class ListGruposComponent implements OnInit {
         item.inscripcionesCerradasManual = actualizado.inscripcionesCerradasManual;
         item.inscripcionesAbiertas = actualizado.inscripcionesAbiertas;
         item.motivoInscripcion = actualizado.motivoInscripcion;
-        this.snackBar.open(cerrar ? 'Inscripciones del grupo cerradas' : 'Inscripciones del grupo reabiertas', 'Cerrar',
-          { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito(cerrar ? 'Inscripciones cerradas' : 'Inscripciones reabiertas',
+          `Las inscripciones del Grupo ${this.letraDeIterable(item.iterable)} ${cerrar ? 'se cerraron' : 'se reabrieron'} correctamente.`);
         this.actualizarEstadoDelCurso();
       },
       error: (err) => {
-        this.snackBar.open(err?.error?.mensaje ?? 'No se pudo cambiar el estado de inscripciones del grupo, intente de nuevo',
-          'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo cambiar el estado',
+          err?.error?.mensaje ?? 'No se pudo cambiar el estado de inscripciones del grupo, intente de nuevo');
       },
     });
   }
@@ -293,7 +356,7 @@ export class ListGruposComponent implements OnInit {
       // El backend decide si el grupo admite inscripciones; el Alumno no entra a inscribirse si no, y se le explica por qué.
       if (!inscripcionesAbiertasDeGrupo(grupo)) {
         const aviso = avisoInscripcionGrupo(grupo);
-        if (aviso) this.snackBar.open(aviso, 'Cerrar', { duration: 5000, panelClass: ['snack-error'] });
+        if (aviso) this.notificaciones.error('Inscripción no disponible', aviso);
         return;
       }
       void this.router.navigate(['/inscripcion-grupo', categoria, curso, anio, iterable]);

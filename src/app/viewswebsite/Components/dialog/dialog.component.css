@@ -1,76 +1,49 @@
-.container {
-  position: relative;
-  padding: 1rem;
+/* Diálogo de confirmación de borrado. Botones, cerrar y avisos: ver src/styles/formularios.css */
+.cabecera-confirmacion {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 3.5rem 0 1.5rem;
 }
 
-.btn-cerrar {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  box-shadow: none !important;
+.icono-advertencia {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-error-contenedor);
+  color: var(--color-error-texto);
 }
 
-.close-button {
-  background: none;
-  box-shadow: none !important;
-  min-width: auto;
+.titulo-confirmacion {
+  margin: 0;
   padding: 0;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-h5);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-primario);
 }
 
-mat-icon {
-  font-size: 24px;
-}
-
-.title-one {
-  text-align: left;
-  margin: 0.5rem 0;
-  color: #000066;
-  font-size: 22px !important;
-}
+.contenido-confirmacion { padding-top: 1rem; }
 
 .texConfirmation {
-  text-align: left;
-  margin: 0.5rem 0;
-  font-weight:bold;
-  color: #525151;
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  color: var(--color-neutro-texto);
 }
 
-.btn-cancelar,
-.btn-confirmar {
-  color: white !important;
-  margin-right: 10px;
-  min-width: 100px;
-  height: 40px;
-  font-size: 14px;
-  margin-left: 8px;
-  padding: 0 16px;
-  border-radius: 4px;
+.no-deshacer {
+  margin: 0 0 0.5rem;
+  color: var(--color-neutro-texto);
 }
 
-.btn-cancelar {
-  background-color: #d31212;
-}
-
-.btn-confirmar {
-  background-color: #000066 !important;
-}
 .aviso-eliminacion {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  margin: 0.5rem 0;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  color: #664d03;
-  background: #fff3cd;
-  border: 1px solid #ffecb5;
-  border-radius: 4px;
-  font-size: 14px;
 }
-
-.aviso-eliminacion mat-icon {
-  flex: none;
-  font-size: 20px;
-  height: 20px;
-  width: 20px;
-}
+.aviso-eliminacion mat-icon { flex: none; width: 20px; height: 20px; font-size: 20px; }

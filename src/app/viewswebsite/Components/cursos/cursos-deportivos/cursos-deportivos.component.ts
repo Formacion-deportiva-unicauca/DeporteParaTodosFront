@@ -1,9 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { ActivatedRoute, Router } from '@angular/router';
 /**Dependencia Material */
-import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,18 +13,21 @@ import { MatDialog, MatDialogModule, } from '@angular/material/dialog';
 import { FormCursoDeportiviComponent } from '../../cursos/form-curso-deportivo/form-curso-deportivi.component';
 import { FormInscripcionesComponent } from '../../usuarios/form-inscripciones/form-inscripciones.component';
 import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.component';
-import * as bootstrap from 'bootstrap';
+import { InformacionDialogComponent } from '../../dialog/informacion-dialog.component';
+import { IconoEngranajeComponent } from 'src/app/shared/icono-engranaje/icono-engranaje.component';
 import { CursoDTO } from 'src/app/Models/DTOs/curso-dto';
+import { CategoriaDTO } from 'src/app/Models/DTOs/categoria-dto';
+import { CategoriaService } from 'src/app/services/categoria.service';
 import { claseEstadoInscripciones, textoEstadoInscripciones } from 'src/app/shared/estado-inscripciones';
 import { FILTROS_PUBLICO, FiltroPublico, etiquetaPublico, filtrarPorPublico } from 'src/app/shared/publico-curso';
-import { GestionInscripcionesComponent } from '../gestion-inscripciones/gestion-inscripciones.component';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { ImagenService } from 'src/app/services/imagen.service';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatInputModule } from '@angular/material/input';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 
 @Component({
   selector: 'app-cursos-deportivos',
@@ -35,13 +36,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   styleUrls: ['./cursos-deportivos.component.css'],
   imports: [
     CommonModule,
-    MatGridListModule,
     MatSelectModule,
     MatFormFieldModule,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
     MatMenuModule,
+    IconoEngranajeComponent,
     //DialogComponent,
     MatDialogModule,
     //FormularioComponent,
@@ -54,39 +55,32 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   ],
 })
 export class CursosDeportivosComponent implements OnInit {
-  public colsize = 3;
-  public isMobile: boolean = false;
   public cursos: CursoDTO[] = [];
   readonly filtrosPublico = FILTROS_PUBLICO;
   filtroPublico: FiltroPublico = 'TODOS';
-  public cursoSeleccionado: CursoDTO | null = null;
+  busqueda = '';
+  categorias: CategoriaDTO[] = [];
   public titulo: string | null = null;
   perfil?: string;
 
   constructor(
-    private breakPointObserver: BreakpointObserver,
     private router: Router,
     private route: ActivatedRoute,
     private cursoService: CursodeportivoService,
     private dialog: MatDialog,
     private perfilService: PerfilService,
     private imagenServise: ImagenService,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
+    private categoriaService: CategoriaService,
   ) { }
 
   ngOnInit(): void {
     this.titulo = this.route.snapshot.paramMap.get('identificador');
 
-    this.breakPointObserver
-      .observe([Breakpoints.Handset])
-      .subscribe((result) => {
-        this.isMobile = result.matches;
-        if (this.isMobile) {
-          this.colsize = 1;
-        } else {
-          this.colsize = 3;
-        }
-      });
+    this.categoriaService.getCategorias().subscribe({
+      next: (categorias) => (this.categorias = categorias),
+      error: () => (this.categorias = []),
+    });
 
     this.perfilService.perfil$.subscribe(perfil => {
       this.perfil = perfil;
@@ -101,8 +95,46 @@ export class CursosDeportivosComponent implements OnInit {
     return !!this.perfil && this.perfil !== 'Alumno';
   }
 
+  /** Categoría que se está viendo (nombre y descripción reales); undefined mientras carga la lista. */
+  get categoria(): CategoriaDTO | undefined {
+    return this.categorias.find(c => c.titulo === this.titulo);
+  }
+
+  /** Cursos del público elegido cuyo nombre o línea deportiva contiene el texto buscado (sin tildes ni mayúsculas). */
   get cursosVisibles(): CursoDTO[] {
-    return filtrarPorPublico(this.cursos, this.filtroPublico);
+    const texto = normalizar(this.busqueda);
+    return filtrarPorPublico(this.cursos, this.filtroPublico)
+      .filter(c => !texto || normalizar(c.nombre).includes(texto) || normalizar(c.deporte).includes(texto));
+  }
+
+  get cursosConInscripciones(): number {
+    return this.cursos.filter(c => c.estadoInscripciones === 'ABIERTO').length;
+  }
+
+  cambiarBusqueda(valor: string): void {
+    this.busqueda = valor ?? '';
+  }
+
+  volver(evento?: Event): void {
+    evento?.preventDefault();
+    void this.router.navigate(['/home']);
+  }
+
+  /** Cambia de categoría sin salir de la vista: actualiza la URL, limpia filtros y recarga los cursos. */
+  cambiarCategoria(titulo: string): void {
+    if (!titulo || titulo === this.titulo) return;
+    this.titulo = titulo;
+    this.busqueda = '';
+    this.filtroPublico = 'TODOS';
+    void this.router.navigate(['/cursos_deportivos', titulo]);
+    this.loadCursos(titulo);
+  }
+
+  textoEstadoCurso(estado?: string | null): string {
+    if (estado === 'ACTIVO') return 'Activo';
+    if (estado === 'INACTIVO') return 'Inactivo';
+    if (estado === 'CERRADO') return 'Cerrado';
+    return 'Sin estado';
   }
 
   cambiarFiltroPublico(valor: string): void {
@@ -142,17 +174,32 @@ export class CursosDeportivosComponent implements OnInit {
           }
         );
       },
-      (error) => console.error('Error al obtener los cursos', error)
+      (error) => {
+        console.error('Error al obtener los cursos', error);
+        this.notificaciones.error('No se pudieron cargar los cursos', 'Revise su conexión e intente de nuevo.');
+      }
     );
   }
 
+  /** Información del curso en un diálogo de Material (centrado y responsive), con acceso directo a sus grupos. */
   verInformacion(item: CursoDTO): void {
-    this.cursoSeleccionado = item;
-    const modalElement = document.getElementById('exampleModal');
-    if (modalElement) {
-      const modal = new bootstrap.Modal(modalElement);
-      modal.show();
-    }
+    this.dialog.open(InformacionDialogComponent, {
+      data: {
+        etiqueta: 'Curso deportivo',
+        titulo: item.nombre,
+        descripcion: item.descripcion,
+        imagen: item.imagenBase64 ? `data:${item.tipoArchivo};base64,${item.imagenBase64}` : null,
+        datos: [
+          { rotulo: 'Categoría', valor: item.categoriaCurso },
+          { rotulo: 'Dirigido a', valor: etiquetaPublico(item.publico) },
+        ],
+        textoAccion: 'Ver grupos',
+      },
+    }).afterClosed().subscribe((resultado) => {
+      if (resultado === 'accion') {
+        this.gruposCurso(item.categoriaCurso, item.nombre);
+      }
+    });
   }
 
   gruposCurso(categoria: string, curso: string) {
@@ -173,6 +220,7 @@ export class CursosDeportivosComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.loadCursos(this.titulo);
+        this.notificaciones.exito('Curso creado', 'El curso se registró y ya aparece en la categoría.');
       }
     });
   }
@@ -184,6 +232,7 @@ export class CursosDeportivosComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.loadCursos(this.titulo);
+        this.notificaciones.exito('Curso actualizado', `Los cambios de «${nombrecurso}» se guardaron correctamente.`);
       }
     });
   }
@@ -200,14 +249,15 @@ export class CursosDeportivosComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.confirmado) {
         this.loadCursos(this.titulo);
+        this.notificaciones.exito('Curso eliminado', `«${nombreElemento}» ya no aparece en la categoría.`);
       } else if (result?.errorStatus !== undefined) {
         const status = result.errorStatus;
         if (status === 409) {
-          this.snackBar.open('El curso ya se encuentra eliminado', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar el curso', 'El curso ya se encuentra eliminado.');
         } else if (status === 404) {
-          this.snackBar.open('El curso no existe', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar el curso', 'El curso no existe.');
         } else {
-          this.snackBar.open('Error al eliminar el curso, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar el curso', 'Ocurrió un error, intente de nuevo.');
         }
       }
     });
@@ -225,17 +275,15 @@ export class CursosDeportivosComponent implements OnInit {
       next: (updated) => {
         item.estadoCurso = updated.estadoCurso;
         const accion = updated.estadoCurso === 'ACTIVO' ? 'habilitado' : 'deshabilitado';
-        this.snackBar.open(`Curso ${accion} correctamente`, 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito(`Curso ${accion}`, `«${item.nombre}» fue ${accion} correctamente.`);
       },
       error: () => {
-        this.snackBar.open('Error al cambiar el estado del curso', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo cambiar el estado', 'No se pudo cambiar el estado del curso, intente de nuevo.');
       },
     });
   }
+}
 
-  configurarInscripcion() {
-    const dialogRef = this.dialog.open(GestionInscripcionesComponent, {
-      /*data: {name: this.name(), animal: this.animal()},*/
-    });
-  }
+function normalizar(valor?: string | null): string {
+  return (valor ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }

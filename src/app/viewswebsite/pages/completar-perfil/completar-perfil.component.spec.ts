@@ -2,7 +2,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { NgForm } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { Subject, of, throwError } from 'rxjs';
 import { CompletarPerfilComponent } from './completar-perfil.component';
@@ -28,14 +28,14 @@ describe('CompletarPerfilComponent', () => {
   let oauthSpy: jasmine.SpyObj<OAuthService>;
   let perfilSpy: jasmine.SpyObj<PerfilService>;
   let routerSpy: jasmine.SpyObj<Router>;
-  let snackSpy: jasmine.SpyObj<MatSnackBar>;
+  let avisos: jasmine.SpyObj<NotificacionService>;
   let catalogoSpy: jasmine.SpyObj<CatalogoService>;
 
   beforeEach(async () => {
     oauthSpy = jasmine.createSpyObj('OAuthService', ['getIdentityClaims', 'logOut']);
     perfilSpy = jasmine.createSpyObj('PerfilService', ['registrarPerfil']);
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
-    snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+    avisos = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
     catalogoSpy = jasmine.createSpyObj('CatalogoService', ['getFacultades', 'getProgramas']);
     catalogoSpy.getFacultades.and.returnValue(of(['Facultad de Artes', 'Facultad de Ingeniería Civil']));
     catalogoSpy.getProgramas.and.returnValue(of(['Ingeniería Civil']));
@@ -52,7 +52,7 @@ describe('CompletarPerfilComponent', () => {
     // MatSnackBar se resuelve desde el MatSnackBarModule del propio standalone component;
     // overrideComponent garantiza que el mock reemplaza esa instancia.
     .overrideComponent(CompletarPerfilComponent, {
-      set: { providers: [{ provide: MatSnackBar, useValue: snackSpy }] },
+      set: { providers: [{ provide: NotificacionService, useValue: avisos }] },
     })
     .compileComponents();
 
@@ -100,32 +100,24 @@ describe('CompletarPerfilComponent', () => {
     expect(callArg.facultad).toBe('');
   });
 
-  it('onSubmit() éxito: muestra snackbar de éxito y navega a /home', () => {
+  it('onSubmit() éxito: muestra la notificación de éxito y navega a /home', () => {
     oauthSpy.getIdentityClaims.and.returnValue({ name: 'Ana', email: 'ana@u.co' });
     fixture.detectChanges();
     perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
     const formMock = { invalid: false } as NgForm;
     component.onSubmit(formMock);
-    expect(snackSpy.open).toHaveBeenCalledWith(
-      'Registro exitoso, bienvenido/a',
-      'Cerrar',
-      jasmine.objectContaining({ duration: 4000 }),
-    );
+    expect(avisos.exito).toHaveBeenCalledOnceWith('Registro exitoso', 'Bienvenido/a a Deporte para Todos.');
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/home']);
   });
 
-  it('onSubmit() error: muestra snackbar de error', () => {
+  it('onSubmit() error: muestra la notificación de error', () => {
     oauthSpy.getIdentityClaims.and.returnValue({ name: 'Ana', email: 'ana@u.co' });
     fixture.detectChanges();
     perfilSpy.registrarPerfil.and.returnValue(throwError(() => new Error('500')));
     spyOn(console, 'error');
     const formMock = { invalid: false } as NgForm;
     component.onSubmit(formMock);
-    expect(snackSpy.open).toHaveBeenCalledWith(
-      'No se pudo completar el registro, intenta de nuevo',
-      'Cerrar',
-      jasmine.objectContaining({ duration: 6000 }),
-    );
+    expect(avisos.error).toHaveBeenCalledOnceWith('No se pudo completar el registro', 'Intente de nuevo.');
   });
 
   it('onSubmit() error: llama a console.error con el error', () => {
@@ -303,7 +295,7 @@ describe('CompletarPerfilComponent', () => {
       perfilSpy.registrarPerfil.and.returnValue(throwError(() => ({ status: 422, error: { mensaje: 'El programa X no existe' } })));
       spyOn(console, 'error');
       component.onSubmit({ invalid: false } as NgForm);
-      expect(snackSpy.open).toHaveBeenCalledWith('El programa X no existe', 'Cerrar', jasmine.objectContaining({ duration: 6000 }));
+      expect(avisos.error).toHaveBeenCalledOnceWith('No se pudo completar el registro', 'El programa X no existe');
     });
   });
 

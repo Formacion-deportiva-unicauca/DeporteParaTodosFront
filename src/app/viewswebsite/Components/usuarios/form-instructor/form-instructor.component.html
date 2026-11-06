@@ -1,30 +1,44 @@
-<button mat-icon-button class="close-button" type="button" matDialogClose aria-label="Cerrar diálogo">
-  <mat-icon>close</mat-icon>
-</button>
-
-<mat-dialog-content class="dialog-content">
-  <header class="title-two">Editar instructor</header>
-
-  <form [formGroup]="form" (ngSubmit)="guardar()" class="form-content" novalidate>
-    <p class="identificacion"><strong>Identificación:</strong> {{ data.id }}</p>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Nombre</mat-label>
-      <input matInput id="nombre" formControlName="nombre" autocomplete="off" cdkFocusInitial>
-      <mat-error *ngIf="form.controls.nombre.invalid">El nombre es obligatorio</mat-error>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Correo</mat-label>
-      <input matInput id="correo" type="email" formControlName="correo">
-      <mat-hint>El correo no se puede modificar</mat-hint>
-    </mat-form-field>
-
-    <p *ngIf="errorServidor" class="error-servidor" role="alert">{{ errorServidor }}</p>
-
-    <div class="form-buttons">
-      <button mat-button type="button" class="btn-cancelar" (click)="cancelar()">Cancelar</button>
-      <button mat-raised-button type="submit" class="btn-guardar" [disabled]="!puedeGuardar">Guardar</button>
+<form [formGroup]="form" (ngSubmit)="guardar()" class="dlg-form" novalidate>
+  <header class="dlg-cabecera">
+    <div>
+      <span class="dlg-eyebrow">Instructores</span>
+      <h2 mat-dialog-title class="dlg-titulo">Editar instructor</h2>
+      <p class="dlg-subtitulo">Actualice el nombre con el que aparece en la lista y en los grupos.</p>
     </div>
-  </form>
-</mat-dialog-content>
+    <button mat-icon-button class="close-button" type="button" matDialogClose aria-label="Cerrar diálogo">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-dialog-content class="dlg-cuerpo">
+    <div class="dlg-contexto identificacion">
+      <dl>
+        <div><dt>Identificación</dt><dd>{{ data.id }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="dlg-rejilla">
+      <mat-form-field appearance="outline" class="form-field dlg-ancho-completo">
+        <mat-label>Nombre</mat-label>
+        <input matInput id="nombre" formControlName="nombre" autocomplete="off" cdkFocusInitial>
+        <mat-error *ngIf="form.controls.nombre.invalid">El nombre es obligatorio</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field dlg-ancho-completo">
+        <mat-label>Correo</mat-label>
+        <input matInput id="correo" type="email" formControlName="correo">
+        <mat-hint>El correo no se puede modificar</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div *ngIf="errorServidor" class="dlg-aviso aviso-error">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span class="error-servidor" role="alert">{{ errorServidor }}</span>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar btn-cancelar" (click)="cancelar()">Cancelar</button>
+    <button mat-button type="submit" class="aceptar btn-guardar" [disabled]="!puedeGuardar">Guardar</button>
+  </mat-dialog-actions>
+</form>

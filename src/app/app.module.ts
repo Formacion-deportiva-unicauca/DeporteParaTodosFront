@@ -7,6 +7,8 @@ import { HeaderComponent } from './viewswebsite/pages/header/header.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
+import { OPCIONES_DIALOGO } from './shared/dialogo-institucional';
 import { DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
 import { FechaEsAdapter } from './shared/fecha-es.adapter';
 import { AlertaServiceService } from './services/alerta-service.service';
@@ -40,6 +42,8 @@ registerLocaleData(localeEs);
     // FechaEsAdapter escribe y lee dd/MM/yyyy.
     { provide: MAT_DATE_LOCALE, useValue: 'es-CO' },
     { provide: DateAdapter, useClass: FechaEsAdapter },
+    // Todos los diálogos: clase común y ancho máximo (en móvil ocupan todo el ancho; ver src/styles/formularios.css).
+    { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: OPCIONES_DIALOGO },
   ],
   bootstrap: [AppComponent]
 })

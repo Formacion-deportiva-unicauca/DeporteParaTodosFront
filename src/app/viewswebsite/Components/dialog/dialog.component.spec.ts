@@ -228,4 +228,56 @@ describe('DialogComponent', () => {
       expect(fixture.nativeElement.querySelector('.aviso-eliminacion')).toBeNull();
     });
   });
+
+  describe('experiencia de confirmación de borrado', () => {
+    const el = () => fixture.nativeElement as HTMLElement;
+    const textoPlano = () => (el().textContent ?? '').replace(/\s+/g, ' ');
+
+    it('el título es un h2 de diálogo (nombre accesible) que dice "Confirmar eliminación"', () => {
+      const titulo = el().querySelector('h2[mat-dialog-title]');
+      expect(titulo?.textContent?.trim()).toBe('Confirmar eliminación');
+    });
+
+    it('el mensaje nombra lo que se va a eliminar y avisa que no se puede deshacer', () => {
+      expect(textoPlano()).toContain("¿Está seguro que desea eliminar elemento-test con el identificador 'Elemento Test'?");
+      expect(textoPlano()).toContain('Esta acción no se puede deshacer');
+    });
+
+    it('lleva un icono de advertencia decorativo', () => {
+      const icono = el().querySelector('.icono-advertencia mat-icon');
+      expect(icono?.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('el botón principal dice "Eliminar" (no "Aceptar") y usa el rol Error', () => {
+      const eliminar = el().querySelector('button.btn-eliminar') as HTMLButtonElement;
+      expect(eliminar.textContent?.trim()).toBe('Eliminar');
+      expect(textoPlano()).not.toContain('Aceptar');
+    });
+
+    it('"Eliminar" ejecuta la eliminación', () => {
+      spyOn(component, 'confirmarEliminar');
+      (el().querySelector('button.btn-eliminar') as HTMLButtonElement).click();
+      expect(component.confirmarEliminar).toHaveBeenCalled();
+    });
+
+    it('"Cancelar" tiene el foco inicial, para que Enter no elimine por accidente', () => {
+      const cancelar = el().querySelector('button.btn-cancelar') as HTMLButtonElement;
+      expect(cancelar.textContent?.trim()).toBe('Cancelar');
+      expect(cancelar.hasAttribute('cdkfocusinitial')).toBeTrue();
+      expect(el().querySelector('button.btn-eliminar')?.hasAttribute('cdkfocusinitial')).toBeFalse();
+    });
+
+    it('el botón de cerrar tiene nombre accesible', () => {
+      expect(el().querySelector('.close-button')?.getAttribute('aria-label')).toBe('Cerrar diálogo');
+    });
+
+    it('con los estilos reales de Material, "Eliminar" conserva el texto blanco y "Cancelar" el azul primario', () => {
+      const eliminar = getComputedStyle(el().querySelector('button.btn-eliminar') as HTMLElement);
+      expect(eliminar.color).toBe('rgb(255, 255, 255)');
+      expect(eliminar.backgroundColor).toBe('rgb(154, 65, 0)');
+      const cancelar = getComputedStyle(el().querySelector('button.btn-cancelar') as HTMLElement);
+      expect(cancelar.color).toBe('rgb(0, 0, 102)');
+      expect(cancelar.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    });
+  });
 });

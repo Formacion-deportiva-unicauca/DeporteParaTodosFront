@@ -1,0 +1,395 @@
+/*
+ * Diálogos y formularios compartidos (lineamiento UX-UI División TIC).
+ * Una sola definición para todos los diálogos: antes cada componente repetía su propio CSS y los botones
+ * Aceptar y Cancelar se veían idénticos. Las reglas llevan el prefijo "html" porque los estilos de Material
+ * se inyectan al final del <head> y, con igual especificidad, ganarían.
+ */
+
+/* ── Anatomía del diálogo ── */
+html .mat-mdc-dialog-surface { position: relative; }
+
+html .close-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  float: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  color: var(--color-primario);
+}
+
+html .dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.75rem 2rem 1rem;
+  /* El cuerpo se desplaza dentro del diálogo en lugar de salirse de la pantalla */
+  max-height: 75vh;
+  max-height: min(75dvh, 720px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+html .dialog-content > * { flex: 0 0 auto; }
+
+/* Título del diálogo: Titillium Web H5, a la izquierda, con la línea de título en secundario light */
+html .dialog-content .title-two {
+  position: relative;
+  margin: 0 3.25rem 1.5rem 0;
+  padding-bottom: 0.75rem;
+  text-align: left;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-h5);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-primario);
+}
+html .dialog-content .title-two.mat-mdc-dialog-title { padding-left: 0; padding-right: 0; }
+html .dialog-content .title-two.mat-mdc-dialog-title::before { display: none; }
+html .dialog-content .title-two::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 64px;
+  height: 4px;
+  background: var(--color-secundario-light);
+}
+
+html .form-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+html .form-field,
+html .dialog-content .mat-mdc-form-field { width: 100%; }
+
+/* ── Acciones ── */
+html .form-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Pie de los diálogos de confirmación (mat-dialog-actions): aire alrededor y entre botones */
+html .mat-mdc-dialog-actions {
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem 1.25rem;
+}
+
+/* Principal: relleno primario. Los botones de Material fijan su propio color de texto con más especificidad,
+   por eso color/fondo/contorno llevan !important. */
+html .aceptar,
+html .btn-guardar,
+html .btn-confirmar,
+html .btn-eliminar {
+  min-width: 120px;
+  min-height: 44px;
+  padding: 0 1.5rem;
+  border: 2px solid transparent !important;
+  border-radius: var(--radio-total);
+  background: var(--color-primario) !important;
+  color: var(--color-sobre-primario) !important;
+  font-weight: 600;
+}
+html .aceptar:hover:not(:disabled),
+html .btn-guardar:hover:not(:disabled),
+html .btn-confirmar:hover:not(:disabled) { background: var(--color-primario-light) !important; }
+
+/* Destructiva: rol Error del lineamiento (naranja oscuro con texto blanco) */
+html .btn-eliminar { background: var(--color-error-texto) !important; }
+html .btn-eliminar:hover:not(:disabled) { background: #7f3500 !important; }
+
+/* Deshabilitado: gris, para que se note que falta algo */
+html .aceptar:disabled,
+html .btn-guardar:disabled,
+html .btn-confirmar:disabled {
+  background: #e0e0e0 !important;
+  color: #6b6b6b !important;
+}
+
+/* Secundaria: contorno primario sin relleno */
+html .cancelar,
+html .btn-cancelar,
+html .btn-volver {
+  min-width: 120px;
+  min-height: 44px;
+  padding: 0 1.5rem;
+  border: 2px solid var(--color-primario) !important;
+  border-radius: var(--radio-total);
+  background: transparent !important;
+  color: var(--color-primario) !important;
+  font-weight: 600;
+}
+html .cancelar:hover,
+html .btn-cancelar:hover,
+html .btn-volver:hover { background: var(--color-tonal-95) !important; }
+
+html .close-button:focus-visible,
+html .aceptar:focus-visible,
+html .btn-guardar:focus-visible,
+html .btn-confirmar:focus-visible,
+html .btn-eliminar:focus-visible,
+html .cancelar:focus-visible,
+html .btn-cancelar:focus-visible,
+html .btn-volver:focus-visible {
+  outline: 3px solid var(--color-terciario);
+  outline-offset: 2px;
+}
+
+/* ── Mensajes de error del servidor: contenedor de error (naranja), nunca rojo ── */
+html .error-servidor,
+html .error-vigentes,
+html .error-edicion,
+html .aviso-eliminacion {
+  margin: 0.5rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--radio-campo);
+  background: var(--color-error-contenedor);
+  color: var(--color-sobre-error-contenedor);
+  font-size: var(--texto-cuerpo-3);
+  text-align: left;
+}
+
+/* ── Selector de imagen: botón de contorno en lugar del input nativo ── */
+html .selector-imagen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0.25rem 0 1rem;
+  padding: 1rem;
+  border: 2px dashed #b8b8b8;
+  border-radius: var(--radio-pequeno);
+  background: var(--color-neutro-hover);
+}
+html .selector-imagen .archivo-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+html .selector-imagen .boton-archivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 2px solid var(--color-primario);
+  border-radius: var(--radio-total);
+  color: var(--color-primario);
+  font-weight: 600;
+  cursor: pointer;
+}
+html .selector-imagen .boton-archivo:hover { background: var(--color-tonal-95); }
+html .selector-imagen .archivo-oculto:focus-visible + .boton-archivo {
+  outline: 3px solid var(--color-terciario);
+  outline-offset: 2px;
+}
+html .selector-imagen .nombre-archivo { font-size: var(--texto-cuerpo-3); color: var(--color-neutro-texto); }
+html .selector-imagen .ayuda-archivo { flex-basis: 100%; font-size: 12px; color: var(--color-neutro-texto); }
+html .selector-imagen .image-preview,
+html .image-preview {
+  max-width: 100%;
+  max-height: 40vh;
+  border: 1px solid #d0d0d0;
+  border-radius: var(--radio-campo);
+  object-fit: contain;
+}
+
+
+/* ── Diálogo con cabecera, cuerpo y pie (diseño del prototipo) ──
+   <header class="dlg-cabecera"> + <mat-dialog-content class="dlg-cuerpo"> + <mat-dialog-actions class="dlg-pie"> */
+html .dlg-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.75rem 1rem;
+  border-bottom: 1px solid #e3e3e3;
+}
+html .dlg-eyebrow {
+  display: block;
+  font-size: var(--texto-overline);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #5f5f5f;
+}
+/* El título de Material (.mdc-dialog__title dentro del contenedor) tiene más especificidad que una sola clase:
+   por eso el selector incluye la cabecera. */
+html .dlg-cabecera .dlg-titulo,
+html .dlg-titulo {
+  margin: 0.25rem 0;
+  padding: 0;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-h5);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: normal;
+  color: var(--color-primario);
+}
+html .dlg-cabecera .dlg-titulo.mat-mdc-dialog-title::before,
+html .dlg-titulo.mat-mdc-dialog-title::before { display: none; }
+html .dlg-subtitulo {
+  margin: 0;
+  font-size: var(--texto-cuerpo-3);
+  line-height: 1.4;
+  color: var(--color-neutro-texto);
+}
+/* Cerrar: círculo con contorno dentro de la cabecera (no flota sobre el título).
+   OJO: debe ser "relative", no "static": las capas de efecto de Material (hover, clic) son absolutas y se
+   posicionan respecto al botón; con "static" se estiraban a todo el diálogo y cualquier clic cerraba el diálogo. */
+html .dlg-cabecera .close-button {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #c9c9c9;
+  border-radius: 50%;
+}
+
+html .dlg-cuerpo {
+  display: block;
+  padding: 1.25rem 1.75rem;
+  max-height: min(62dvh, 620px);
+  overflow-y: auto;
+}
+html .dlg-pie {
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.75rem;
+  border-top: 1px solid #e3e3e3;
+}
+
+/* Secciones numeradas */
+html .dlg-seccion { padding: 0.25rem 0 1rem; }
+html .dlg-seccion + .dlg-seccion { padding-top: 1.25rem; border-top: 1px solid #ececec; }
+html .dlg-seccion-cabecera { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.9rem; }
+html .dlg-paso {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  font-size: var(--texto-cuerpo-3);
+  font-weight: 700;
+}
+html .dlg-seccion-titulo {
+  margin: 0;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-subtitulo-1);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-primario);
+}
+html .dlg-seccion-ayuda { margin: 0.15rem 0 0; font-size: 12px; color: #5f5f5f; }
+
+/* Aviso informativo (tonal 95 con borde terciario) */
+html .dlg-aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+  padding: 0.7rem 1rem;
+  border-left: 4px solid var(--color-terciario);
+  border-radius: var(--radio-campo);
+  background: var(--color-tonal-95);
+  font-size: var(--texto-cuerpo-3);
+  color: var(--color-primario);
+}
+html .dlg-aviso mat-icon { flex-shrink: 0; width: 20px; height: 20px; font-size: 20px; color: var(--color-terciario); }
+
+/* Campos en rejilla: 2-3 columnas según el ancho, una en móvil */
+html .dlg-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 0 1rem;
+}
+html .dlg-rejilla .dlg-ancho-completo { grid-column: 1 / -1; }
+html .dlg-rejilla .mat-mdc-form-field { width: 100%; margin-bottom: 0.5rem; }
+
+/* Datos de solo lectura (en lugar de campos deshabilitados que parecen rotos) */
+html .dlg-contexto {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radio-pequeno);
+  background: var(--color-neutro-hover);
+}
+html .dlg-contexto dl { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin: 0; }
+html .dlg-contexto dt { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #5f5f5f; }
+html .dlg-contexto dd { margin: 0.1rem 0 0; font-weight: 600; color: var(--color-primario); }
+
+/* Contador de caracteres y ayuda bajo un campo */
+html .dlg-contador { display: block; margin: -0.5rem 0 0.75rem; font-size: 12px; text-align: right; color: #5f5f5f; }
+html .dlg-contador.excedido { color: var(--color-error-texto); font-weight: 600; }
+
+/* ── Altura: el diálogo nunca es más alto que la ventana; lo que se desplaza es el cuerpo ──
+   Cabecera y pie quedan siempre a la vista (en móvil el cuerpo no tiene tope fijo y, sin esto, el diálogo crecía más
+   que la pantalla y no se llegaba a la vista previa ni a los botones). */
+html .cdk-overlay-pane.dialogo-institucional { max-height: 100dvh; }
+html .dialogo-institucional .mat-mdc-dialog-surface:has(.dlg-cabecera) {
+  display: flex;
+  flex-direction: column;
+  max-height: 100dvh;
+}
+/* El componente del diálogo (host) y, si lo hay, su formulario forman la columna cabecera / cuerpo / pie */
+html .dialogo-institucional .mat-mdc-dialog-surface > *:has(.dlg-cabecera),
+html .dialogo-institucional .dlg-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100dvh;
+}
+html .dlg-cabecera, html .dlg-pie { flex: 0 0 auto; }
+html .dlg-cuerpo { flex: 1 1 auto; min-height: 0; }
+
+/* ── Móvil: el diálogo ocupa todo el ancho, sin esquinas redondeadas, y las acciones se apilan ── */
+@media (max-width: 575.98px) {
+  html .cdk-overlay-pane.dialogo-institucional {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  html .mat-mdc-dialog-surface { border-radius: 0 !important; }
+  html .dialog-content { padding: 1.5rem 1rem 1rem; }
+  html .dlg-cabecera { padding: 1.1rem 1rem 0.9rem; }
+  html .dlg-cuerpo { padding: 1rem; max-height: none; }
+  html .dlg-pie { padding: 0.9rem 1rem; }
+  html .form-buttons,
+  html .mat-mdc-dialog-actions { flex-direction: column-reverse; align-items: stretch; padding-left: 1rem; padding-right: 1rem; }
+  html .form-buttons > *,
+  html .mat-mdc-dialog-actions > * { width: 100%; margin: 0 !important; }
+}
+
+/* ── Menús de acciones (engranaje de las tarjetas) ─────────────────────────────────────────────────────────────
+   Panel redondeado como las tarjetas, ítems de 48px (objetivo táctil), iconos de contorno en gris y texto de cuerpo 1. */
+html .mat-mdc-menu-panel.mat-mdc-menu-panel { min-width: 240px; border-radius: var(--radio-tarjeta); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16); }
+html .mat-mdc-menu-content:not(:empty) { padding: 8px; }
+html .mat-mdc-menu-item { min-height: 48px; padding: 0 12px; border-radius: var(--radio-pequeno); }
+html .mat-mdc-menu-item .mat-mdc-menu-item-text { font-family: var(--fuente-cuerpo); font-size: var(--texto-cuerpo-1); color: var(--color-neutro-texto); }
+html .mat-mdc-menu-item .mat-icon { width: 24px; height: 24px; margin-right: 16px; font-size: 24px; color: #5b5b6b; }
+html .mat-mdc-menu-item:hover:not([disabled]),
+html .mat-mdc-menu-item.cdk-program-focused:not([disabled]),
+html .mat-mdc-menu-item.cdk-keyboard-focused:not([disabled]) { background: var(--color-tonal-95); }
+html .mat-mdc-menu-item:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: -3px; }
+
+/* Acción destructiva dentro de un menú (p. ej. "Eliminar" del engranaje de un curso): rol de error, nunca rojo */
+html .mat-mdc-menu-item.accion-eliminar .mat-mdc-menu-item-text,
+html .mat-mdc-menu-item.accion-eliminar .mat-icon { color: var(--color-error-texto) !important; }

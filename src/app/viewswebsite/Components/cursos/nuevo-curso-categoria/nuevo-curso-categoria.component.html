@@ -1,32 +1,82 @@
-<button mat-icon-button class="close-button" matDialogClose aria-label="Cerrar diálogo">
-  <mat-icon>close</mat-icon>
-</button>
+<form (ngSubmit)="onSubmit(categoriaForm)" #categoriaForm="ngForm" class="dlg-form" novalidate>
+  <header class="dlg-cabecera">
+    <div>
+      <span class="dlg-eyebrow">Gestión de categorías</span>
+      <h2 mat-dialog-title class="dlg-titulo">{{ isEditing ? 'Editar categoría deportiva' : 'Agregar categoría deportiva' }}</h2>
+      <p class="dlg-subtitulo">
+        {{ isEditing ? 'Actualice la información que se mostrará en el panel de coordinación.'
+                     : 'Complete la información que se mostrará en el panel de coordinación.' }}
+      </p>
+    </div>
+    <button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
 
-<mat-dialog-content class="dialog-content">
-  <header class="title-two">{{ isEditing ? 'Editar categoría' : 'Registrar categoría' }}</header>
-  <form (ngSubmit)="onSubmit(categoriaForm)" #categoriaForm="ngForm" class="form-content">
-    <mat-form-field  appearance="outline" class="form-field">
-      <mat-label>Nombre</mat-label>
-      <input matInput [disabled]="isEditing" placeholder="Nombre" [(ngModel)]="categoria.titulo" name="titulo" required />
-    </mat-form-field>
+  <mat-dialog-content class="dlg-cuerpo">
+    <div class="categoria-layout">
+      <div class="categoria-campos">
+        <p class="dlg-aviso"><mat-icon aria-hidden="true">info</mat-icon> Los campos marcados con * son obligatorios.</p>
 
-    <mat-form-field appearance="outline" class="form-field">
-      <mat-label>Descripción</mat-label>
-      <input matInput placeholder="Descripción" [(ngModel)]="categoria.descripcion" name="descripcion" required />
-    </mat-form-field>
+        <!-- Arriba, para que se vea sin desplazar el diálogo -->
+        <p *ngIf="errorServidor" class="error-servidor" role="alert">{{ errorServidor }}</p>
 
-    <div class="form-field buttonImage">
-      <input type="file" id="imagen" (change)="onFileSelected($event)" accept="image/*" required/>
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre de la categoría</mat-label>
+          <input matInput [disabled]="isEditing" placeholder="Ej. Deporte formativo" [(ngModel)]="categoria.titulo" name="titulo"
+                 #titulo="ngModel" required maxlength="100" autocomplete="off" cdkFocusInitial />
+          <mat-error *ngIf="titulo.hasError('required')">El nombre es obligatorio</mat-error>
+        </mat-form-field>
+        <span class="dlg-contador">{{ categoria.titulo.length || 0 }}/100</span>
 
-      <div *ngIf="imagenPreview" class="preview">
-        <img [src]="imagenPreview" alt="Vista previa" class="image-preview">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Descripción</mat-label>
+          <textarea matInput rows="4" placeholder="Describa el propósito y las actividades que reúne esta categoría."
+                    [(ngModel)]="categoria.descripcion" name="descripcion" #descripcion="ngModel" required maxlength="1000"></textarea>
+          <mat-error *ngIf="descripcion.hasError('required')">La descripción es obligatoria</mat-error>
+        </mat-form-field>
+        <span class="dlg-contador">{{ categoria.descripcion.length || 0 }}/1000</span>
+
+        <p class="selector-imagen-titulo">Imagen de portada{{ isEditing ? '' : ' *' }}</p>
+        <div class="selector-imagen">
+          <input type="file" id="imagen" class="archivo-oculto" (change)="onFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+          <label for="imagen" class="boton-archivo">
+            <mat-icon aria-hidden="true">upload</mat-icon>
+            {{ imagenPreview || selectedFile ? 'Cambiar imagen' : 'Seleccionar imagen' }}
+          </label>
+          <span class="nombre-archivo" *ngIf="selectedFile">{{ selectedFile.name }}</span>
+          <span class="ayuda-archivo">
+            {{ isEditing ? 'Opcional: si no elige otra, se conserva la actual. JPG, PNG o WebP · máximo 5 MB.'
+                         : 'La imagen es obligatoria. JPG, PNG o WebP · máximo 5 MB.' }}
+          </span>
+        </div>
+        <p *ngIf="errorImagen" class="error-campo" role="alert">{{ errorImagen }}</p>
+        <p *ngIf="faltaImagen && !errorImagen" class="error-campo" role="alert">Elija una imagen de portada</p>
+
       </div>
-    </div>
 
-    <div class="form-buttons">
-      <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
-      <button mat-raised-button class="aceptar" type="submit" [disabled]="!categoriaForm.form.valid">Aceptar</button>
-      <!--<button mat-raised-button class="aceptar" type="submit">Aceptar</button>-->
+      <aside class="categoria-previa" aria-label="Vista previa de la categoría">
+        <span class="dlg-eyebrow">Vista previa</span>
+        <article class="tarjeta-previa">
+          <img *ngIf="imagenPreview; else sinImagen" [src]="imagenPreview" alt="">
+          <ng-template #sinImagen>
+            <div class="previa-sin-imagen" aria-hidden="true"><mat-icon>add_photo_alternate</mat-icon></div>
+          </ng-template>
+          <div class="previa-texto">
+            <h3>{{ categoria.titulo || 'Nombre de la categoría' }}</h3>
+            <p>{{ categoria.descripcion || 'La descripción de la categoría aparecerá en este espacio.' }}</p>
+          </div>
+        </article>
+        <small>Revise cómo se verá la categoría antes de guardarla.</small>
+      </aside>
     </div>
-  </form>
-</mat-dialog-content>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
+    <button mat-button class="aceptar" type="submit" [disabled]="guardando">
+      <mat-icon aria-hidden="true">{{ isEditing ? 'check_circle_outline' : 'add' }}</mat-icon>
+      {{ guardando ? 'Guardando…' : (isEditing ? 'Guardar cambios' : 'Crear categoría') }}
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,65 @@
+<div *ngIf="cargando" class="cargando-wrapper" role="status">
+  <mat-spinner diameter="40"></mat-spinner>
+  <span>Cargando grupos...</span>
+</div>
+
+<div *ngIf="!cargando && grupos.length === 0" class="vacio">
+  <mat-icon aria-hidden="true" fontSet="material-icons-outlined">event_busy</mat-icon>
+  <p class="empty-msg">{{ mensajeVacio }}</p>
+</div>
+
+<ul class="rejilla" *ngIf="!cargando && grupos.length > 0" aria-label="Grupos a cargo">
+  <li class="tarjeta" *ngFor="let g of gruposOrdenados" [class.con-clase-hoy]="clasesHoy(g).length > 0">
+    <div class="cabecera">
+      <div class="titulos">
+        <span class="eyebrow">{{ g.categoria }}</span>
+        <h3 class="curso">{{ g.curso }}</h3>
+        <span class="grupo">{{ periodo(g) }} · {{ nombreGrupo(g) }}</span>
+      </div>
+      <span class="insignia-hoy" *ngIf="clasesHoy(g).length > 0">
+        <mat-icon aria-hidden="true">today</mat-icon> Hoy · {{ textoHoy(g) }}
+      </span>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip-curso" [attr.data-estado]="g.estadoCurso">
+        <span class="punto" aria-hidden="true"></span>Curso {{ g.estadoCurso === 'ACTIVO' ? 'activo' : 'inactivo' }}
+      </span>
+      <span class="chip chip-inscripciones" [attr.data-estado]="g.estadoInscripciones">
+        Inscripciones {{ inscripcionesAbiertas(g) ? 'abiertas' : 'cerradas' }}
+      </span>
+    </div>
+
+    <div class="horarios">
+      <h4 class="rotulo"><mat-icon aria-hidden="true" fontSet="material-icons-outlined">schedule</mat-icon> Horario</h4>
+      <ul class="lista-horarios" *ngIf="g.horarios?.length; else sinHorario">
+        <li *ngFor="let h of g.horarios" [class.hoy]="esDeHoy(g, h)">
+          <span class="dia">{{ h.dia }}</span>
+          <span class="hora">{{ franja(h) }}</span>
+          <span class="escenario" *ngIf="h.escenario">{{ h.escenario }}</span>
+        </li>
+      </ul>
+      <ng-template #sinHorario>
+        <p class="sin-horario">Horario por definir. Sin horario no se puede registrar asistencia: avise al Coordinador.</p>
+      </ng-template>
+    </div>
+
+    <div class="ocupacion">
+      <div class="ocupacion-texto">
+        <span>Ocupación</span>
+        <strong>{{ textoCupos(g) }}</strong>
+      </div>
+      <div class="barra" role="progressbar" [attr.aria-label]="'Ocupación de ' + g.curso + ' ' + periodo(g) + ' ' + nombreGrupo(g)"
+           aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="porcentaje(g)">
+        <span [style.width.%]="porcentaje(g)"></span>
+      </div>
+      <span class="en-espera" *ngIf="g.enEspera > 0">{{ g.enEspera }} en lista de espera</span>
+    </div>
+
+    <button type="button" class="btn-grupo" [class.btn-hoy]="clasesHoy(g).length > 0"
+            [attr.aria-label]="etiquetaBoton(g)" (click)="verGrupo.emit(g)">
+      {{ clasesHoy(g).length > 0 ? 'Registrar asistencia de hoy' : 'Ver grupo' }}
+      <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+    </button>
+  </li>
+</ul>

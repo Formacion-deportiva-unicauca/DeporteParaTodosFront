@@ -61,7 +61,8 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
     spyOn(component['inscripcionService'], 'getListaEspera').and.returnValue(of([]));
     spyOn(component['horarioSerive'], 'getHorarios').and.returnValue(of([]));
     spyOn(component['instructorService'], 'getInstructor').and.returnValue(of({ nombre: 'Test' } as any));
-    spyOn(component['snackBar'], 'open').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'exito').and.returnValue(null as any);
+    spyOn(component['notificaciones'], 'error').and.returnValue(null as any);
     spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
     // Por defecto en estas pruebas el Instructor sí gestiona deportistas (el valor real del interruptor está probado más abajo).
     component.instructorGestionaDeportistas = o.instructorGestiona ?? true;
@@ -119,9 +120,8 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
       component.editarAlumno(alumno);
       component.eliminarAlumno(alumno);
       expect(abrir).not.toHaveBeenCalled();
-      expect(component['snackBar'].open).toHaveBeenCalledTimes(3);
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining('no son de su cargo'), 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+      expect(component['notificaciones'].error).toHaveBeenCalledTimes(3);
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('no son de su cargo'));
     });
   });
 
@@ -171,15 +171,13 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
         data: jasmine.objectContaining({ tipoElemento: 'inscripcion', alumnoId: 42, categoria: 'Futbol' }),
       }));
       expect(component['alumnoService'].getAlumnosGrupo).toHaveBeenCalledTimes(2);
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Deportista desvinculado del grupo', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-success'] }));
+      expect(component['notificaciones'].exito).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('ya no hace parte de este grupo'));
     });
 
     it('eliminarAlumno: si el servidor rechaza, muestra el error y no recarga', () => {
       spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of({ confirmado: false, errorStatus: 403 }) } as any);
       component.eliminarAlumno(alumno);
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Error al desvincular'), 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('Error al desvincular'));
       expect(component['alumnoService'].getAlumnosGrupo).toHaveBeenCalledTimes(1);
     });
   });
@@ -208,8 +206,7 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
       const abrir = spyOn(component['dialog'], 'open');
       component.eliminarAtencion({ idPerfil: '42', idClase: 7, estaAtendido: true }, { codigo: 7 } as any);
       expect(abrir).not.toHaveBeenCalled();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        jasmine.stringContaining('no son de su cargo'), 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+      expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('no son de su cargo'));
     });
 
     it('la pantalla no ofrece registrar y explica que es solo consulta; las casillas quedan deshabilitadas', () => {
@@ -265,7 +262,7 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
       await montar({ rol: 'Coordinador' });
       TestBed.resetTestingModule();
       expect(new ListDeportistasdeCursoComponent(null as any, null as any, null as any, null as any, null as any, null as any,
-        null as any, null as any, null as any, null as any, null as any, null as any).instructorGestionaDeportistas).toBeTrue();
+        null as any, null as any, null as any, null as any, null as any, null as any, null as any).instructorGestionaDeportistas).toBeTrue();
     });
 
     describe('Instructor titular con el interruptor apagado', () => {
@@ -280,8 +277,7 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
         component.editarAlumno(alumno);
         component.eliminarAlumno(alumno);
         expect(abrir).not.toHaveBeenCalled();
-        expect(component['snackBar'].open).toHaveBeenCalledWith(
-          jasmine.stringContaining('solo el Coordinador'), 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+        expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('solo el Coordinador'));
       });
 
       it('sigue pudiendo registrar asistencia y eliminar asistencias de su grupo', () => {
@@ -317,8 +313,7 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
           const abrir = spyOn(component['dialog'], 'open');
           component.inscribirAlumno();
           expect(abrir).not.toHaveBeenCalled();
-          expect(component['snackBar'].open).toHaveBeenCalledWith(
-            'Las inscripciones de este grupo cerraron el 14/06/2026', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+          expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('Las inscripciones de este grupo cerraron el 14/06/2026'));
         });
 
         it('muestra el estado del grupo junto a "Agregar deportista +"', async () => {
@@ -332,8 +327,7 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
           const abrir = spyOn(component['dialog'], 'open');
           component.inscribirAlumno();
           expect(abrir).not.toHaveBeenCalled();
-          expect(component['snackBar'].open).toHaveBeenCalledWith(
-            'Las inscripciones de este grupo abren el 01/07/2026', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+          expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('Las inscripciones de este grupo abren el 01/07/2026'));
         });
 
         it('sin fecha de cierre usa el aviso genérico', async () => {
@@ -358,12 +352,10 @@ describe('ListDeportistasdeCursoComponent — gestión de deportistas del grupo'
           const post = spyOn(component['inscripcionService'], 'postInscripcion');
           post.and.returnValue(throwError(() => ({ status: 422, error: { mensaje: 'Las inscripciones de este grupo están cerradas' } })));
           component.inscribirAlumno();
-          expect(component['snackBar'].open).toHaveBeenCalledWith(
-            'Las inscripciones de este grupo están cerradas', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+          expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('Las inscripciones de este grupo están cerradas'));
           post.and.returnValue(throwError(() => ({ status: 500 })));
           component.inscribirAlumno();
-          expect(component['snackBar'].open).toHaveBeenCalledWith(
-            'No se pudo inscribir al deportista. Intente de nuevo.', 'Cerrar', jasmine.objectContaining({ panelClass: ['snack-error'] }));
+          expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining('No se pudo inscribir al deportista. Intente de nuevo.'));
         });
       });
     }

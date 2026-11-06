@@ -8,11 +8,18 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { formatoHora12 } from 'src/app/shared/ventana-registro.util';
 import { HorarioDTO } from 'src/app/Models/DTOs/horario-dto';
 import { EscenarioDTO } from 'src/app/Models/DTOs/escenario-dto';
 import { HorarioService } from 'src/app/services/horario.service';
 import { EscenarioService } from 'src/app/services/escenario.service';
+
+/** Nombre completo de cada día, para los lectores de pantalla (el chip solo muestra "Lun", "Mar"...). */
+const NOMBRE_DIA: Record<string, string> = {
+  LUNES: 'Lunes', MARTES: 'Martes', MIERCOLES: 'Miércoles', JUEVES: 'Jueves',
+  VIERNES: 'Viernes', SABADO: 'Sábado', DOMINGO: 'Domingo',
+};
 
 @Component({
   selector: 'app-form-horario',
@@ -26,7 +33,6 @@ import { EscenarioService } from 'src/app/services/escenario.service';
     MatSelectModule,
     MatIconModule,
     MatButtonModule,
-    MatSnackBarModule,
   ],
   templateUrl: './form-horario.component.html',
   styleUrls: ['./form-horario.component.css'],
@@ -37,6 +43,8 @@ export class FormHorarioComponent implements OnInit {
   escenarios: EscenarioDTO[] = [];
   confirmandoEliminacionId: number | null = null;
   cambiosRealizados = false;
+  /** true si no se pudieron traer los horarios registrados: se avisa en lugar de mostrar "Sin horarios". */
+  errorCargaHorarios = false;
 
   dias = [
     { label: 'Lun', valor: 'LUNES',     seleccionado: false },
@@ -53,11 +61,11 @@ export class FormHorarioComponent implements OnInit {
   escenarioSeleccionado = '';
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { categoria: string; curso: string; anio: number; iterable: number },
+    @Inject(MAT_DIALOG_DATA) public data: { categoria: string; curso: string; anio: number; iterable: number; nuevoGrupo?: boolean },
     private dialogRef: MatDialogRef<FormHorarioComponent>,
     private horarioService: HorarioService,
     private escenarioService: EscenarioService,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
   ) {}
 
   ngOnInit(): void {
@@ -65,7 +73,7 @@ export class FormHorarioComponent implements OnInit {
     this.escenarioService.getEscenarios().subscribe({
       next: (data: any) => { this.escenarios = Array.isArray(data) ? data.filter((e: EscenarioDTO) => e.disponible) : []; },
       error: () => {
-        this.snackBar.open('Error al cargar escenarios', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudieron cargar los escenarios', 'Cierre el diálogo y vuelva a abrirlo.');
       },
     });
   }
@@ -74,9 +82,42 @@ export class FormHorarioComponent implements OnInit {
     this.horarioService
       .getHorarios(this.data.categoria, this.data.curso, this.data.anio, this.data.iterable)
       .subscribe({
-        next: (data: any) => { this.horarios = Array.isArray(data) ? data : []; },
-        error: () => {},
+        next: (data: any) => {
+          this.horarios = Array.isArray(data) ? data : [];
+          this.errorCargaHorarios = false;
+        },
+        error: () => { this.errorCargaHorarios = true; },
       });
+  }
+
+  /** Diálogo abierto justo después de crear el grupo: "Paso 2 de 2" y se puede omitir. */
+  get esNuevoGrupo(): boolean {
+    return !!this.data?.nuevoGrupo;
+  }
+
+  get etiquetaCerrar(): string {
+    if (!this.esNuevoGrupo) return 'Cerrar';
+    return this.cambiosRealizados ? 'Listo' : 'Omitir por ahora';
+  }
+
+  /** Aviso del paso 2: el grupo sigue sin horario (no se avisa mientras no se sepa si los horarios cargaron). */
+  get mostrarAvisoSinHorario(): boolean {
+    return this.esNuevoGrupo && !this.errorCargaHorarios && this.horarios.length === 0;
+  }
+
+  horaCorta(hora: string): string {
+    return formatoHora12(hora);
+  }
+
+  nombreDia(valor: string): string {
+    return NOMBRE_DIA[valor] ?? valor;
+  }
+
+  /** Aviso cuando la hora de fin no es posterior a la de inicio (las horas "HH:mm" se comparan como texto). */
+  get errorHoras(): string {
+    return this.horaInicio && this.horaFin && this.horaFin <= this.horaInicio
+      ? 'La hora de fin debe ser posterior a la de inicio.'
+      : '';
   }
 
   puedeGuardar(): boolean {
@@ -84,6 +125,7 @@ export class FormHorarioComponent implements OnInit {
       this.dias.some(d => d.seleccionado) &&
       !!this.horaInicio &&
       !!this.horaFin &&
+      this.horaFin > this.horaInicio &&
       !!this.escenarioSeleccionado
     );
   }
@@ -106,6 +148,7 @@ export class FormHorarioComponent implements OnInit {
         })
       );
 
+    const cantidad = peticiones.length;
     forkJoin(peticiones).subscribe({
       next: () => {
         this.cambiosRealizados = true;
@@ -114,10 +157,11 @@ export class FormHorarioComponent implements OnInit {
         this.horaFin = '';
         this.escenarioSeleccionado = '';
         this.cargarHorarios();
-        this.snackBar.open('Horario(s) agregado(s) correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito(cantidad === 1 ? 'Horario agregado' : 'Horarios agregados',
+          `Se registró ${cantidad} ${cantidad === 1 ? 'horario' : 'horarios'} en el grupo.`);
       },
       error: () => {
-        this.snackBar.open('Error al agregar horario(s)', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo agregar el horario', 'Error al agregar horario(s). Intente de nuevo.');
       },
     });
   }
@@ -136,11 +180,11 @@ export class FormHorarioComponent implements OnInit {
         this.horarios = this.horarios.filter(h => h.id !== id);
         this.confirmandoEliminacionId = null;
         this.cambiosRealizados = true;
-        this.snackBar.open('Horario eliminado correctamente', 'Cerrar', { duration: 3000, panelClass: ['snack-success'] });
+        this.notificaciones.exito('Horario eliminado', 'Ya no aparece en el grupo.');
       },
       error: () => {
         this.confirmandoEliminacionId = null;
-        this.snackBar.open('Error al eliminar el horario', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+        this.notificaciones.error('No se pudo eliminar el horario', 'Error al eliminar el horario. Intente de nuevo.');
       },
     });
   }

@@ -1,157 +1,114 @@
-.inscripcion-container {
-  max-width: 700px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-}
+.pagina-inscripcion { max-width: 1100px; margin: 0 auto; padding: 0.5rem 0 2rem; }
 
-.encabezado {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
+/* Ruta de navegación */
+.migas { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.5rem; font-size: var(--texto-caption); color: var(--color-neutro-texto); }
+.migas a { color: var(--color-terciario); text-decoration: none; }
+.migas a:hover { text-decoration: underline; }
+.migas mat-icon { width: 18px; height: 18px; font-size: 18px; }
 
-.btn-volver {
-  background: none;
-  border: none;
-  color: #000066;
-  cursor: pointer;
-  font-size: 0.95rem;
-  padding: 0;
+/* Título de página con línea secundaria (lineamiento) */
+.encabezado { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem 1rem; margin-bottom: 1.25rem; }
+.titulo-pagina {
+  position: relative; margin: 0; padding-bottom: 0.75rem;
+  font-family: var(--fuente-titulos); font-size: var(--texto-h4); font-weight: 700; line-height: 1.2; color: var(--color-primario);
 }
+.titulo-pagina::after { content: ""; position: absolute; left: 0; bottom: 0; width: 96px; height: 4px; background: var(--color-secundario-light); }
 
-.titulo {
-  color: #000066;
-  margin: 0;
-  font-size: 1.4rem;
+/* Botones: píldora, mayúsculas, 44px de alto */
+.btn-volver, .btn-principal, .btn-cancelar-inscripcion, .btn-confirmar-cancelar, .btn-mantener {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 44px; padding: 0 1.25rem;
+  border: 2px solid var(--color-primario); border-radius: var(--radio-total); cursor: pointer;
+  font-family: var(--fuente-titulos); font-size: var(--texto-boton-1); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
 }
+.btn-volver, .btn-mantener { background: #fff; color: var(--color-primario); }
+.btn-volver:hover, .btn-mantener:hover:not(:disabled) { background: var(--color-tonal-95); }
+.btn-principal { background: var(--color-primario); color: var(--color-sobre-primario); }
+.btn-principal:hover:not(:disabled) { background: var(--color-primario-light); border-color: var(--color-primario-light); }
+.btn-principal:disabled { border-color: #c9c9d1; background: #e9e9ee; color: #6b6b78; cursor: not-allowed; }
+/* Lista de espera: mismo botón con el amarillo de "en espera" (no es un error) */
+.btn-principal.btn-espera:not(:disabled) { border-color: #8a5d00; background: #ffe9a6; color: #4d3800; }
+.btn-principal.btn-espera:not(:disabled):hover { background: #ffdd73; }
+/* Cancelar: contorno con el rol de error del lineamiento (naranja), nunca rojo */
+.btn-cancelar-inscripcion { background: #fff; border-color: var(--color-error-texto); color: var(--color-error-texto); }
+.btn-cancelar-inscripcion:hover:not(:disabled), .btn-confirmar-cancelar { background: var(--color-error-texto); color: var(--color-sobre-error); border-color: var(--color-error-texto); }
+.btn-confirmar-cancelar:hover:not(:disabled) { background: #7f3500; border-color: #7f3500; }
+.btn-cancelar-inscripcion:disabled, .btn-confirmar-cancelar:disabled, .btn-mantener:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-volver:focus-visible, .btn-principal:focus-visible, .btn-cancelar-inscripcion:focus-visible, .btn-confirmar-cancelar:focus-visible, .btn-mantener:focus-visible,
+.migas a:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: 2px; }
+.btn-volver mat-icon, .btn-principal mat-icon { width: 20px; height: 20px; font-size: 20px; }
 
-.info-card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+/* Disposición: información a la izquierda, acción a la derecha (en móvil, una debajo de otra) */
+.disposicion { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+
+.info-card { padding: 1.5rem; border-left: 4px solid var(--color-secundario-light); border-radius: var(--radio-tarjeta); background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.eyebrow { display: block; font-size: var(--texto-overline); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutro-texto); }
+.nombre-curso { margin: 0.1rem 0 0.1rem; font-family: var(--fuente-titulos); font-size: var(--texto-h5); font-weight: 700; color: var(--color-primario); overflow-wrap: anywhere; }
+.codigo-grupo { margin: 0 0 0.75rem; color: var(--color-neutro-texto); }
+
+.estado-info { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.7rem; border-radius: var(--radio-total); background: #ececec; color: var(--color-neutro-texto); font-size: var(--texto-caption); font-weight: 600; }
+.chip .punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.chip-curso[data-estado="ACTIVO"] { background: #d4efcb; color: #17520a; }
+.chip-curso[data-estado="CERRADO"] { background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
+.chip-curso-inscripciones[data-estado="ABIERTO"] { background: #d8e3ff; color: var(--color-primario); }
+.chip-curso-inscripciones[data-estado="CERRADO"] { background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
+
+.detalles { margin: 0; }
+.detalle { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0.25rem 1rem; padding: 0.85rem 0; border-top: 1px solid #ececf0; }
+.detalle dt { font-family: var(--fuente-titulos); font-weight: 700; color: var(--color-primario); }
+.detalle dd { margin: 0; color: var(--color-neutro-texto); }
+.detalle-instructor dd { display: flex; align-items: center; gap: 0.6rem; }
+.avatar { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--color-tonal-95); color: var(--color-primario); font-family: var(--fuente-titulos); font-size: var(--texto-caption); font-weight: 700; }
+.instructor-nombre { font-weight: 600; }
+
+.cupos-cifra { color: #17520a; font-family: var(--fuente-titulos); font-size: var(--texto-subtitulo-1); }
+.cupos-cifra.agotado { color: var(--color-error-texto); }
+.barra { height: 8px; margin: 0.4rem 0 0.25rem; border-radius: 4px; background: #e5e5ea; }
+.barra > span { display: block; height: 100%; border-radius: 4px; background: var(--color-accesibilidad); }
+.en-espera { font-size: var(--texto-caption); font-weight: 600; color: var(--color-primario); }
+
+.lista-horarios { margin: 0; padding: 0; list-style: none; }
+.horario-item { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0 0.75rem; padding: 0.15rem 0; }
+.horario-item .dia { font-weight: 600; }
+.horario-item .escenario { grid-column: 2; overflow-wrap: anywhere; }
+
+/* Panel de acción y de estado */
+.panel-accion { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.25rem; border-top: 4px solid var(--color-primario); border-radius: var(--radio-tarjeta); background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.panel-accion .btn-principal, .panel-accion .btn-cancelar-inscripcion { width: 100%; }
+
+/* Resultado: grande, con icono y color propio, y se queda en pantalla */
+.resultado { padding: 1rem 1.1rem; border-left: 6px solid; border-radius: var(--radio-pequeno); }
+.resultado-icono { display: block; width: 40px; height: 40px; margin-bottom: 0.35rem; font-size: 40px; }
+.resultado-titulo { margin: 0 0 0.25rem; font-family: var(--fuente-titulos); font-size: var(--texto-h6); font-weight: 700; }
+.resultado-texto { margin: 0; }
+.resultado-exito { border-color: var(--color-accesibilidad); background: #e6f4e1; color: #17520a; }
+.resultado-espera { border-color: #c98a00; background: #fff1c2; color: #4d3800; }
+.resultado-info { border-color: var(--color-terciario); background: #d8e3ff; color: var(--color-primario); }
+
+/* Avisos junto al botón */
+.aviso { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-left: 4px solid; border-radius: var(--radio-pequeno); font-size: var(--texto-caption); }
+.aviso mat-icon { flex-shrink: 0; width: 22px; height: 22px; font-size: 22px; }
+.aviso p { margin: 0; }
+.aviso-espera { border-color: #c98a00; background: #fff1c2; color: #4d3800; }
+.aviso-cerrado { border-color: var(--color-error); background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
+.aviso-cerrado mat-icon { color: var(--color-error-texto); }
+
+/* Confirmación de cancelación */
+.confirmar-cancelacion { padding: 0.9rem 1rem; border: 2px solid var(--color-error-texto); border-radius: var(--radio-pequeno); background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
+.pregunta { margin: 0 0 0.75rem; font-weight: 600; }
+.confirmar-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.confirmar-botones button { flex: 1 1 auto; }
+
+.cargando { padding: 3rem 1rem; text-align: center; color: var(--color-neutro-texto); }
+
+@media (max-width: 899.98px) {
+  .disposicion { grid-template-columns: 1fr; }
+  /* Con un estado que mostrar (inscrito, en espera, cancelado) el panel va primero: se ve sin hacer scroll */
+  .panel-accion.con-estado { order: -1; }
 }
-
-.info-card h3 {
-  color: #000066;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-}
-
-.info-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.info-table th, .info-table td {
-  padding: 0.6rem 0.8rem;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.info-table th {
-  color: #000066;
-  font-weight: 600;
-  width: 40%;
-}
-
-.horario-item {
-  display: block;
-  font-size: 0.9rem;
-  color: #000066;
-}
-
-.accion {
-  display: flex;
-  justify-content: center;
-}
-
-.btn-inscribirse {
-  background-color: #000066;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 0.75rem 2.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-inscribirse:hover:not(:disabled) {
-  background-color: #0000aa;
-}
-
-.btn-inscribirse:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-espera {
-  background-color: #e65100;
-}
-
-.btn-espera:hover:not(:disabled) {
-  background-color: #bf360c;
-}
-
-.aviso-espera {
-  background-color: #fff3e0;
-  border: 1px solid #ffb74d;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  color: #e65100;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.estado-inscripcion {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.inscrito-badge {
-  background-color: #2e7d32;
-  color: white;
-  border-radius: 20px;
-  padding: 0.75rem 2.5rem;
-  font-size: 1rem;
-}
-
-.espera-badge {
-  background-color: #e65100;
-}
-
-.btn-cancelar {
-  background: none;
-  border: 1px solid #c62828;
-  color: #c62828;
-  border-radius: 20px;
-  padding: 0.5rem 2rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.btn-cancelar:hover:not(:disabled) {
-  background-color: #c62828;
-  color: white;
-}
-
-.btn-cancelar:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.cargando {
-  text-align: center;
-  padding: 3rem;
-  color: #666;
+@media (max-width: 599.98px) {
+  .detalle { grid-template-columns: 1fr; }
+  .horario-item { grid-template-columns: 1fr; }
+  .horario-item .escenario { grid-column: 1; }
+  .btn-volver { width: 100%; }
 }

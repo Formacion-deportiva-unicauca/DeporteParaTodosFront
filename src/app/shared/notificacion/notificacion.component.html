@@ -1,0 +1,14 @@
+<div class="notificacion" [ngClass]="'notificacion--' + datos.tipo">
+  <span class="notificacion-icono" aria-hidden="true">
+    <mat-icon aria-hidden="true">{{ icono }}</mat-icon>
+  </span>
+
+  <div class="notificacion-texto">
+    <p class="notificacion-titulo">{{ datos.titulo }}</p>
+    <p class="notificacion-mensaje" *ngIf="datos.mensaje">{{ datos.mensaje }}</p>
+  </div>
+
+  <button mat-icon-button type="button" class="notificacion-cerrar" aria-label="Cerrar notificación" (click)="cerrar()">
+    <mat-icon aria-hidden="true">close</mat-icon>
+  </button>
+</div>

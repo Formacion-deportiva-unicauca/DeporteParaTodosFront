@@ -1,81 +1,47 @@
+:host { display: block; width: min(720px, 90vw); }
 
-.dialog-content {
-  display: flex;
-  flex-direction: column;
+.tipo-fijo { margin-bottom: 0.5rem; }
+
+/* Paso 1: campo de correo + botón Buscar en una fila */
+.search-row { display: flex; align-items: flex-start; gap: 0.75rem; }
+.search-field { flex: 1; min-width: 0; }
+
+.btn-buscar {
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start; 
-  padding: 20px; 
-  width: 500px;
-  box-sizing: border-box; 
-  overflow: auto; 
+  gap: 0.35rem;
+  min-height: 56px;
+  padding: 0 1.25rem;
+  border: 2px solid var(--color-primario);
+  border-radius: var(--radio-total);
+  color: var(--color-primario);
+  font-weight: 600;
 }
 
-.form-content {
+/* Resultado de la búsqueda */
+.resultado {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.form-field {
-  width: 100%; 
-  margin-bottom: 10px;
-}
-
-mat-dialog-content {
-  /* Con el contenido más alto que la pantalla (formulario completo de registro), el cuerpo se desplaza en vez de salirse.
-     max-height: none lo dejaba crecer sin límite y no había scroll para llegar a los campos ni a los botones. */
-  max-height: 75vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radio-pequeno);
+  background: var(--color-neutro-hover);
 }
+.resultado p { margin: 0; }
+.resultado-nombre { font-weight: 700; color: var(--color-primario); }
+.resultado-correo { font-size: var(--texto-cuerpo-3); color: var(--color-neutro-texto); }
+.resultado.encontrado { background: #e9f6e5; }
+.icono-estado { flex-shrink: 0; }
+.icono-estado.verde { color: var(--color-accesibilidad); }
+.icono-estado.naranja { color: var(--color-error-texto); }
+.resultado.rol-invalido { background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
 
+.aviso-no-encontrado { margin: 0.25rem 0 0; }
 
-@media (max-width: 600px) {
-  .form-content {
-    padding: 10px;
-  }
-
-  .form-field {
-    width: 100%;
-  }
-
-  .image-preview {
-    max-height: 40vh;
-  }
-}
-
-.tipo-fijo {
-  width: 100%;
-  margin-bottom: 10px;
-}
-
-/* Sobrescribe el width: 100px fijo del global (styles.css) que recorta
-   textos largos como "Registrar e Inscribir" en modo isInscribirMode */
-.form-buttons {
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.aceptar {
-  width: auto;
-  min-width: 100px;
-  padding: 0 20px;
-  white-space: nowrap;
-}
-
-.close-button {
-  float: right;
-}
-
-.error-edicion {
-  color: #b3261e;
-  margin: 0 0 8px;
-  font-size: 0.9rem;
+@media (max-width: 575.98px) {
+  :host { width: auto; }
+  .search-row { flex-direction: column; align-items: stretch; }
+  .btn-buscar { justify-content: center; }
 }

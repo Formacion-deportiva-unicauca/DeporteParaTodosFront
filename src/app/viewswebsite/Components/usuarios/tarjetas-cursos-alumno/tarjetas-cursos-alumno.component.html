@@ -1,0 +1,67 @@
+<div *ngIf="cargando" class="cargando-wrapper" role="status">
+  <mat-spinner diameter="40"></mat-spinner>
+  <span>Cargando cursos...</span>
+</div>
+
+<div *ngIf="!cargando && cursos.length === 0" class="vacio">
+  <mat-icon aria-hidden="true" fontSet="material-icons-outlined">sports_handball</mat-icon>
+  <h3 class="vacio-titulo">Aún no estás inscrito en ningún curso</h3>
+  <p class="empty-msg">No estás inscrito en ningún curso todavía. Explora las categorías deportivas y elige el que más te guste.</p>
+  <button type="button" class="btn-principal" (click)="explorar.emit()">
+    Explorar cursos <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+  </button>
+</div>
+
+<ul class="rejilla" *ngIf="!cargando && cursos.length > 0" aria-label="Cursos matriculados">
+  <li class="tarjeta" *ngFor="let c of cursosOrdenados"
+      [class.con-clase-hoy]="clasesHoy(c).length > 0" [class.no-disponible]="!c.grupoActivo">
+    <div class="cabecera">
+      <div class="titulos">
+        <span class="eyebrow">{{ c.categoria }}</span>
+        <h3 class="curso">{{ nombrePropio(c.curso) }}</h3>
+        <span class="grupo">{{ periodo(c) }} · {{ nombreGrupo(c) }}</span>
+      </div>
+      <span class="insignia-hoy" *ngIf="clasesHoy(c).length > 0">
+        <mat-icon aria-hidden="true">today</mat-icon> Hoy · {{ textoHoy(c) }}
+      </span>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip-estado" *ngIf="c.grupoActivo" [attr.data-estado]="c.estado">
+        <mat-icon aria-hidden="true">{{ c.estado === 'INSCRITO' ? 'check_circle' : 'hourglass_empty' }}</mat-icon>
+        {{ c.estado === 'INSCRITO' ? 'Inscrito' : 'En lista de espera' }}
+      </span>
+      <span class="chip chip-estado" *ngIf="!c.grupoActivo" data-estado="NO_DISPONIBLE" role="status">
+        <mat-icon aria-hidden="true">block</mat-icon> Este grupo ya no está disponible
+      </span>
+    </div>
+
+    <div class="instructor">
+      <span class="avatar" aria-hidden="true">{{ iniciales(c.instructorNombre) }}</span>
+      <div>
+        <span class="rotulo-chico">Instructor</span>
+        <ng-container *ngIf="c.instructorNombre as nombre; else sinInstructor">
+          <span class="valor instructor-nombre">{{ nombrePropio(nombre) }}</span>
+          <span class="instructor-codigo" *ngIf="c.instructorCodigo">Cód. {{ c.instructorCodigo }}</span>
+        </ng-container>
+        <ng-template #sinInstructor><span class="valor">Sin instructor asignado</span></ng-template>
+      </div>
+    </div>
+
+    <div class="horarios">
+      <h4 class="rotulo"><mat-icon aria-hidden="true" fontSet="material-icons-outlined">schedule</mat-icon> Horario</h4>
+      <ul class="lista-horarios" *ngIf="c.horarios?.length; else sinHorario">
+        <li *ngFor="let h of c.horarios" [class.hoy]="esDeHoy(c, h)">
+          <span class="dia">{{ nombreDia(h.dia) }}</span>
+          <span class="hora">{{ franja(h) }}</span>
+          <span class="escenario" *ngIf="h.escenario">{{ h.escenario }}</span>
+        </li>
+      </ul>
+      <ng-template #sinHorario><p class="sin-horario">Horario por definir</p></ng-template>
+    </div>
+
+    <button type="button" class="btn-grupo" *ngIf="c.grupoActivo" [attr.aria-label]="etiquetaBoton(c)" (click)="verGrupo.emit(c)">
+      Ver grupo <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+    </button>
+  </li>
+</ul>

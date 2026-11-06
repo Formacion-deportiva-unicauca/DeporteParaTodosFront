@@ -1,0 +1,80 @@
+/*
+ * Tokens de diseño institucionales.
+ * Fuente: "Lineamientos de diseño UX-UI para proyectos de desarrollo de software en la División TIC de la
+ * Universidad del Cauca" (v1, abril 2024).
+ * Regla: ningún componente debe escribir un color, fuente o radio suelto; usa estas variables.
+ */
+:root {
+  /* ── Color primario (header, títulos, botones, iconos) ── */
+  --color-primario: #000066;
+  --color-primario-light: #5056ac; /* hover de tarjetas y botones, textos destacados */
+  --color-primario-dark: #07184a; /* fondos de página y contenedores */
+
+  /* ── Color secundario (menor énfasis, miga de pan, línea de título) ── */
+  --color-secundario: #9d0311;
+  --color-secundario-light: #db141c;
+  --color-secundario-dark: #690007;
+
+  /* ── Otros colores destacados ── */
+  --color-terciario: #1d72d3; /* subtítulos, textos destacados, enlaces */
+  --color-tonal-95: #ecf0ff; /* menús secundarios, luz de borde */
+
+  /*
+   * ── Error: naranja, nunca rojo (el rojo es de la marca) ──
+   * Siguiendo la Figura 3/4 del lineamiento (esquema de error claro, roles de Material):
+   *  - --color-error (#ED7D31): iconografía y texto destacado que advierte de inconsistencias.
+   *  - --color-error-texto (rol "Error"): naranja oscuro para rellenos (botón, snackbar, insignia) y texto de error;
+   *    con --color-sobre-error (blanco) supera el contraste AA.
+   *  - contenedor de error: fondo naranja muy claro con texto marrón oscuro (avisos, alertas en línea).
+   */
+  --color-error: #ed7d31;
+  --color-error-texto: #9a4100;
+  --color-sobre-error: #ffffff;
+  --color-error-contenedor: #ffdbca;
+  --color-sobre-error-contenedor: #341100;
+
+  /* ── Accesibilidad web ── */
+  --color-accesibilidad: #249300;
+  --color-neutro-texto: #454444;
+  --color-neutro-hover: #f6f6f6;
+  --color-sobre-primario: #ffffff;
+
+  /* ── Colores del Plan de Desarrollo Institucional (ilustraciones, calendarios, acentos) ── */
+  --color-pdi-1: #ff6c08;
+  --color-pdi-2: #ffb000;
+  --color-pdi-3: #5bae40;
+  --color-pdi-4: #00aae5;
+  --color-pdi-5: #5a00ba;
+
+  /* ── Tipografía ── */
+  --fuente-titulos: "Titillium Web", "Open Sans", sans-serif;
+  --fuente-cuerpo: "Open Sans", "Helvetica Neue", Arial, sans-serif;
+
+  /* Escala (tabla tipográfica de diseño). Cuerpo mínimo de 16px: Resolución 1519 de 2022. */
+  --texto-h1: 92px;
+  --texto-h2: 62px;
+  --texto-h3: 48px;
+  --texto-h4: 34px;
+  --texto-h5: 24px;
+  --texto-h6: 20px;
+  --texto-subtitulo-1: 18px;
+  --texto-subtitulo-2: 18px;
+  --texto-subtitulo-3: 16px;
+  --texto-cuerpo-1: 16px;
+  --texto-cuerpo-2: 16px;
+  --texto-cuerpo-3: 14px;
+  --texto-boton-1: 14px;
+  --texto-boton-2: 16px;
+  --texto-caption: 14px;
+  --texto-overline: 12px;
+
+  /* ── Radios de contenedor (Tabla 1 del lineamiento) ── */
+  --radio-ninguno: 0;
+  --radio-extra-pequeno: 4px; /* campos de texto, snackbars, menús select */
+  --radio-pequeno: 8px;
+  --radio-campo: 4px;
+  --radio-tarjeta: 12px; /* tarjetas, FAB pequeños */
+  --radio-largo: 16px;
+  --radio-dialogo: 28px; /* diálogos, hojas inferiores */
+  --radio-total: 999px; /* botones, insignias, chips, barra de búsqueda */
+}

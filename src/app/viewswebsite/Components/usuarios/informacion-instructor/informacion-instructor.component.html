@@ -1,52 +1,65 @@
 <app-sidenav>
-  <div class="container">
+  <div class="pagina-instructor">
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a href="/home" (click)="irAInicio($event)">Inicio</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">Mis cursos</span>
+    </nav>
 
-    <div *ngIf="perfil && perfil !== 'Instructor'" class="msg-rol">
+    <h1 class="titulo-pagina">Mis cursos</h1>
+
+    <div *ngIf="perfil && perfil !== 'Instructor'" class="msg-rol banner banner-info" role="status">
+      <mat-icon aria-hidden="true" fontSet="material-icons-outlined">info</mat-icon>
       <p>Esta sección es exclusiva para el rol Instructor.</p>
     </div>
 
     <ng-container *ngIf="perfil === 'Instructor'">
 
-      <div class="personal-info">
+      <section class="tarjeta-perfil" aria-label="Tu información">
+        <span class="avatar" aria-hidden="true">{{ iniciales }}</span>
         <div class="info-text">
-          <h3>Tu información</h3>
+          <span class="eyebrow">Tu información</span>
 
-          <div *ngIf="cargandoPerfil" class="cargando-wrapper" aria-live="polite">
-            <mat-spinner diameter="32"></mat-spinner>
+          <div *ngIf="cargandoPerfil" class="cargando-wrapper" role="status">
+            <mat-spinner diameter="28"></mat-spinner>
             <span>Cargando tus datos...</span>
           </div>
 
-          <table *ngIf="!cargandoPerfil">
-            <tr>
-              <th scope="row">Nombre:</th>
-              <td>{{ nombreInstructor ?? 'No disponible' }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Código:</th>
-              <td>{{ codigoInstructor ?? 'No disponible' }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Rol:</th>
-              <td>{{ perfil }}</td>
-            </tr>
-          </table>
+          <ng-container *ngIf="!cargandoPerfil">
+            <h2 class="nombre">{{ nombreInstructor ?? 'No disponible' }}</h2>
+            <dl class="datos">
+              <div><dt>Código</dt><dd>{{ codigoInstructor ?? 'No disponible' }}</dd></div>
+              <div><dt>Rol</dt><dd>{{ perfil }}</dd></div>
+            </dl>
+          </ng-container>
         </div>
-        <div class="profile-pic">
-          <img src="./assets/imagesSystem/Silueta.jpeg" alt="Foto de perfil" />
+      </section>
+
+      <div class="banner banner-hoy" *ngIf="!cargando && gruposConClaseHoy > 0" role="status">
+        <mat-icon aria-hidden="true">today</mat-icon>
+        <div>
+          <strong class="banner-titulo">Hoy, {{ diaHoy }}, tienes {{ gruposConClaseHoy }} {{ gruposConClaseHoy === 1 ? 'clase' : 'clases' }}</strong>
+          <p>Los grupos con clase hoy aparecen primero. Registre la asistencia desde la tarjeta del grupo.</p>
         </div>
       </div>
 
-      <div class="course-info">
-        <h3>Mis cursos a cargo</h3>
+      <dl class="cifras" *ngIf="!cargando && grupos.length > 0" aria-label="Resumen de tus grupos">
+        <div class="cifra"><dt>Grupos a cargo</dt><dd>{{ grupos.length }}</dd></div>
+        <div class="cifra"><dt>Personas inscritas</dt><dd>{{ totalInscritos }}</dd></div>
+        <div class="cifra"><dt>Clases hoy</dt><dd>{{ gruposConClaseHoy }}</dd></div>
+      </dl>
 
-        <app-tabla-grupos-instructor
+      <section class="seccion-grupos" aria-labelledby="titulo-grupos">
+        <h2 id="titulo-grupos" class="titulo-seccion">Cursos a mi cargo</h2>
+        <p class="subtitulo-seccion">Consulte su programación y entre a cada grupo para ver a las personas inscritas y registrar la asistencia.</p>
+
+        <app-tarjetas-grupos-instructor
           [grupos]="grupos"
           [cargando]="cargando"
-          (verDeportistas)="verDeportistas($event)">
-        </app-tabla-grupos-instructor>
-      </div>
+          (verGrupo)="verDeportistas($event)">
+        </app-tarjetas-grupos-instructor>
+      </section>
 
     </ng-container>
-
   </div>
 </app-sidenav>

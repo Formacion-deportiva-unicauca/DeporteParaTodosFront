@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 import { provideRouter } from '@angular/router';
@@ -26,7 +26,7 @@ describe('ListaInstructoresComponent', () => {
   let fixture: ComponentFixture<ListaInstructoresComponent>;
   let mockInstructorService: jasmine.SpyObj<InstructorServisce>;
   let mockDialog: jasmine.SpyObj<MatDialog>;
-  let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
+  let avisos: jasmine.SpyObj<NotificacionService>;
   let mockDialogRef: jasmine.SpyObj<MatDialogRef<any>>;
   let perfil$: BehaviorSubject<string>;
 
@@ -38,7 +38,7 @@ describe('ListaInstructoresComponent', () => {
     mockDialogRef.afterClosed.and.returnValue(of(null));
     mockDialog = jasmine.createSpyObj('MatDialog', ['open']);
     mockDialog.open.and.returnValue(mockDialogRef as any);
-    mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    avisos = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
     perfil$ = new BehaviorSubject<string>('Coordinador');
 
     await TestBed.configureTestingModule({
@@ -49,7 +49,7 @@ describe('ListaInstructoresComponent', () => {
         { provide: PerfilService, useValue: { perfil$ } },
         { provide: AuthService, useValue: jasmine.createSpyObj('AuthService', ['login', 'logout', 'getProfile', 'isAuthenticated', 'verificarUsuario']) },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: MatSnackBar, useValue: mockSnackBar },
+        { provide: NotificacionService, useValue: avisos },
       ],
     }).compileComponents();
 
@@ -224,7 +224,6 @@ describe('ListaInstructoresComponent', () => {
     it('eliminar recarga la lista y conserva el filtro vigente', () => {
       buscar('garcia');
       spyOn(component['dialog'], 'open').and.returnValue(mockDialogRef as any);
-      spyOn(component['snackBar'], 'open');
       mockDialogRef.afterClosed.and.returnValue(of({ confirmado: true }));
       mockInstructorService.getInstructores.calls.reset();
       component.onDelete(maria);
@@ -245,8 +244,7 @@ describe('ListaInstructoresComponent', () => {
     const botonEditar = (nombre: string): HTMLButtonElement =>
       el().querySelector(`button[aria-label="Editar instructor ${nombre}"]`) as HTMLButtonElement;
     let abrir: jasmine.Spy;
-    let snack: jasmine.Spy;
-    const cierraCon = (resultado: unknown): void => {
+        const cierraCon = (resultado: unknown): void => {
       abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
     };
 
@@ -255,7 +253,8 @@ describe('ListaInstructoresComponent', () => {
       component['cargarInstructores']();
       fixture.detectChanges();
       abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
-      snack = spyOn(component['snackBar'], 'open');
+      avisos.exito.calls.reset();
+      avisos.error.calls.reset();
       mockInstructorService.getInstructores.calls.reset();
     });
 
@@ -273,12 +272,13 @@ describe('ListaInstructoresComponent', () => {
       );
     });
 
-    it('Cancelar (sin resultado) no cambia la tabla, no recarga ni muestra snackbar', () => {
+    it('Cancelar (sin resultado) no cambia la tabla, no recarga ni muestra aviso', () => {
       botonEditar('Juan Pérez').click();
       fixture.detectChanges();
       expect(nombres()).toEqual(['María García', 'Juan Pérez', 'Ana Gómez']);
       expect(mockInstructorService.getInstructores).not.toHaveBeenCalled();
-      expect(snack).not.toHaveBeenCalled();
+      expect(avisos.exito).not.toHaveBeenCalled();
+      expect(avisos.error).not.toHaveBeenCalled();
     });
 
     it('éxito: actualiza la fila, conserva el filtro vigente y muestra "Instructor actualizado"', () => {
@@ -292,7 +292,7 @@ describe('ListaInstructoresComponent', () => {
       fixture.detectChanges();
       expect(nombres()).toEqual(['María García Ruiz']);
       expect(campo.value).toBe('garcia');
-      expect(snack).toHaveBeenCalledWith('Instructor actualizado', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+      expect(avisos.exito).toHaveBeenCalledOnceWith('Instructor actualizado', jasmine.stringContaining('María García'));
     });
 
     it('éxito: conserva el orden vigente', () => {
@@ -310,7 +310,7 @@ describe('ListaInstructoresComponent', () => {
       cierraCon({ yaNoExiste: true });
       botonEditar('Juan Pérez').click();
       expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(1);
-      expect(snack).toHaveBeenCalledWith('El instructor ya no existe', '', jasmine.objectContaining({ panelClass: 'snack-error' }));
+      expect(avisos.error).toHaveBeenCalledOnceWith('Instructor no encontrado', 'El instructor ya no existe; se actualizó la lista.');
     });
 
     it('el icono de editar solo existe para el Coordinador', () => {
@@ -500,15 +500,15 @@ describe('ListaInstructoresComponent', () => {
       fixture.detectChanges();
     };
     let abrir: jasmine.Spy;
-    let snack: jasmine.Spy;
-    const cierraCon = (resultado: unknown): void => {
+        const cierraCon = (resultado: unknown): void => {
       abrir.and.returnValue({ afterClosed: () => of(resultado) } as any);
     };
 
     beforeEach(() => {
       cargar([maria, juan, ana]);
       abrir = spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of(undefined) } as any);
-      snack = spyOn(component['snackBar'], 'open');
+      avisos.exito.calls.reset();
+      avisos.error.calls.reset();
       mockInstructorService.getInstructores.calls.reset();
     });
 
@@ -660,13 +660,13 @@ describe('ListaInstructoresComponent', () => {
       const respuesta = (ids: string[], dias: number) =>
         ids.map(id => ({ idInstructor: id, dias, fechaLimite: dias ? '2026-11-10' : null }));
 
-      it('éxito con varios: snackbar "Prórroga asignada a 2 instructores", selección limpia y sin recargar la lista', () => {
+      it('éxito con varios: aviso "Prórroga asignada a 2 instructores", selección limpia y sin recargar la lista', () => {
         marcar(casilla('Juan Pérez'));
         marcar(casilla('Ana Gómez'));
         cierraCon(respuesta(['2002', '3003'], 10));
         botonMasivo()!.click();
         fixture.detectChanges();
-        expect(snack).toHaveBeenCalledWith('Prórroga asignada a 2 instructores', '', jasmine.objectContaining({ panelClass: 'snack-success' }));
+        expect(avisos.exito).toHaveBeenCalledOnceWith('Prórroga asignada a 2 instructores');
         expect(contador()).toBe('Ningún instructor seleccionado');
         expect(mockInstructorService.getInstructores).not.toHaveBeenCalled();
       });
@@ -674,20 +674,21 @@ describe('ListaInstructoresComponent', () => {
       it('éxito con uno: singular', () => {
         cierraCon(respuesta(['2002'], 5));
         botonFila('Juan Pérez')!.click();
-        expect(snack).toHaveBeenCalledWith('Prórroga asignada a 1 instructor', '', jasmine.any(Object));
+        expect(avisos.exito).toHaveBeenCalledOnceWith('Prórroga asignada a 1 instructor');
       });
 
       it('dias = 0: "Prórroga quitada"', () => {
         cierraCon(respuesta(['2002', '3003'], 0));
         botonFila('Juan Pérez')!.click();
-        expect(snack).toHaveBeenCalledWith('Prórroga quitada', '', jasmine.any(Object));
+        expect(avisos.exito).toHaveBeenCalledOnceWith('Prórroga quitada');
       });
 
-      it('Cancelar: no hay snackbar y la selección se conserva', () => {
+      it('Cancelar: no hay aviso y la selección se conserva', () => {
         marcar(casilla('Juan Pérez'));
         botonMasivo()!.click();
         fixture.detectChanges();
-        expect(snack).not.toHaveBeenCalled();
+        expect(avisos.exito).not.toHaveBeenCalled();
+      expect(avisos.error).not.toHaveBeenCalled();
         expect(contador()).toBe('1 instructor seleccionado');
       });
 
@@ -699,7 +700,7 @@ describe('ListaInstructoresComponent', () => {
         botonMasivo()!.click();
         fixture.detectChanges();
         expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(1);
-        expect(snack).toHaveBeenCalledWith('El instructor ya no existe', '', jasmine.objectContaining({ panelClass: 'snack-error' }));
+        expect(avisos.error).toHaveBeenCalledOnceWith('Instructor no encontrado', 'El instructor ya no existe; se actualizó la lista.');
         expect(contador()).toBe('1 instructor seleccionado');
       });
     });
@@ -717,13 +718,13 @@ describe('ListaInstructoresComponent', () => {
 
   describe('onDelete', () => {
     let dialogOpenSpy: jasmine.Spy;
-    let snackBarOpenSpy: jasmine.Spy;
-
+    
     beforeEach(() => {
       // spyOn sobre la instancia real inyectada — MatDialogModule standalone crea
       // su propia instancia que no usa el mock del root injector.
       dialogOpenSpy = spyOn(component['dialog'], 'open').and.returnValue(mockDialogRef as any);
-      snackBarOpenSpy = spyOn(component['snackBar'], 'open');
+      avisos.exito.calls.reset();
+      avisos.error.calls.reset();
     });
 
     it('abre DialogComponent con tipoElemento="instructor" e instructorId', () => {
@@ -739,38 +740,30 @@ describe('ListaInstructoresComponent', () => {
       );
     });
 
-    it('confirmado: true → recarga instructores y muestra snack-success', () => {
+    it('confirmado: true → recarga instructores y avisa con la notificación de éxito', () => {
       mockDialogRef.afterClosed.and.returnValue(of({ confirmado: true }));
       component.onDelete(instructorDummy);
       expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(2);
-      expect(snackBarOpenSpy).toHaveBeenCalledWith(
-        'Instructor eliminado', '',
-        jasmine.objectContaining({ panelClass: 'snack-success' })
-      );
+      expect(avisos.exito).toHaveBeenCalledOnceWith('Instructor eliminado', jasmine.stringContaining(instructorDummy.nombre));
     });
 
-    it('confirmado: false errorStatus 409 → snack-error con mensaje de ya eliminado', () => {
+    it('confirmado: false errorStatus 409 → notificación de error de ya eliminado', () => {
       mockDialogRef.afterClosed.and.returnValue(of({ confirmado: false, errorStatus: 409 }));
       component.onDelete(instructorDummy);
-      expect(snackBarOpenSpy).toHaveBeenCalledWith(
-        'El instructor ya se encuentra eliminado', '',
-        jasmine.objectContaining({ panelClass: 'snack-error' })
-      );
+      expect(avisos.error).toHaveBeenCalledOnceWith('No se pudo eliminar el instructor', 'El instructor ya se encuentra eliminado.');
     });
 
-    it('confirmado: false errorStatus 500 → snack-error genérico', () => {
+    it('confirmado: false errorStatus 500 → notificación de error genérica', () => {
       mockDialogRef.afterClosed.and.returnValue(of({ confirmado: false, errorStatus: 500 }));
       component.onDelete(instructorDummy);
-      expect(snackBarOpenSpy).toHaveBeenCalledWith(
-        'Error al eliminar el instructor', '',
-        jasmine.objectContaining({ panelClass: 'snack-error' })
-      );
+      expect(avisos.error).toHaveBeenCalledOnceWith('No se pudo eliminar el instructor', 'Ocurrió un error, intente de nuevo.');
     });
 
-    it('resultado null → no llama a snackBar ni recarga instructores', () => {
+    it('resultado null → no avisa ni recarga instructores', () => {
       mockDialogRef.afterClosed.and.returnValue(of(null));
       component.onDelete(instructorDummy);
-      expect(snackBarOpenSpy).not.toHaveBeenCalled();
+      expect(avisos.exito).not.toHaveBeenCalled();
+      expect(avisos.error).not.toHaveBeenCalled();
       expect(mockInstructorService.getInstructores).toHaveBeenCalledTimes(1);
     });
   });

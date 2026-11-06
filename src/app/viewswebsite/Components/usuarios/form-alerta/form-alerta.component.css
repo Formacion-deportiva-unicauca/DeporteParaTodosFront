@@ -1,58 +1,58 @@
-.dialog-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 20px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: auto;
+/* Dos columnas: formulario y vista previa en vivo (una columna en móvil). Cabecera, pie y botones: formularios.css */
+.alerta-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 1.5rem;
+  width: min(780px, 80vw);
 }
 
-.form-content {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
+.alerta-campos { min-width: 0; }
+
+.notificacion-previa-region {
+  padding-left: 1.5rem;
+  border-left: 1px solid #e3e3e3;
 }
 
-.form-field {
-    width: 100% ;
-    margin-bottom: 10px;
+/* La notificación tal como aparecerá en el centro de notificaciones */
+.notificacion-previa {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  padding: 1rem;
+  border-radius: var(--radio-tarjeta);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+  background: #ffffff;
 }
 
-mat-form-field {
-    width: 100%;
+.icono-notificacion {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-tonal-95);
+  color: var(--color-primario);
 }
 
-mat-form-field input {
-    font-size: 16px;
-    padding: 12px;
+.notificacion-previa h3 {
+  margin: 0 0 0.25rem;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-subtitulo-1);
+  font-weight: 700;
+  color: var(--color-primario);
+  overflow-wrap: anywhere;
 }
 
-/* Botones */
-.form-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 16px;
+.notificacion-previa p {
+  margin: 0;
+  font-size: var(--texto-cuerpo-3);
+  color: var(--color-neutro-texto);
+  overflow-wrap: anywhere;
 }
 
-button.cancelar {
-    background-color: #ccc;
-    color: black;
-    padding: 10px 20px;
-    border-radius: 8px;
-}
-
-button.aceptar {
-    background-color: #001a70;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-}
-
-.close-button {
-  float: right;
+@media (max-width: 767.98px) {
+  .alerta-layout { grid-template-columns: 1fr; width: auto; }
+  .notificacion-previa-region { padding: 1rem 0 0; border-left: 0; border-top: 1px solid #e3e3e3; }
 }

@@ -24,7 +24,8 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
@@ -104,7 +105,7 @@ export class ReportesComponent implements OnInit {
     private grupoService: GrupoService,
     private router: Router,
     private datepipe: DatePipe,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
   ) { }
 
 
@@ -228,11 +229,7 @@ export class ReportesComponent implements OnInit {
               obs$ = this.repotesService.getEstadisticasInstructore(fechaInicioForamteada, fechaFinFormateada, instructor);
               this.displayedColumns = ['nombre', 'clases', 'duracion'];
             } else {
-              this.snackBar.open(
-                'Algo salió mal. Diligencie el formulario e intente nuevamente',
-                'Cerrar',
-                { duration: 5000 }
-              );
+              this.notificaciones.error('Filtros incompletos', 'Diligencie el formulario e intente nuevamente.');
               return;
             }
     obs$.subscribe(datos => {
@@ -319,13 +316,13 @@ export class ReportesComponent implements OnInit {
         const pdfHeight = (props.height * pdfWidth) / props.width;
         doc.addImage(imgData, 'PNG', 14, 30, pdfWidth, pdfHeight);
       } else {
-        this.snackBar.open('No se encontró gráfica en el reporte', 'Cerrar', { duration: 4000 });
+        this.notificaciones.info('Reporte sin gráfica', 'No se encontró una gráfica para incluir en el PDF.');
       }
 
       doc.save('Formacion deportica.pdf');
     } catch (err) {
       console.error('Error exportando PDF:', err);
-      this.snackBar.open('Error generando PDF.', 'Cerrar', { duration: 5000 });
+      this.notificaciones.error('No se pudo generar el PDF', 'Intente de nuevo.');
     }
   }
 

@@ -99,30 +99,7 @@ app-home {
   background-color: #5056ac !important;
 }
 
-/*Botones*/
-
-.form-buttons {
-  display: flex;
-  justify-content: space-evenly;
-  align-items: center;
-  margin: 20px;
-}
-
-.aceptar {
-  background-color: #000066 !important;
-  color: rgb(251, 251, 252) !important;
-  border-radius: 20px !important;
-  width: 100px;
-  height: 40px;
-}
-
-.cancelar {
-  background-color: #000066 !important;
-  color: rgb(251, 251, 252) !important;
-  border-radius: 20px !important;
-  width: 100px;
-  height: 40px;
-}
+/* Botones de formularios y diálogos (.aceptar, .cancelar, .form-buttons...): ver src/styles/formularios.css */
 
 .btnAgregar {
   background-color: #000066 !important;
@@ -134,5 +111,8 @@ app-home {
   width: 100%;
 }
 
-.snack-success .mdc-snackbar__surface { background-color: #4caf50; color: white; }
-.snack-error   .mdc-snackbar__surface { background-color: #f44336; color: white; }
+/* Snackbars: verde de accesibilidad y rol Error del lineamiento (naranja oscuro con texto blanco; el rojo es de la marca). */
+.snack-success .mdc-snackbar__surface { background-color: var(--color-accesibilidad); color: var(--color-sobre-primario); }
+.snack-error   .mdc-snackbar__surface { background-color: var(--color-error-texto); color: var(--color-sobre-error); }
+.snack-error   .mdc-snackbar__label,
+.snack-error   .mat-mdc-snack-bar-action { color: var(--color-sobre-error); }

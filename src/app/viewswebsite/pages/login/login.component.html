@@ -1,85 +1,42 @@
-<div class="componente-inicio-sesion">
-    <div class="contenido">
-        <div class="iniciosesion">
-            <div class="encabezado">
-                <div class="imagenencabezado"></div>
-                <div class="tituloencabezado">
-                    <h1 class="text-body">Deporte para todos</h1>
-                </div>
-            </div>
-            <div class="contenidoiniciosesion">
-                <form [formGroup]="loginForm" class="containerUsuarioContrasenia">
-                    <span class="title-three-nrs">Inicio de sesión</span>
-                    <br>
-                    <span class="text-body-small-sb">
-                        Usuario <span matTooltip="Este campo es obligatorio" matTooltipPosition="above"
-                            class="campoTooltip" matTooltipClass="warn-tooltip-is" style="cursor: pointer;">*</span>
-                    </span>
-                    <mat-form-field class="rounded-form-field" appearance="outline">
-                        <input matInput placeholder="Ingrese su correo aquí" formControlName="correo" required>
-                        <mat-error *ngIf="loginForm.get('correo')?.invalid && loginForm.get('correo')?.touched">
-                            El correo es obligatorio y debe ser válido.
-                        </mat-error>
-                    </mat-form-field>
-                    <br>
-                    <span class="text-body-small-sb">
-                        Contraseña <span matTooltip="Este campo es obligatorio" matTooltipPosition="above"
-                            class="campoTooltip" matTooltipClass="warn-tooltip-is" style="cursor: pointer;">*</span>
-                    </span>
-                    <mat-form-field appearance="outline">
-                        <input matInput placeholder="Ingrese su contraseña aquí" formControlName="contrasenia" required>
-                        <mat-error
-                            *ngIf="loginForm.get('contrasenia')?.invalid && loginForm.get('contrasenia')?.touched">
-                            La contraseña es obligatoria.
-                        </mat-error>
-                    </mat-form-field>
-                    <br>
-                    <button mat-raised-button color="primary" class="rounded-button-total" type="submit"
-                        [disabled]="loginForm.invalid">
-                        Iniciar Sesión
-                    </button>
-                    <button class="w-100 btn btn-lg btn-google" (click)="login()">
-                        <img src="https://img.icons8.com/color/22/000000/google-logo.png"> Ingresa con Google
-                    </button>
-                   
-                </form>
-            </div>
-        </div>
-        <div class="imagen"></div>
+<div class="pagina-login">
+  <main class="principal">
+    <!-- La foto va a la izquierda y conserva su proporción 3:2 para no recortar a las personas -->
+    <div class="foto">
+      <img class="foto-login" src="assets/imagesSystem/login-deportistas.jpg" alt="">
     </div>
-    <div class="piepagina">
-        <div class="barras">
-            <div class="barra roja"></div>
-            <div class="barra naranja"></div>
-            <div class="barra amarillo"></div>
-            <div class="barra azul"></div>
-            <div class="barra morado"></div>
+
+    <section class="panel" aria-labelledby="titulo-login">
+      <header class="encabezado">
+        <img class="escudo" src="assets/imagesSystem/Logo-Universidad-del-Cauca-vertical.png" alt="Universidad del Cauca">
+        <div class="identidad">
+          <span class="area">Vicerrectoría de Cultura y Bienestar</span>
+          <span class="sistema">Sistema de Gestión Deportiva Institucional · Deporte para Todos</span>
         </div>
-        <div class="informacion">
-            <div class="infoizq">
-                <span class="subtitle">Universidad del Cauca</span>
-                <span class="text-body-extra-small">NIT. 891500319-2</span>
-            </div>
-            <div class="infoder">
-                <div class="infoderuno">
-                    <span class="text-body-extra-small">SIMCA</span>
-                    <span class="text-body-extra-small">Vicerrectoría Académica</span>
-                    <span class="text-body-extra-small">Ejemplocorreo@unicauca.edu.co</span>
-                </div>
-                <div class="barrahorizontal"></div>
-                <div class="infoderdos">
-                    <span class="text-body-extra-small">División de Tecnologías de la Información y las Comunicaciones -
-                        TIC</span>
-                    <span class="text-body-extra-small">Versión 1.0.0</span>
-                    <span class="text-body-extra-small">2024</span>
-                </div>
-            </div>
-        </div>
-        <div class="pieinformacion">
-            <span class="text-body-extra-small">Institución con Acreditación de Alta Calidad por 8 años Resolución MEN
-                6218 de 2019 - Vigilada MinEducación</span>
-            <span class="text-body-extra-small">Política de Protección de Datos Personales - Política de Seguridad de la
-                Información - Comunícate con nuestro Soporte Técnico</span>
-        </div>
-    </div>
-</div> 
+      </header>
+
+      <div class="panel-contenido">
+        <h1 id="titulo-login">Inicio de sesión</h1>
+        <p class="indicacion">Ingrese utilizando su cuenta institucional de Google para acceder al sistema.</p>
+
+        <app-boton-google [cargando]="iniciando" (pulsado)="login()"></app-boton-google>
+
+        <p *ngIf="errorConexion" class="error-conexion" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          No se pudo conectar con Google. Revise su conexión e intente de nuevo.
+        </p>
+
+        <p class="ayuda">Use su correo <strong>&#64;unicauca.edu.co</strong> o cuenta institucional asociada.</p>
+
+        <p class="aviso-datos">
+          <mat-icon aria-hidden="true">lock</mat-icon>
+          <span>
+            Recuerde que los datos personales y las credenciales están protegidos por nuestra
+            <a [href]="urlPoliticaDatos" target="_blank" rel="noopener noreferrer">Política de protección de datos personales.</a>
+          </span>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <app-footer></app-footer>
+</div>

@@ -1,0 +1,144 @@
+/*
+ * Tema de Angular Material con la paleta y la tipografía institucionales (lineamiento UX-UI División TIC).
+ * Reemplaza al tema prediseñado "indigo-pink". Solo modo claro: la aplicación no tiene modo oscuro.
+ */
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+// Primario: #000066 (500). 400 = primario light, 700 = primario dark. 50 = paleta tonal 95.
+$primario: (
+  50: #ecf0ff,
+  100: #d5dbf7,
+  200: #aab1e6,
+  300: #7d84cf,
+  400: #5056ac,
+  500: #000066,
+  600: #000060,
+  700: #07184a,
+  800: #061440,
+  900: #040f33,
+  A100: #aab1e6,
+  A200: #5056ac,
+  A400: #1d2a9a,
+  A700: #000066,
+  contrast: (
+    50: #1f1f1f,
+    100: #1f1f1f,
+    200: #1f1f1f,
+    300: #1f1f1f,
+    400: #ffffff,
+    500: #ffffff,
+    600: #ffffff,
+    700: #ffffff,
+    800: #ffffff,
+    900: #ffffff,
+    A100: #1f1f1f,
+    A200: #ffffff,
+    A400: #ffffff,
+    A700: #ffffff,
+  ),
+);
+
+// Acento: secundario institucional #9D0311 (500). 400 = secundario light, 700 = secundario dark.
+$acento: (
+  50: #fde8ea,
+  100: #f8c2c6,
+  200: #f1989e,
+  300: #e8636c,
+  400: #db141c,
+  500: #9d0311,
+  600: #870210,
+  700: #690007,
+  800: #560006,
+  900: #430005,
+  A100: #f8c2c6,
+  A200: #f1989e,
+  A400: #db141c,
+  A700: #690007,
+  contrast: (
+    50: #1f1f1f,
+    100: #1f1f1f,
+    200: #1f1f1f,
+    300: #1f1f1f,
+    400: #ffffff,
+    500: #ffffff,
+    600: #ffffff,
+    700: #ffffff,
+    800: #ffffff,
+    900: #ffffff,
+    A100: #1f1f1f,
+    A200: #1f1f1f,
+    A400: #ffffff,
+    A700: #ffffff,
+  ),
+);
+
+// Advertencia/error: naranja (el rojo es de la marca). Por defecto el rol "Error" del lineamiento (700, #9A4100) con
+// texto blanco; el #ED7D31 (500) queda para iconos y texto destacado.
+$error: (
+  50: #fdf0e6,
+  100: #fad9bf,
+  200: #f6bd92,
+  300: #f2a065,
+  400: #ef8d46,
+  500: #ed7d31,
+  600: #d96f25,
+  700: #9a4100,
+  800: #7f3500,
+  900: #5c2600,
+  A100: #fad9bf,
+  A200: #f6bd92,
+  A400: #ef8d46,
+  A700: #9a4100,
+  contrast: (
+    50: #1f1f1f,
+    100: #1f1f1f,
+    200: #1f1f1f,
+    300: #1f1f1f,
+    400: #1f1f1f,
+    500: #1f1f1f,
+    600: #1f1f1f,
+    700: #ffffff,
+    800: #ffffff,
+    900: #ffffff,
+    A100: #1f1f1f,
+    A200: #1f1f1f,
+    A400: #1f1f1f,
+    A700: #ffffff,
+  ),
+);
+
+// Tipografía (tabla tipográfica de diseño): títulos en Titillium Web, cuerpo en Open Sans.
+$fuente-titulos: '"Titillium Web", "Open Sans", sans-serif';
+$fuente-cuerpo: '"Open Sans", "Helvetica Neue", Arial, sans-serif';
+
+$tipografia: mat.define-typography-config(
+  $font-family: $fuente-cuerpo,
+  $headline-1: mat.define-typography-level(92px, 126px, 300, $fuente-titulos, -1.5px),
+  $headline-2: mat.define-typography-level(62px, 91px, 700, $fuente-titulos, -0.5px),
+  $headline-3: mat.define-typography-level(48px, 73px, 700, $fuente-titulos, 0),
+  $headline-4: mat.define-typography-level(34px, 41px, 700, $fuente-titulos, 0.25px),
+  $headline-5: mat.define-typography-level(24px, 30px, 700, $fuente-titulos, 0.25px),
+  $headline-6: mat.define-typography-level(20px, 23px, 600, $fuente-titulos, 0.35px),
+  $subtitle-1: mat.define-typography-level(18px, 30px, 600, $fuente-titulos, 0.15px),
+  $subtitle-2: mat.define-typography-level(16px, 23px, 600, $fuente-titulos, 0.1px),
+  $body-1: mat.define-typography-level(16px, 26px, 400, $fuente-cuerpo, 0.5px),
+  $body-2: mat.define-typography-level(14px, 21px, 400, $fuente-cuerpo, 0.25px),
+  $caption: mat.define-typography-level(14px, 17px, 400, $fuente-cuerpo, 0.5px),
+  $button: mat.define-typography-level(14px, 19px, 600, $fuente-cuerpo, 1.25px),
+  $overline: mat.define-typography-level(12px, 15px, 400, $fuente-cuerpo, 1.5px),
+);
+
+$tema: mat.define-light-theme((
+  color: (
+    primary: mat.define-palette($primario, 500, 400, 700),
+    accent: mat.define-palette($acento, 500, 400, 700),
+    warn: mat.define-palette($error, 700, 500, 800),
+  ),
+  typography: $tipografia,
+  density: 0,
+));
+
+@include mat.all-component-themes($tema);
+@include mat.typography-hierarchy($tipografia);

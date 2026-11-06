@@ -1,76 +1,65 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from 'src/app/services/auth.service';
-import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule, } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { MatButtonModule } from '@angular/material/button';
-import { MatInputModule } from '@angular/material/input';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { Observable, of } from 'rxjs';
+import { FooterComponent, URL_POLITICA_DATOS } from '../footer/footer.component';
+import { BotonGoogleComponent } from './boton-google/boton-google.component';
+
+/** Si la página no cambia en este tiempo tras el clic, se vuelve a habilitar el botón. */
+const ESPERA_REDIRECCION_MS = 10000;
+
+/** Pantalla de entrada: único acceso con la cuenta institucional de Google. */
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatFormFieldModule,
-    MatIconModule,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatInputModule,
-    MatSnackBarModule,
-    MatTooltipModule,
-  ],
+  imports: [CommonModule, MatIconModule, FooterComponent, BotonGoogleComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnDestroy {
+  readonly urlPoliticaDatos = URL_POLITICA_DATOS;
 
-  loginForm: FormGroup;
-  validadorCorreo = new FormControl('', [
-    Validators.required,
-    Validators.email,
-    //this.unicaucaValidadorCorreoElectronico,
-  ]);
+  /** true desde el clic hasta que el navegador sale hacia Google. */
+  iniciando = false;
+  errorConexion = false;
 
-  formularioInicioSesion: FormGroup;
-  validadorContrasenia = new FormControl('', [Validators.required]);
-  showTooltip: boolean = false;
-  hide = true;
-  buttomPaswword = false;
-  buttomSummit = false;
-  private userProfile: any;
-  //form: FormGroup;
-  userInfo: any;
-  isAuthenticated: boolean = false;
-  userProfileId: Observable<any> = of(null);
+  private temporizador?: ReturnType<typeof setTimeout>;
 
-  constructor(
-    private authGoogleService: AuthService,
-    //private oauthService: OAuthService,
-    private fb: FormBuilder,
-    private http: HttpClient,
-    private formBuilder: FormBuilder,
-  ) {
+  constructor(private authGoogleService: AuthService) { }
 
-    this.loginForm = fb.group({
-      correo: ['', Validators.required],
-      contrasenia: ['', Validators.required],
-    });
-
-    this.formularioInicioSesion = this.formBuilder.group({
-      correo: this.validadorCorreo,
-      contrasenia: this.validadorContrasenia,
-    });
-  }
-
-  ngOnInit() {
+  async login(): Promise<void> {
+    if (this.iniciando) {
+      return;
     }
-
-  login(): void {
-    this.authGoogleService.login();
+    this.iniciando = true;
+    this.errorConexion = false;
+    this.temporizador = setTimeout(() => this.reiniciar(), ESPERA_REDIRECCION_MS);
+    try {
+      await this.authGoogleService.login();
+    } catch {
+      this.reiniciar();
+      this.errorConexion = true;
+    }
   }
 
+  /**
+   * Al volver con "atrás" desde Google, el navegador restaura la página tal como estaba (con el botón en
+   * "Redirigiendo…"); se reinicia el estado para que el botón no quede bloqueado.
+   */
+  @HostListener('window:pageshow', ['$event'])
+  alMostrarPagina(evento: PageTransitionEvent): void {
+    if (evento.persisted) {
+      this.reiniciar();
+    }
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.temporizador);
+  }
+
+  private reiniciar(): void {
+    clearTimeout(this.temporizador);
+    this.iniciando = false;
+    this.authGoogleService.reiniciarLogin();
+  }
 }

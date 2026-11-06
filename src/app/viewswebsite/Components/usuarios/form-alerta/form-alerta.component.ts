@@ -1,3 +1,5 @@
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +18,8 @@ import { AlertaServiceService } from 'src/app/services/alerta-service.service';
     MatDialogModule,
     MatFormFieldModule,
     FormsModule,
+    MatButtonModule,
+    MatInputModule,
   ],
   templateUrl: './form-alerta.component.html',
   styleUrls: ['./form-alerta.component.css']
@@ -37,7 +41,6 @@ export class FormAlertaComponent {
       this.notificacion.asunto = form.value.titulo;
       this.notificacion.descripcion = form.value.descripcion;
       this.alertaservice.guardarAlerta(this.notificacion);
-      console.log('Notificación creada:', this.notificacion);
       this.dialogRef.close();
 
     }

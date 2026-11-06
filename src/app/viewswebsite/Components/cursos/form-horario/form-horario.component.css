@@ -1,31 +1,26 @@
-.dialog-content {
-  min-width: 420px;
-  padding: 0 8px;
-}
-
 .subtitle {
-  color: #555;
   margin: 14px 0 6px;
-  font-size: 0.95rem;
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-subtitulo-1);
   font-weight: 600;
+  color: var(--color-primario);
 }
 
-.seccion-horarios {
-  border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-}
+.seccion-horarios { padding-bottom: 1rem; }
 
 .horario-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 0;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: var(--radio-pequeno);
+  background: #f6f6f6;
 }
 
-.horario-text {
-  font-size: 0.875rem;
-}
+.horario-text { font-size: var(--texto-cuerpo-3); font-weight: 600; color: var(--color-primario); overflow-wrap: anywhere; }
+.btn-icono-horario { flex-shrink: 0; color: var(--color-error-texto); }
 
 .confirmar-row {
   display: flex;
@@ -34,16 +29,18 @@
 }
 
 .confirmar-label {
-  font-size: 0.85rem;
-  color: #d32f2f;
+  font-size: var(--texto-cuerpo-3);
+  font-weight: 600;
+  color: var(--color-error-texto);
 }
 
 .sin-datos {
-  color: #999;
-  font-size: 0.875rem;
-  font-style: italic;
   margin: 4px 0;
+  font-size: var(--texto-cuerpo-3);
+  color: var(--color-neutro-texto);
 }
+
+.aviso-sin-horario { margin-bottom: 1.25rem; }
 
 .dias-chips {
   display: flex;
@@ -52,31 +49,44 @@
   margin: 8px 0 16px;
 }
 
+/* Chip de elección: botón real (teclado y lectores de pantalla), 44px de alto, píldora */
 .dia-chip {
-  padding: 6px 14px;
-  border-radius: 16px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 2px solid var(--color-primario);
+  border-radius: var(--radio-total);
+  background: transparent;
+  color: var(--color-primario);
+  font-family: var(--fuente-cuerpo);
+  font-size: var(--texto-cuerpo-3);
+  font-weight: 600;
   cursor: pointer;
-  border: 1px solid #bdbdbd;
-  font-size: 0.875rem;
   user-select: none;
   transition: background-color 0.15s, color 0.15s;
 }
-
-.dia-chip.dia-activo {
-  background-color: #1976d2;
-  color: white;
-  border-color: #1976d2;
-}
+.dia-chip:hover { background: var(--color-tonal-95); }
+.dia-chip.dia-activo { background: var(--color-primario); color: var(--color-sobre-primario); }
+.dia-chip:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: 2px; }
 
 .row-times {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
+.form-field-half { flex: 1 1 140px; }
 
-.form-field-half {
-  flex: 1;
+.error-horas {
+  margin: -4px 0 12px;
+  font-size: var(--texto-cuerpo-3);
+  font-weight: 600;
+  color: var(--color-error-texto);
 }
 
-.form-field {
-  width: 100%;
+.form-field { width: 100%; }
+
+/* Ancho del diálogo (la hoja compartida formularios.css: .dlg-* resuelve el resto) */
+.dlg-form { width: min(560px, 86vw); }
+@media (max-width: 575.98px) {
+  .dlg-form { width: auto; }
 }

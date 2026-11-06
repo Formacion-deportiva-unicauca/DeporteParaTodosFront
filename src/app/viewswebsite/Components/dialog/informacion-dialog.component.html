@@ -1,0 +1,31 @@
+<header class="dlg-cabecera">
+  <div>
+    <span class="dlg-eyebrow">{{ data.etiqueta }}</span>
+    <h2 mat-dialog-title class="dlg-titulo">{{ data.titulo }}</h2>
+  </div>
+  <button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
+
+<mat-dialog-content class="dlg-cuerpo">
+  <!-- Decorativa: el título ya dice de qué se trata -->
+  <img *ngIf="data.imagen" class="info-imagen" [src]="data.imagen" alt="">
+
+  <p class="info-descripcion">{{ data.descripcion || 'Sin descripción.' }}</p>
+
+  <dl class="info-datos" *ngIf="data.datos?.length">
+    <div *ngFor="let d of data.datos">
+      <dt>{{ d.rotulo }}</dt>
+      <dd>{{ d.valor }}</dd>
+    </div>
+  </dl>
+</mat-dialog-content>
+
+<mat-dialog-actions class="dlg-pie">
+  <button mat-button type="button" class="cancelar" matDialogClose cdkFocusInitial>Cerrar</button>
+  <button *ngIf="data.textoAccion" mat-button type="button" class="aceptar" [matDialogClose]="'accion'">
+    {{ data.textoAccion }}
+    <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+  </button>
+</mat-dialog-actions>

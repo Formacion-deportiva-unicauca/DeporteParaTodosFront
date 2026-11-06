@@ -1,0 +1,39 @@
+<footer class="pie">
+  <div class="franja" aria-hidden="true">
+    <span class="segmento s1"></span>
+    <span class="segmento s2"></span>
+    <span class="segmento s3"></span>
+    <span class="segmento s4"></span>
+    <span class="segmento s5"></span>
+    <span class="segmento s6"></span>
+  </div>
+
+  <div class="datos">
+    <div class="bloque">
+      <strong class="nombre">Universidad del Cauca</strong>
+      <span>NIT. 891500319-2</span>
+    </div>
+
+    <div class="bloque">
+      <span>Deporte para Todos</span>
+      <span>Vicerrectoría de Cultura y Bienestar</span>
+      <a href="mailto:bienestar@unicauca.edu.co">bienestar@unicauca.edu.co</a>
+    </div>
+
+    <div class="bloque">
+      <span>División de Tecnologías de la Información y las Comunicaciones - TIC</span>
+      <span>Versión {{ version }}</span>
+      <span>{{ anio }}</span>
+    </div>
+  </div>
+
+  <div class="legal">
+    <p>Institución con Acreditación de Alta Calidad por 8 años Resolución MEN 6218 de 2019 - Vigilada MinEducación</p>
+    <ul class="enlaces">
+      <li *ngFor="let e of enlaces">
+        <a *ngIf="e.url; else sinEnlace" [href]="e.url" target="_blank" rel="noopener noreferrer">{{ e.texto }}</a>
+        <ng-template #sinEnlace><span>{{ e.texto }}</span></ng-template>
+      </li>
+    </ul>
+  </div>
+</footer>

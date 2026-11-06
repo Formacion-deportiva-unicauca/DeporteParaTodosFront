@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { DialogComponent } from '../../dialog/dialog.component';
 
 @Component({
@@ -18,7 +19,7 @@ export class ConfigTipoCursoComponent {
   constructor(
     private router: Router,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private notificaciones: NotificacionService,
   ) {}
 
   toggleMenu() {
@@ -41,11 +42,11 @@ export class ConfigTipoCursoComponent {
       } else if (result?.errorStatus !== undefined) {
         const status = result.errorStatus;
         if (status === 409) {
-          this.snackBar.open('La categoría ya se encuentra eliminada', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar la categoría', 'La categoría ya se encuentra eliminada.');
         } else if (status === 404) {
-          this.snackBar.open('La categoría no existe', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar la categoría', 'La categoría no existe.');
         } else {
-          this.snackBar.open('Error al eliminar la categoría, intente de nuevo', 'Cerrar', { duration: 3000, panelClass: ['snack-error'] });
+          this.notificaciones.error('No se pudo eliminar la categoría', 'Ocurrió un error, intente de nuevo.');
         }
       }
     });

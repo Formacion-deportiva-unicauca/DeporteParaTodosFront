@@ -1,122 +1,19 @@
-.dialog-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 20px;
-  width: 100%;
-  box-sizing: border-box;
+.dlg-form { width: min(720px, 86vw); }
 
-  /* Contenedor con scroll vertical */
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: #b0b0b0 transparent;
+.selector-imagen-titulo {
+  margin: 0.25rem 0 0.4rem;
+  font-size: var(--texto-cuerpo-3);
+  font-weight: 600;
+  color: var(--color-neutro-texto);
 }
 
-/* Evita que los hijos se compriman dentro del flex con altura limitada:
-   el contenido crece y el contenedor hace scroll en su lugar. */
-.dialog-content > * {
-  flex: 0 0 auto;
+.error-campo {
+  margin: -0.5rem 0 1rem;
+  font-size: var(--texto-cuerpo-3);
+  font-weight: 600;
+  color: var(--color-error-texto);
 }
 
-.dialog-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dialog-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dialog-content::-webkit-scrollbar-thumb {
-  background-color: #b0b0b0;
-  border-radius: 4px;
-}
-
-.dialog-content::-webkit-scrollbar-thumb:hover {
-  background-color: #8a8a8a;
-}
-
-.form-content {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 90%;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.form-field {
-  width: 100%;
-  margin-bottom: 10px;
-}
-
-mat-dialog-content {
-  /* Altura máxima ligada a la ventana para que el panel siempre
-     quepa en pantalla y el desplazamiento sea interno. */
-  max-height: 75vh;
-  max-height: min(75dvh, 720px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.preview {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 20px;
-  width: 100%;
-}
-
-.image-preview {
-  max-width: 80%;
-  max-height: 40vh;
-  object-fit: contain;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-/* Diseño responsivo */
-@media (max-width: 600px) {
-  .dialog-content {
-    padding: 12px;
-  }
-
-  .form-content {
-    padding: 10px;
-  }
-
-  .form-field {
-    width: 100%;
-  }
-
-  .image-preview {
-    max-height: 40vh;
-  }
-}
-
-/* Pantallas bajas (móvil apaisado, ventanas reducidas): se aprovecha
-   más el alto disponible y se reduce el tamaño de la vista previa. */
-@media (max-height: 640px) {
-  mat-dialog-content {
-    max-height: 80vh;
-    max-height: min(80dvh, 720px);
-  }
-
-  .dialog-content {
-    padding: 12px;
-  }
-
-  .image-preview {
-    max-height: 30vh;
-  }
-}
-
-.close-button {
-  float: right;
+@media (max-width: 575.98px) {
+  .dlg-form { width: auto; }
 }

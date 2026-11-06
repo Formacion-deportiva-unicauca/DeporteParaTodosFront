@@ -1,24 +1,55 @@
-<button mat-icon-button class="close-button" matDialogClose aria-label="Cerrar diálogo">
-    <mat-icon>close</mat-icon>
-</button>
+<form (ngSubmit)="onSubmit(categoriaForm)" #categoriaForm="ngForm" class="dlg-form" novalidate>
+  <header class="dlg-cabecera">
+    <div>
+      <span class="dlg-eyebrow">Notificaciones</span>
+      <h2 mat-dialog-title class="dlg-titulo">Nueva notificación</h2>
+      <p class="dlg-subtitulo">Escriba el asunto y el mensaje, y revise cómo se verá antes de crearla.</p>
+    </div>
+    <button mat-icon-button type="button" class="close-button" matDialogClose aria-label="Cerrar diálogo">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
 
-<mat-dialog-content class="dialog-content">
-    <header class="title-two">Creación de notificación</header>
-    <form (ngSubmit)="onSubmit(categoriaForm)" #categoriaForm="ngForm" class="form-content">
-        
+  <mat-dialog-content class="dlg-cuerpo">
+    <div class="alerta-layout">
+      <div class="alerta-campos">
+        <p class="dlg-aviso"><mat-icon aria-hidden="true">info</mat-icon> Los campos marcados con * son obligatorios.</p>
+
         <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Asunto</mat-label>
-            <input matInput placeholder="Escribe el asunto" [(ngModel)]="notificacion.asunto" name="titulo" required />
+          <mat-label>Asunto</mat-label>
+          <input matInput placeholder="Ej. Cambio de horario" [(ngModel)]="notificacion.asunto" name="titulo"
+                 #asunto="ngModel" required maxlength="100" autocomplete="off" cdkFocusInitial />
+          <mat-error *ngIf="asunto.hasError('required')">El asunto es obligatorio</mat-error>
         </mat-form-field>
+        <span class="dlg-contador">{{ notificacion.asunto.length || 0 }}/100</span>
 
         <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Descripción</mat-label>
-            <textarea matInput placeholder="Escribe la descripción" [(ngModel)]="notificacion.descripcion" name="descripcion" required></textarea>
+          <mat-label>Mensaje</mat-label>
+          <textarea matInput rows="5" placeholder="Escriba el mensaje que se mostrará en la notificación."
+                    [(ngModel)]="notificacion.descripcion" name="descripcion" #mensaje="ngModel" required maxlength="500"></textarea>
+          <mat-error *ngIf="mensaje.hasError('required')">El mensaje es obligatorio</mat-error>
         </mat-form-field>
+        <span class="dlg-contador">{{ notificacion.descripcion.length || 0 }}/500</span>
+      </div>
 
-        <div class="form-buttons">
-            <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
-            <button mat-raised-button class="aceptar" type="submit" [disabled]="!categoriaForm.form.valid">Aceptar</button>
-        </div>
-    </form>
-</mat-dialog-content>
+      <aside class="notificacion-previa-region" aria-label="Vista previa de la notificación">
+        <span class="dlg-eyebrow">Vista previa</span>
+        <article class="notificacion-previa">
+          <span class="icono-notificacion" aria-hidden="true"><mat-icon>notifications</mat-icon></span>
+          <div>
+            <h3>{{ notificacion.asunto || 'Asunto de la notificación' }}</h3>
+            <p>{{ notificacion.descripcion || 'El mensaje de la notificación aparecerá en este espacio.' }}</p>
+          </div>
+        </article>
+      </aside>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dlg-pie">
+    <button mat-button type="button" class="cancelar" (click)="onCancel()">Cancelar</button>
+    <button mat-button class="aceptar" type="submit">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Crear notificación
+    </button>
+  </mat-dialog-actions>
+</form>

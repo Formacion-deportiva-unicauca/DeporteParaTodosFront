@@ -35,3 +35,9 @@ export interface MiGrupoInstructorDTO {
   enEspera: number;
   horarios: MisCursosHorarioDTO[];
 }
+
+/** Curso del alumno con el nombre del instructor ya normalizado y su código (resuelto por nombre; null si no se encuentra). */
+export interface FilaMisCursos extends MiCursoDTO {
+  instructorNombre: string | null;
+  instructorCodigo: string | null;
+}

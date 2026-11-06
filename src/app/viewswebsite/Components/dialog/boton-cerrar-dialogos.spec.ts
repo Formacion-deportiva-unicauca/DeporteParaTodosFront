@@ -84,11 +84,23 @@ describe('Botón X (cerrar) de los diálogos', () => {
   });
 
   formularios.forEach(([nombre, componente]) => {
-    it(`${nombre}: el float del botón X va en la hoja de estilos, no en estilo en línea`, async () => {
+    it(`${nombre}: la posición del botón X (esquina superior derecha) va en la hoja de estilos, no en estilo en línea`, async () => {
       const fixture = await renderizar(componente);
       const x = botonX(fixture)!;
       expect(x.getAttribute('style')).toBeNull();
-      expect(getComputedStyle(x).float).toBe('right');
+      // En los diálogos con cabecera la X forma parte de ella (relative: el efecto de hover de Material se ancla al
+      // botón; con static se extendía a todo el diálogo); en los demás va en la esquina (absolute).
+      expect(getComputedStyle(x).position).toBe(x.closest('.dlg-cabecera') ? 'relative' : 'absolute');
+      expect(parseFloat(getComputedStyle(x).width)).toBeGreaterThanOrEqual(44);
+    });
+  });
+
+  formularios.forEach(([nombre, componente]) => {
+    it(`${nombre}: el título es un h2 de diálogo (nombre accesible del diálogo)`, async () => {
+      const fixture = await renderizar(componente);
+      const titulo = (fixture.nativeElement as HTMLElement).querySelector('h2[mat-dialog-title]');
+      expect(titulo).not.toBeNull();
+      expect(titulo!.textContent!.trim().length).toBeGreaterThan(0);
     });
   });
 });

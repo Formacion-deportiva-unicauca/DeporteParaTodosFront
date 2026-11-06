@@ -1,124 +1,160 @@
 <app-sidenav>
-    <div class="cabecero">
-        <h1>Grupos: {{ categoria }}, {{titulo}}</h1>
-        <button class="btnAgregar" *ngIf="perfil === 'Coordinador'" (click)="nuevoGrupo()">
-            Nuevo Grupo +
-        </button>
+  <div class="pagina-grupos">
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a href="/home" (click)="irAInicio($event)">Inicio</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">Grupos · {{ titulo }}</span>
+    </nav>
+
+    <h1 class="titulo-pagina">Grupos · {{ titulo }}</h1>
+
+    <div class="barra-superior">
+      <a href="/cursos_deportivos" class="volver" (click)="volver($event)">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon> Volver a cursos
+      </a>
+      <button type="button" class="btn-principal" *ngIf="perfil === 'Coordinador'" (click)="nuevoGrupo()">
+        <mat-icon aria-hidden="true">add</mat-icon> Nuevo grupo
+      </button>
     </div>
 
-    <div class="estado-info" *ngIf="curso">
-        <span class="badge"
-            [ngClass]="{
-                'bg-success': curso.estadoCurso === 'ACTIVO',
-                'bg-secondary': curso.estadoCurso === 'INACTIVO',
-                'bg-danger': curso.estadoCurso === 'CERRADO'
-            }">
-            {{ curso.estadoCurso === 'ACTIVO' ? 'Activo' :
-               curso.estadoCurso === 'INACTIVO' ? 'Inactivo' : 'Cerrado' }}
-        </span>
-        <span class="badge ms-2" *ngIf="curso.estadoInscripciones"
-            [ngClass]="curso.estadoInscripciones === 'ABIERTO' ? 'bg-info text-dark' : curso.estadoInscripciones === 'SIN_GRUPOS' ? 'bg-secondary' : 'bg-warning text-dark'">
-            {{ curso.estadoInscripciones === 'ABIERTO' ? 'Curso: inscripciones abiertas' : curso.estadoInscripciones === 'SIN_GRUPOS' ? 'Curso: sin grupos' : 'Curso: inscripciones cerradas' }}
-        </span>
+    <!-- Resumen del curso -->
+    <section class="resumen-curso" aria-label="Resumen del curso">
+      <div class="resumen-cabecera">
+        <img class="resumen-imagen" [src]="imagenCurso ?? 'assets/imagesSystem/deporte.jpg'" alt="" />
+        <div class="resumen-texto">
+          <span class="eyebrow">{{ categoria }}</span>
+          <h2 class="resumen-nombre">{{ titulo }}</h2>
+          <div class="chips" *ngIf="curso">
+            <span class="chip-estado" [attr.data-estado]="curso.estadoCurso">
+              <span class="punto" aria-hidden="true"></span>Curso {{ textoEstadoCurso(curso.estadoCurso) }}
+            </span>
+            <span class="badge-inscripciones" *ngIf="curso.estadoInscripciones" [attr.data-estado]="curso.estadoInscripciones">
+              {{ textoEstadoInscripciones(curso.estadoInscripciones) }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <dl class="cifras">
+        <div class="cifra"><dd>{{ grupos.length }}</dd><dt>Grupos</dt></div>
+        <div class="cifra"><dd>{{ totalInscritos }}</dd><dt>Personas inscritas</dt></div>
+        <div class="cifra"><dd>{{ totalCuposDisponibles }}</dd><dt>Cupos disponibles</dt></div>
+      </dl>
+    </section>
+
+    <div class="encabezado-lista">
+      <div>
+        <h2 class="titulo-seccion">Grupos del curso</h2>
+        <p class="subtitulo-seccion">Consulte la programación y administre cada grupo.</p>
+      </div>
+      <span class="contador-grupos" role="status">{{ grupos.length }} {{ grupos.length === 1 ? 'grupo registrado' : 'grupos registrados' }}</span>
     </div>
 
+    <p class="aviso-vacio" role="status" *ngIf="grupos.length === 0">Este curso aún no tiene grupos.</p>
 
-    <div class="content-tarjet">
-        <mat-grid-list [cols]="colsize" rowHeight="460">
-            <mat-grid-tile *ngFor="let item of grupos" [colspan]="1" [rowspan]="1">
-                <mat-card class="mycard shadow fixed-card">
+    <div class="rejilla-grupos">
+      <mat-card class="tarjeta-grupo" *ngFor="let item of grupos" [class.cerrado]="!inscripcionAbierta(item)">
+        <div class="cuerpo-grupo">
+          <div class="cabecera-grupo">
+            <div class="titulos-grupo">
+              <span class="eyebrow-grupo">{{ item.anio }}-{{ item.periodo }}</span>
+              <h3 class="nombre-grupo">Grupo {{ letraDeIterable(item.iterable) }}</h3>
+            </div>
+            <ng-container *ngIf="perfil === 'Coordinador'">
+              <button class="btn-menu" mat-icon-button [matMenuTriggerFor]="menu"
+                [attr.aria-label]="'Acciones del grupo ' + letraDeIterable(item.iterable)">
+                <app-icono-engranaje></app-icono-engranaje>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onUpdate(item.anio!, item.iterable!)">
+                  <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                  <span>Actualizar</span>
+                </button>
+                <button mat-menu-item *ngIf="accionCierreInscripciones(item) as accion" class="accion-cierre"
+                  (click)="toggleCierreInscripciones(item)">
+                  <mat-icon fontSet="material-icons-outlined">{{ item.inscripcionesCerradasManual ? 'lock_open' : 'lock' }}</mat-icon>
+                  <span>{{ accion }}</span>
+                </button>
+                <button mat-menu-item (click)="gestionarHorarios(item)">
+                  <mat-icon fontSet="material-icons-outlined">schedule</mat-icon>
+                  <span>Gestionar horarios</span>
+                </button>
+                <button mat-menu-item class="accion-eliminar" (click)="onDelete(item)">
+                  <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+                  <span>Eliminar</span>
+                </button>
+              </mat-menu>
+            </ng-container>
+          </div>
 
-                    <div class="img-container"
-                         [class.img-no-click]="perfil === 'Alumno' && (!puedeInscribirse() || !inscripcionAbierta(item))"
-                         role="button"
-                         tabindex="0"
-                         (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)"
-                         (keydown.enter)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
-                        <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
-                            [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" mat-card-image
-                            alt="Imagen de grupo" />
+          <div class="instructor">
+            <span class="avatar" aria-hidden="true">{{ iniciales(item.nombreInstructor) }}</span>
+            <div>
+              <span class="rotulo">Instructor</span>
+              <span class="valor">{{ item.nombreInstructor ?? 'Sin instructor asignado' }}</span>
+            </div>
+          </div>
 
-                        <ng-template #imagenPorDefecto>
-                            <img class="img-container" src="./assets/imagesSystem/catDeportes.jpg" mat-card-image
-                                alt="Imagen por defecto" />
-                        </ng-template>
-                    </div>
+          <div class="horarios">
+            <h4 class="horarios-titulo"><mat-icon aria-hidden="true">calendar_today</mat-icon> Horarios</h4>
+            <ul class="horarios-lista" *ngIf="item.horarios?.length; else sinHorarios">
+              <li class="horario-fila" *ngFor="let h of item.horarios">
+                <span class="dia">{{ h.dia }}</span>
+                <span class="hora">{{ horaCorta(h.horaInicio) }} – {{ horaCorta(h.horaFin) }}</span>
+                <span class="escenario">{{ h.escenario }}</span>
+              </li>
+            </ul>
+            <ng-template #sinHorarios>
+              <p class="sin-horarios">Horario por definir</p>
+              <div class="aviso-sin-horario" *ngIf="perfil === 'Coordinador' && sinHorariosCargados(item)">
+                <mat-icon aria-hidden="true">schedule</mat-icon>
+                <div>
+                  <strong>Sin horario: el instructor no podrá registrar asistencia.</strong>
+                  <button type="button" class="definir-horarios" (click)="gestionarHorarios(item)">Definir horarios</button>
+                </div>
+              </div>
+            </ng-template>
+          </div>
 
-                    <mat-card-content class="contenido">
-                        <div class="btnTitulo">
-                            <button class="btn-menu" mat-icon-button [matMenuTriggerFor]="menu"
-                                *ngIf="perfil === 'Coordinador'">
-                                <mat-icon>settings</mat-icon>
-                            </button>
-                            <mat-card-title class="card_title title-three-nrs">
-                                {{ item.anio }}-{{ item.periodo }} · Grupo {{ letraDeIterable(item.iterable) }}
-                            </mat-card-title>
-                        </div>
+          <div class="ocupacion" *ngIf="disponibilidad[dispKey(item.anio, item.iterable)] as disp">
+            <div class="ocupacion-texto">
+              <span>Ocupación</span>
+              <strong>{{ inscritosDe(disp) }} de {{ disp.cuposTotales }} cupos</strong>
+            </div>
+            <div class="barra" role="progressbar" aria-label="Ocupación del grupo"
+              [attr.aria-valuenow]="inscritosDe(disp)" aria-valuemin="0" [attr.aria-valuemax]="disp.cuposTotales">
+              <span class="relleno" [style.width.%]="porcentajeOcupacion(disp)"></span>
+            </div>
+            <div class="ocupacion-pie">
+              <span class="cupos" [class.lleno]="disp.cuposDisponibles <= 0">
+                {{ disp.cuposDisponibles > 0 ? (disp.cuposDisponibles + ' cupos disponibles') : 'Grupo lleno' }}
+              </span>
+              <span class="en-espera" *ngIf="disp.tamanoListaEspera > 0">{{ disp.tamanoListaEspera }} en espera</span>
+            </div>
+          </div>
 
-                        <mat-menu #menu="matMenu">
-                            <button mat-menu-item (click)="onUpdate(item.anio!, item.iterable!)">
-                                <mat-icon>edit</mat-icon>
-                                <span>Actualizar</span>
-                            </button>
+          <div class="aviso-cierre" *ngIf="etiquetaInscripcion(item) as etiqueta">
+            <mat-icon aria-hidden="true">lock</mat-icon>
+            <div>
+              <strong class="etiqueta-inscripcion">{{ etiqueta }}</strong>
+              <p class="pista-reabrir" *ngIf="pistaReabrir(item) as pista">{{ pista }}</p>
+            </div>
+          </div>
 
-                            <button mat-menu-item *ngIf="accionCierreInscripciones(item) as accion" class="accion-cierre"
-                                (click)="toggleCierreInscripciones(item)">
-                                <mat-icon>{{ item.inscripcionesCerradasManual ? 'lock_open' : 'lock' }}</mat-icon>
-                                <span>{{ accion }}</span>
-                            </button>
-
-                            <button mat-menu-item (click)="gestionarHorarios(item)">
-                                <mat-icon>schedule</mat-icon>
-                                <span>Gestionar horarios</span>
-                            </button>
-
-                            <button mat-menu-item (click)="onDelete(item)">
-                                <mat-icon>delete</mat-icon>
-                                <span>Eliminar</span>
-                            </button>
-                        </mat-menu>
-
-
-                        <div class="horarios">
-                            <p> Instructor: {{item.nombreInstructor ?? 'Sin instructor asignado'}}</p>
-                            <ng-container *ngIf="item.horarios as horarios; else sinHorarios">
-                                <ng-container *ngIf="horarios.length > 0; else sinHorarios">
-                                    <p *ngFor="let h of horarios">
-                                        {{h.dia}} {{h.horaInicio}} - {{h.horaFin}} {{h.escenario}}
-                                    </p>
-                                </ng-container>
-                            </ng-container>
-                            <ng-template #sinHorarios>
-                                <p>Horario por definir</p>
-                            </ng-template>
-                        </div>
-
-                        <div class="disponibilidad-badges" *ngIf="etiquetaInscripcion(item) as etiqueta">
-                            <span class="badge bg-warning text-dark etiqueta-inscripcion">{{ etiqueta }}</span>
-                        </div>
-                        <p class="pista-reabrir" *ngIf="pistaReabrir(item) as pista">{{ pista }}</p>
-
-                        <div class="disponibilidad-badges" *ngIf="disponibilidad[dispKey(item.anio, item.iterable)] as disp">
-                            <span class="badge"
-                                [ngClass]="disp.cuposDisponibles > 0 ? 'bg-success' : 'bg-warning text-dark'">
-                                {{ disp.cuposDisponibles > 0 ? (disp.cuposDisponibles + ' cupos disponibles') : 'Grupo lleno' }}
-                            </span>
-                            <span class="badge bg-info ms-1" *ngIf="disp.tamanoListaEspera > 0">
-                                {{ disp.tamanoListaEspera }} en espera
-                            </span>
-                        </div>
-
-                        <div class="d-flex justify-content-center">
-                            <button class="btnInscripcion"
-                                *ngIf="perfil === 'Alumno'"
-                                [disabled]="!inscripcionAbierta(item)"
-                                (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
-                                Inscribirme
-                            </button>
-                        </div>
-                    </mat-card-content>
-                </mat-card>
-            </mat-grid-tile>
-        </mat-grid-list>
+          <div class="pie-grupo">
+            <button type="button" class="btn-principal btn-inscribirme" *ngIf="perfil === 'Alumno'; else verGrupo"
+              [disabled]="!inscripcionAbierta(item)"
+              (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
+              Inscribirme
+            </button>
+            <ng-template #verGrupo>
+              <button type="button" class="ver-grupo"
+                (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
+                Ver grupo <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+              </button>
+            </ng-template>
+          </div>
+        </div>
+      </mat-card>
     </div>
+  </div>
 </app-sidenav>

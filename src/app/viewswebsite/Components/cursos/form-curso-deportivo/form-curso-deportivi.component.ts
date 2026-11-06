@@ -1,3 +1,4 @@
+import { MatButtonModule } from '@angular/material/button';
 import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -20,8 +21,8 @@ import {
 } from '@angular/material/dialog';
 import { DeporteDTO } from 'src/app/Models/DTOs/deporte-dto';
 import { ImagenService } from 'src/app/services/imagen.service';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { catchError } from 'rxjs';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 
 
 @Component({
@@ -41,6 +42,7 @@ import { catchError } from 'rxjs';
     MatAutocompleteModule,
     ReactiveFormsModule,
     MatSnackBarModule,
+    MatButtonModule,
   ],
   templateUrl: './form-curso-deportivi.component.html',
   styleUrls: ['./form-curso-deportivi.component.css'],
@@ -51,6 +53,10 @@ export class FormCursoDeportiviComponent implements OnInit {
   imagenPreview: string | null = null;
   isEditing: boolean = false;
   selectedFile: File | null = null;
+  /** true mientras se envía: el botón se deshabilita y no admite un segundo envío. */
+  guardando = false;
+  /** Mensaje para mostrar dentro del diálogo cuando el servidor falla; vacío si no hay error. */
+  errorServidor = '';
   deportes: DeporteDTO[] = [];
   deporteFiltrado: DeporteDTO[] = [];
   private nombreCategoria: string = '';
@@ -66,12 +72,12 @@ export class FormCursoDeportiviComponent implements OnInit {
   }
 
   constructor(
-    private ntfMatsnackBar: MatSnackBar,
     private cursodeportivoserce: CursodeportivoService,
     private deporteServise: DeporteService,
     private imagenService: ImagenService,
     private dialogRef: MatDialogRef<FormCursoDeportiviComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { tituloCategoria: string, nombrecurso: string },
+    private notificaciones: NotificacionService,
   ) { }
 
   ngOnInit(): void {
@@ -118,12 +124,51 @@ export class FormCursoDeportiviComponent implements OnInit {
   }
 
   onSubmit(form: NgForm): void {
+    if (this.guardando) {
+      return;
+    }
+    if (form.invalid) {
+      // Muestra bajo cada campo qué falta, en lugar de enviar un curso incompleto.
+      form.control.markAllAsTouched();
+      return;
+    }
+    this.guardando = true;
+    this.errorServidor = '';
     if (this.isEditing) {
       this.updateCurso();
     } else {
       this.crearCurso();
     }
+  }
 
+  private exito(): void {
+    this.guardando = false;
+    this.dialogRef.close(true);
+  }
+
+  private fallo(mensaje: string): void {
+    this.guardando = false;
+    this.errorServidor = mensaje;
+    this.notificaciones.error(this.isEditing ? 'No se pudo actualizar el curso' : 'No se pudo crear el curso', mensaje);
+  }
+
+  private falloGuardado(): void {
+    this.fallo('No se pudo guardar el curso. Revise los datos e intente de nuevo.');
+  }
+
+  private falloImagen(): void {
+    this.fallo('No se pudo subir la imagen. Intente con otro archivo.');
+  }
+
+  private construirCurso(idImagen?: number | null): CursoDTO {
+    return {
+      nombre: this.curso.nombre,
+      deporte: this.curso.deporte,
+      categoriaCurso: this.data.tituloCategoria,
+      descripcion: this.curso.descripcion,
+      ...(idImagen !== undefined ? { idImagen } : {}),
+      publico: this.curso.publico ?? 'MIXTO',
+    };
   }
 
   private crearCurso(): void {
@@ -138,106 +183,37 @@ export class FormCursoDeportiviComponent implements OnInit {
       );
     }
     if (this.selectedFile) {
-      this.imagenService.postImagen(this.selectedFile).subscribe(
-        (imagenResponse) => {
-          const idImagen = imagenResponse.id;
-
-          const nuevoCurso: CursoDTO = {
-            nombre: this.curso.nombre,
-            deporte: this.curso.deporte,
-            categoriaCurso: this.data.tituloCategoria,
-            descripcion: this.curso.descripcion,
-            idImagen: idImagen,
-            publico: this.curso.publico ?? 'MIXTO',
-          };
-          this.cursodeportivoserce.crearCurso(nuevoCurso).subscribe(
-            (response) => {
-              console.log('Curso creado con éxito', response);
-              this.dialogRef.close(true);
-            },
-            (error) => {
-              console.error('Error al crear el curso deportivo', error);
-            }
-          );
-        },
-        (error) => {
-          console.error('Error al subir la imagen', error);
-        }
-      );
+      this.imagenService.postImagen(this.selectedFile).subscribe({
+        next: (imagenResponse) => this.cursodeportivoserce.crearCurso(this.construirCurso(imagenResponse.id)).subscribe({
+          next: () => this.exito(),
+          error: () => this.falloGuardado(),
+        }),
+        error: () => this.falloImagen(),
+      });
     } else {
-      const nuevoCurso: CursoDTO = {
-        nombre: this.curso.nombre,
-        deporte: this.curso.deporte,
-        categoriaCurso: this.data.tituloCategoria,
-        descripcion: this.curso.descripcion,
-            publico: this.curso.publico ?? 'MIXTO',
-      };
-      this.cursodeportivoserce.crearCurso(nuevoCurso).subscribe(
-        (response) => {
-          console.log('Curso creado con éxito', response);
-          this.dialogRef.close(true);
-        },
-        (error) => {
-          console.error('Error al crear el curso deportivo', error);
-        }
-      );
+      this.cursodeportivoserce.crearCurso(this.construirCurso()).subscribe({
+        next: () => this.exito(),
+        error: () => this.falloGuardado(),
+      });
     }
   }
 
   private updateCurso(): void {
     if (this.selectedFile) {
-      this.imagenService.postImagen(this.selectedFile).subscribe(
-        (imagenResponse) => {
-          const idImagen = imagenResponse.id;
-
-          const nuevoCurso: CursoDTO = {
-            nombre: this.curso.nombre,
-            deporte: this.curso.deporte,
-            categoriaCurso: this.data.tituloCategoria,
-            descripcion: this.curso.descripcion,
-            idImagen: idImagen,
-            publico: this.curso.publico ?? 'MIXTO',
-          };
-
-          this.cursodeportivoserce.updateCurso(this.data.tituloCategoria, this.data.nombrecurso, nuevoCurso).subscribe(
-            (response) => {
-              console.log('Curso actualizado con éxito', response);
-              this.dialogRef.close(true);
-            },
-            (error) => {
-              console.error('Error al actualizar el curso deportivo', error);
-              this.ntfMatsnackBar.open(
-                'Verifique que los datos del formulario estén completos para hacer el registro. La imagen es obligatoria.',
-                'Cerrar',
-                { duration: 5000 }
-              );
-            }
-          );
-        }
-      );
+      this.imagenService.postImagen(this.selectedFile).subscribe({
+        next: (imagenResponse) => this.cursodeportivoserce
+          .updateCurso(this.data.tituloCategoria, this.data.nombrecurso, this.construirCurso(imagenResponse.id)).subscribe({
+            next: () => this.exito(),
+            error: () => this.falloGuardado(),
+          }),
+        error: () => this.falloImagen(),
+      });
     } else {
-      const nuevoCurso: CursoDTO = {
-        nombre: this.curso.nombre,
-        deporte: this.curso.deporte,
-        categoriaCurso: this.data.tituloCategoria,
-        descripcion: this.curso.descripcion,
-        idImagen: this.curso.idImagen,
-            publico: this.curso.publico ?? 'MIXTO',
-      };
-
-      this.cursodeportivoserce.updateCurso(this.data.tituloCategoria, this.data.nombrecurso, nuevoCurso).subscribe(
-        (response) => {
-          console.log('Curso actualizado con éxito', response);
-          this.dialogRef.close(true);
-        },
-        (error) => {
-          this.ntfMatsnackBar.open(
-            'Verifique que los datos del formulario estén completos para hacer el registro. La imagen es obligatoria.',
-            'Cerrar',
-            { duration: 5000 }
-          );
-        }
-      );
+      this.cursodeportivoserce
+        .updateCurso(this.data.tituloCategoria, this.data.nombrecurso, this.construirCurso(this.curso.idImagen)).subscribe({
+          next: () => this.exito(),
+          error: () => this.falloGuardado(),
+        });
     }
   }
 

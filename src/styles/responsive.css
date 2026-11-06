@@ -1,0 +1,71 @@
+/*
+ * Base responsive (lineamiento UX-UI División TIC + Resolución 1519 de 2022).
+ * Puntos de quiebre (los mismos de Bootstrap; las media queries no admiten variables CSS, por eso se repiten):
+ *   móvil     < 768px
+ *   tableta   768px – 991px
+ *   escritorio ≥ 992px  (aquí el menú lateral queda fijo)
+ */
+
+/* Objetivo táctil mínimo de 44px en botones */
+.btn,
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button,
+.mat-mdc-button {
+  min-height: 44px;
+}
+
+/* Imágenes y medios nunca desbordan su contenedor */
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+/*
+ * Tablas adaptables: en móvil cada fila pasa a ser una tarjeta con "etiqueta: valor".
+ * Uso: <table class="tabla-adaptable"> y en cada <td> el atributo data-label con el nombre de la columna.
+ */
+@media (max-width: 767.98px) {
+  .tabla-adaptable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .tabla-adaptable,
+  .tabla-adaptable tbody,
+  .tabla-adaptable tr,
+  .tabla-adaptable td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla-adaptable tr {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d9d9d9;
+    border-radius: var(--radio-tarjeta);
+    background: #ffffff;
+  }
+
+  .tabla-adaptable td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .tabla-adaptable td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-family: var(--fuente-titulos);
+    font-weight: 600;
+    text-align: left;
+    color: var(--color-primario);
+  }
+}

@@ -25,8 +25,12 @@
               "src/assets"
             ],
             "styles": [
-              "@angular/material/prebuilt-themes/indigo-pink.css",
+              "src/styles/tokens.css",
+              "src/styles/tema-material.scss",
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "src/styles/institucional.css",
+              "src/styles/responsive.css",
+              "src/styles/formularios.css",
               "src/styles.css"
             ],
             "scripts": [
@@ -45,8 +49,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "8kb",
+                  "maximumError": "16kb"
                 }
               ],
               "outputHashing": "all"
@@ -94,8 +98,12 @@
               "src/assets"
             ],
             "styles": [
-              "@angular/material/prebuilt-themes/indigo-pink.css",
+              "src/styles/tokens.css",
+              "src/styles/tema-material.scss",
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "src/styles/institucional.css",
+              "src/styles/responsive.css",
+              "src/styles/formularios.css",
               "src/styles.css"
             ],
             "scripts": [
