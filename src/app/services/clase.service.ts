@@ -2,12 +2,13 @@ import { Injectable,  } from '@angular/core';
 import { ClaseDTO } from '../Models/DTOs/clase-dto';
 import { HttpClient } from '@angular/common/http';
 import { Observable,  } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClaseService {
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
   
   constructor(private http:HttpClient) { }
 

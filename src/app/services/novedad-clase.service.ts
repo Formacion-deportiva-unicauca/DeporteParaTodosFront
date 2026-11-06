@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 import { NovedadClaseDto, NovedadClaseRequestDto } from '../Models/DTOs/novedad-clase-dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NovedadClaseService {
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

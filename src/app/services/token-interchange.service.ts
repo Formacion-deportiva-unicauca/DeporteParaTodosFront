@@ -5,6 +5,7 @@ import { EMPTY, Observable, Subject, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { PerfilDTO } from '../Models/DTOs/perfil-tdo';
 import { PerfilService } from './perfil.service';
+import { environment } from '../../environments/environment';
 
 interface TokenResponse {
   token: string;
@@ -15,7 +16,7 @@ interface TokenResponse {
   providedIn: 'root'
 })
 export class TokenInterchangeService {
-  private readonly apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private readonly apiUrl = environment.apiUrl;
 
   private readonly tokenSavedSource = new Subject<void>();
   readonly tokenReady$ = this.tokenSavedSource.asObservable();

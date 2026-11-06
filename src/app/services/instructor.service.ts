@@ -4,6 +4,7 @@ import { PlazoCargaDTO } from "../Models/DTOs/plazo-carga-dto";
 import { ProrrogaDTO, ProrrogaRequestDTO } from "../Models/DTOs/prorroga-registro-dto";
 import { Injectable } from "@angular/core";
 import { Observable, catchError, throwError } from "rxjs";
+import { environment } from '../../environments/environment';
 
 @Injectable({
     providedIn: 'root',
@@ -11,7 +12,7 @@ import { Observable, catchError, throwError } from "rxjs";
 
 export class InstructorServisce {
 
-    private apiUrl = 'http://127.0.0.1:8082/api/v2';
+    private apiUrl = environment.apiUrl;
 
     constructor(private http: HttpClient) { }
 

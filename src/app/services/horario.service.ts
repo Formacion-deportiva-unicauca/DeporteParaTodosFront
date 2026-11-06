@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { Observable, tap, catchError, throwError} from 'rxjs';
 import { HorarioDTO } from '../Models/DTOs/horario-dto';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class HorarioService {
 
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
   constructor(private http: HttpClient) { }
 
   getHorarios(categoria: string, curso: string, anio: number, iterable: number): Observable<HorarioDTO[]> {

@@ -4,12 +4,13 @@ import { catchError, Observable, tap, throwError } from 'rxjs';
 import { GrupoDTO } from '../Models/DTOs/grupo-dto';
 import { MiGrupoInstructorDTO } from '../Models/DTOs/mis-cursos-dto';
 import { OcupacionGrupoDTO, PeriodoInscripcionRequestDTO, PublicoCurso } from '../Models/DTOs/ocupacion-grupo-dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GrupoService {
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

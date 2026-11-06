@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
-const BACKEND_API = 'http://127.0.0.1:8082/api/v2';
+const BACKEND_API = environment.apiUrl;
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
