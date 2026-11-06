@@ -2,12 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { catchError, Observable, tap, throwError, BehaviorSubject } from 'rxjs';
 import { CategoriaDTO } from '../Models/DTOs/categoria-dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CategoriaService {
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

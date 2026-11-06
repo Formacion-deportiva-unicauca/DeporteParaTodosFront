@@ -3,6 +3,7 @@ import { Observable, throwError, catchError } from "rxjs";
 import { AlumnoDTO } from "../Models/DTOs/alumno-dto";
 import { PerfilDTO } from "../Models/DTOs/perfil-tdo";
 import { HttpClient } from "@angular/common/http";
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
@@ -11,7 +12,7 @@ import { HttpClient } from "@angular/common/http";
 
 export class AlumnoService {
 
-    private apiUrl = 'http://127.0.0.1:8082/api/v2'
+    private apiUrl = environment.apiUrl
 
     constructor(private http: HttpClient) { }
 

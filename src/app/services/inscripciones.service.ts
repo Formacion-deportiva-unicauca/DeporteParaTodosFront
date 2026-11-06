@@ -5,12 +5,13 @@ import { DisponibilidadDTO } from '../Models/DTOs/disponibilidad-dto';
 import { InscripcionEnEsperaDto } from '../Models/DTOs/inscripcion-en-espera-dto';
 import { MiCursoDTO } from '../Models/DTOs/mis-cursos-dto';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InscripcionesService {
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
   constructor(private http: HttpClient) { }
 
   postInscripcion(data: InscripcionDTO): Observable<InscripcionDTO> {

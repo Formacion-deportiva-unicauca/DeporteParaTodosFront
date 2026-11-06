@@ -3,12 +3,13 @@ import { Observable, catchError, throwError } from 'rxjs';
 import { AtencionDTO } from '../Models/DTOs/atencion-dto';
 import { ConfirmacionAsistenciaDTO, ConfirmacionAsistenciaRequestDTO } from '../Models/DTOs/confirmacion-asistencia-dto';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AsistenciaService {
-  private apiUrl = 'http://127.0.0.1:8082/api/v2';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

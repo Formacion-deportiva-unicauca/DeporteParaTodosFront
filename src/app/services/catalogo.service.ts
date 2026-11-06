@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, throwError } from 'rxjs';
 import { interpretarListado } from '../shared/listado-vacio.util';
+import { environment } from '../../environments/environment';
 
 /** Catálogo público de facultades y programas que alimenta el formulario de registro. */
 @Injectable({
@@ -9,7 +10,7 @@ import { interpretarListado } from '../shared/listado-vacio.util';
 })
 export class CatalogoService {
 
-  private url = 'http://127.0.0.1:8082/api/v2';
+  private url = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

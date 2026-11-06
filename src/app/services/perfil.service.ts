@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, tap, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { PerfilDTO } from '../Models/DTOs/perfil-tdo';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PerfilService {
-  apiUrl: string = 'http://127.0.0.1:8082/api/v2';
+  apiUrl: string = environment.apiUrl;
   constructor(private http: HttpClient) { }
 
   private perfilSubject = new BehaviorSubject<string>('');
