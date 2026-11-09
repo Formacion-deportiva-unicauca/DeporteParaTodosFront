@@ -20,7 +20,7 @@ import { InscripcionGrupoComponent } from './viewswebsite/Components/cursos/insc
 import { DetalleInstructorComponent } from './viewswebsite/Components/usuarios/detalle-instructor/detalle-instructor.component';
 
 const routes: Routes = [
-  {path:'', redirectTo:'home',pathMatch:'full'},
+  {path:'', redirectTo:'login',pathMatch:'full'},
   {path:'home', component:HomeComponent},
   {path:'inscripciones', component:FormInscripcionesComponent},
   {path: 'cursos_deportivos/:identificador', component: CursosDeportivosComponent}, //cursos deportivos de una categoría 
