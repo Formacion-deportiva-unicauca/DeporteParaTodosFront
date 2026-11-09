@@ -3,6 +3,7 @@ import { AuthConfig, OAuthService } from 'angular-oauth2-oidc';
 import { Observable, from, filter, take } from 'rxjs';
 import { TokenInterchangeService } from './token-interchange.service';
 import { PerfilService } from './perfil.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -26,7 +27,7 @@ export class AuthService {
     const config: AuthConfig = {
       issuer: 'https://accounts.google.com',
       strictDiscoveryDocumentValidation: false,
-      clientId: '744420107810-h8mprfrme2cav6226hdl960gl40qaebp.apps.googleusercontent.com',
+      clientId: environment.googleClientId,
       redirectUri: window.location.origin + '/home',
       scope: 'openid profile email',
       customQueryParams: { prompt: 'select_account' },
