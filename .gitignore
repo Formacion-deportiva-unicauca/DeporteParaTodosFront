@@ -44,3 +44,6 @@ Thumbs.db
 # Playwright
 playwright-report/
 test-results/
+# Volcados de fallos de Java (IDE / SonarLint)
+hs_err_pid*.log
+replay_pid*.log
