@@ -75,9 +75,10 @@
         <p class="aviso-catalogo error" *ngIf="errorCatalogo" role="alert">{{ errorCatalogo }}</p>
 
         <div class="botones">
-          <button mat-button type="button" (click)="cancelar()">Cancelar</button>
-          <button mat-raised-button color="primary" type="submit" [disabled]="!perfilForm.form.valid">
-            Registrarme
+          <button mat-button type="button" [disabled]="registrando" (click)="cancelar()">Cancelar</button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="!perfilForm.form.valid || registrando"
+                  [attr.aria-busy]="registrando">
+            {{ registrando ? 'Registrando...' : 'Registrarme' }}
           </button>
         </div>
 
