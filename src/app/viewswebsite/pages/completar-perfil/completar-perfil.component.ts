@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { PerfilDTO } from 'src/app/Models/DTOs/perfil-tdo';
 import { CatalogoService } from 'src/app/services/catalogo.service';
+import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
 import {
   TIPOS_VINCULO,
   datosSegunTipo,
@@ -48,6 +49,8 @@ export class CompletarPerfilComponent implements OnInit, OnDestroy {
   /** La facultad elegida no tiene programas cargados en el catálogo. */
   sinProgramas = false;
   errorCatalogo: string | null = null;
+  /** Registro e inicio de sesión en curso: bloquea el botón para evitar un doble envío. */
+  registrando = false;
   private facultadesSub = Subscription.EMPTY;
   private programasSub = Subscription.EMPTY;
 
@@ -71,6 +74,7 @@ export class CompletarPerfilComponent implements OnInit, OnDestroy {
     private router: Router,
     private notificaciones: NotificacionService,
     private catalogoService: CatalogoService,
+    private tokenInterchangeService: TokenInterchangeService,
   ) {}
 
   ngOnInit(): void {
@@ -130,15 +134,14 @@ export class CompletarPerfilComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(form: NgForm): void {
-    if (form.invalid) return;
+    if (form.invalid || this.registrando) return;
+    this.registrando = true;
     // Todos los tipos de vínculo van al mismo endpoint; role queda vacío (no es instructor del programa).
     // Solo se envían los datos que corresponden al tipo elegido.
     this.perfilService.registrarPerfil(datosSegunTipo({ ...this.perfil, role: '' })).subscribe({
-      next: () => {
-        this.notificaciones.exito('Registro exitoso', 'Bienvenido/a a Deporte para Todos.');
-        void this.router.navigate(['/home']);
-      },
+      next: () => this.iniciarSesionTrasRegistro(),
       error: err => {
+        this.registrando = false;
         console.error('Error al completar perfil:', err);
         const mensaje = err?.status === 422 && err.error?.mensaje
           ? err.error.mensaje
@@ -146,6 +149,40 @@ export class CompletarPerfilComponent implements OnInit, OnDestroy {
         this.notificaciones.error('No se pudo completar el registro', mensaje);
       },
     });
+  }
+
+  /**
+   * Con el perfil ya creado, repite el intercambio del login normal (ID token de Google → dpt_token) para que el
+   * usuario llegue al home con sesión. Si no se puede, el registro sigue siendo válido: se le pide iniciar sesión.
+   */
+  private iniciarSesionTrasRegistro(): void {
+    const idToken = this.oauthService.getIdToken();
+    if (!idToken) {
+      this.sesionNoIniciada();
+      return;
+    }
+    let intercambiado = false;
+    this.tokenInterchangeService.exchangeGoogleToken(idToken).subscribe({
+      next: () => {
+        intercambiado = true;
+        this.notificaciones.exito('Registro exitoso', 'Bienvenido/a a Deporte para Todos.');
+        void this.router.navigate(['/home']);
+      },
+      error: err => {
+        console.error('Error al iniciar sesión tras el registro:', err?.status ?? err);
+        this.sesionNoIniciada();
+      },
+      // El servicio completa sin emitir cuando redirige por un 404: aquí tampoco hay sesión.
+      complete: () => {
+        if (!intercambiado) this.sesionNoIniciada();
+      },
+    });
+  }
+
+  private sesionNoIniciada(): void {
+    this.registrando = false;
+    this.notificaciones.info('Registro completado', 'Tu registro se completó, inicia sesión para continuar.');
+    void this.router.navigate(['/login']);
   }
 
   cancelar(): void {

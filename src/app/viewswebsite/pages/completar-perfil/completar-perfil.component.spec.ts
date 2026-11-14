@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { NgForm } from '@angular/forms';
 import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
 import { OAuthService } from 'angular-oauth2-oidc';
-import { Subject, of, throwError } from 'rxjs';
+import { EMPTY, Subject, of, throwError } from 'rxjs';
+import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
 import { CompletarPerfilComponent } from './completar-perfil.component';
 import { PerfilService } from 'src/app/services/perfil.service';
 import { CatalogoService } from 'src/app/services/catalogo.service';
@@ -30,9 +31,13 @@ describe('CompletarPerfilComponent', () => {
   let routerSpy: jasmine.SpyObj<Router>;
   let avisos: jasmine.SpyObj<NotificacionService>;
   let catalogoSpy: jasmine.SpyObj<CatalogoService>;
+  let tokenSpy: jasmine.SpyObj<TokenInterchangeService>;
 
   beforeEach(async () => {
-    oauthSpy = jasmine.createSpyObj('OAuthService', ['getIdentityClaims', 'logOut']);
+    oauthSpy = jasmine.createSpyObj('OAuthService', ['getIdentityClaims', 'logOut', 'getIdToken']);
+    oauthSpy.getIdToken.and.returnValue('id-token-google');
+    tokenSpy = jasmine.createSpyObj('TokenInterchangeService', ['exchangeGoogleToken']);
+    tokenSpy.exchangeGoogleToken.and.returnValue(of(void 0));
     perfilSpy = jasmine.createSpyObj('PerfilService', ['registrarPerfil']);
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
     avisos = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
@@ -47,6 +52,7 @@ describe('CompletarPerfilComponent', () => {
         { provide: PerfilService, useValue: perfilSpy },
         { provide: Router, useValue: routerSpy },
         { provide: CatalogoService, useValue: catalogoSpy },
+        { provide: TokenInterchangeService, useValue: tokenSpy },
       ],
     })
     // MatSnackBar se resuelve desde el MatSnackBarModule del propio standalone component;
@@ -100,14 +106,76 @@ describe('CompletarPerfilComponent', () => {
     expect(callArg.facultad).toBe('');
   });
 
-  it('onSubmit() éxito: muestra la notificación de éxito y navega a /home', () => {
-    oauthSpy.getIdentityClaims.and.returnValue({ name: 'Ana', email: 'ana@u.co' });
-    fixture.detectChanges();
-    perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
-    const formMock = { invalid: false } as NgForm;
-    component.onSubmit(formMock);
-    expect(avisos.exito).toHaveBeenCalledOnceWith('Registro exitoso', 'Bienvenido/a a Deporte para Todos.');
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/home']);
+  describe('sesión tras el registro', () => {
+    const form = { invalid: false } as NgForm;
+
+    beforeEach(() => {
+      oauthSpy.getIdentityClaims.and.returnValue({ name: 'Ana', email: 'ana@u.co' });
+      fixture.detectChanges();
+    });
+
+    it('registro ok + intercambio ok: avisa, queda con sesión y navega a /home', () => {
+      perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
+      component.onSubmit(form);
+      expect(tokenSpy.exchangeGoogleToken).toHaveBeenCalledOnceWith('id-token-google');
+      expect(avisos.exito).toHaveBeenCalledOnceWith('Registro exitoso', 'Bienvenido/a a Deporte para Todos.');
+      expect(routerSpy.navigate).toHaveBeenCalledOnceWith(['/home']);
+    });
+
+    it('registro ok + intercambio con error: avisa que inicie sesión y va al login', () => {
+      perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
+      tokenSpy.exchangeGoogleToken.and.returnValue(throwError(() => ({ status: 401 })));
+      spyOn(console, 'error');
+      component.onSubmit(form);
+      expect(avisos.info).toHaveBeenCalledOnceWith('Registro completado', 'Tu registro se completó, inicia sesión para continuar.');
+      expect(avisos.exito).not.toHaveBeenCalled();
+      expect(routerSpy.navigate).toHaveBeenCalledOnceWith(['/login']);
+      expect(component.registrando).toBeFalse();
+    });
+
+    it('registro ok + intercambio que termina sin sesión: va al login', () => {
+      perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
+      tokenSpy.exchangeGoogleToken.and.returnValue(EMPTY);
+      component.onSubmit(form);
+      expect(routerSpy.navigate).toHaveBeenCalledOnceWith(['/login']);
+      expect(avisos.exito).not.toHaveBeenCalled();
+    });
+
+    it('registro ok sin ID token de Google: va al login sin llamar al intercambio', () => {
+      perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
+      oauthSpy.getIdToken.and.returnValue('');
+      component.onSubmit(form);
+      expect(tokenSpy.exchangeGoogleToken).not.toHaveBeenCalled();
+      expect(routerSpy.navigate).toHaveBeenCalledOnceWith(['/login']);
+    });
+
+    it('registro con error: se queda en el formulario, sin intercambio y con el botón habilitado', () => {
+      perfilSpy.registrarPerfil.and.returnValue(throwError(() => new Error('500')));
+      spyOn(console, 'error');
+      component.onSubmit(form);
+      expect(tokenSpy.exchangeGoogleToken).not.toHaveBeenCalled();
+      expect(routerSpy.navigate).not.toHaveBeenCalled();
+      expect(component.registrando).toBeFalse();
+    });
+
+    it('doble clic: mientras se registra no se envía una segunda vez', () => {
+      const enCurso = new Subject<PerfilDTO>();
+      perfilSpy.registrarPerfil.and.returnValue(enCurso);
+      component.onSubmit(form);
+      component.onSubmit(form);
+      expect(perfilSpy.registrarPerfil).toHaveBeenCalledTimes(1);
+      expect(component.registrando).toBeTrue();
+    });
+
+    it('mientras registra, el botón queda deshabilitado y muestra el estado de carga', () => {
+      perfilSpy.registrarPerfil.and.returnValue(new Subject<PerfilDTO>());
+      component.registrando = true;
+      fixture.detectChanges();
+      const boton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
+      expect(boton.disabled).toBeTrue();
+      expect(boton.textContent).toContain('Registrando...');
+      expect(boton.getAttribute('aria-busy')).toBe('true');
+    });
   });
 
   it('onSubmit() error: muestra la notificación de error', () => {
@@ -157,6 +225,8 @@ describe('CompletarPerfilComponent', () => {
 
     const enviar = (): PerfilDTO => {
       perfilSpy.registrarPerfil.and.returnValue(of(perfilDummy));
+      // Tras un registro exitoso el botón queda bloqueado (la pantalla se abandona); cada envío parte de un formulario nuevo.
+      component.registrando = false;
       component.onSubmit({ invalid: false } as NgForm);
       return perfilSpy.registrarPerfil.calls.mostRecent().args[0];
     };
