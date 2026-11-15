@@ -1,7 +1,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
-import { AVISO_SESION_VENCIDA, SesionVencidaService } from './sesion-vencida.service';
+import { AVISO_INACTIVIDAD, AVISO_SESION_VENCIDA, SesionVencidaService } from './sesion-vencida.service';
 import { EstadoSesionService } from './estado-sesion.service';
 import { NotificacionService } from './notificacion/notificacion.service';
 import { PerfilService } from '../services/perfil.service';
@@ -119,6 +119,54 @@ describe('SesionVencidaService', () => {
       tick();
       expect(avisos.error).toHaveBeenCalledTimes(2);
       expect(router.navigate).toHaveBeenCalledTimes(2);
+    }));
+  });
+
+  describe('cerrarPorInactividad()', () => {
+    it('limpia la sesión, avisa "Tu sesión se cerró por inactividad" y navega al login', fakeAsync(() => {
+      guardarSesion(crearJwtQueVenceEn(3600));
+      crear();
+      estado.activa();
+      servicio.cerrarPorInactividad();
+      CLAVES.forEach(k => expect(sessionStorage.getItem(k)).toBeNull(`${k} debe borrarse`));
+      expect(perfil.setPerfil).toHaveBeenCalledOnceWith('');
+      expect(estado.actual).toBe('visitante');
+      tick();
+      expect(avisos.error).toHaveBeenCalledOnceWith(AVISO_INACTIVIDAD.titulo, AVISO_INACTIVIDAD.mensaje);
+      expect(router.navigate).toHaveBeenCalledOnceWith(['/login']);
+    }));
+
+    it('comparte el control de "un solo aviso" con el 401: no salen los dos', fakeAsync(() => {
+      const token = crearJwtQueVenceEn(3600);
+      guardarSesion(token);
+      crear();
+      servicio.alRecibir401(token);
+      servicio.cerrarPorInactividad();
+      tick();
+      expect(avisos.error).toHaveBeenCalledOnceWith(AVISO_SESION_VENCIDA.titulo, AVISO_SESION_VENCIDA.mensaje);
+      expect(router.navigate).toHaveBeenCalledTimes(1);
+    }));
+
+    it('y al revés: si cerró por inactividad, un 401 posterior no avisa', fakeAsync(() => {
+      const token = crearJwtQueVenceEn(3600);
+      guardarSesion(token);
+      crear();
+      servicio.cerrarPorInactividad();
+      servicio.alRecibir401(token);
+      tick();
+      expect(avisos.error).toHaveBeenCalledOnceWith(AVISO_INACTIVIDAD.titulo, AVISO_INACTIVIDAD.mensaje);
+    }));
+
+    it('con un nuevo inicio de sesión se reinicia el control', fakeAsync(() => {
+      guardarSesion(crearJwtQueVenceEn(3600));
+      crear();
+      servicio.cerrarPorInactividad();
+      tick();
+      guardarSesion(crearJwtQueVenceEn(7200));
+      estado.activa();
+      servicio.cerrarPorInactividad();
+      tick();
+      expect(avisos.error).toHaveBeenCalledTimes(2);
     }));
   });
 

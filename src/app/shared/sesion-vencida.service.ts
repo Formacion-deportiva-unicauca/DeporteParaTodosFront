@@ -8,6 +8,8 @@ import { vigenciaDelToken } from './token-sesion';
 
 export const AVISO_SESION_VENCIDA = { titulo: 'Tu sesión venció', mensaje: 'Inicia sesión de nuevo.' } as const;
 
+export const AVISO_INACTIVIDAD = { titulo: 'Tu sesión se cerró por inactividad', mensaje: 'Inicia sesión de nuevo.' } as const;
+
 /** Claves de sessionStorage que forman la sesión de la aplicación (no toca la sesión de Google). */
 const CLAVES_SESION = ['dpt_token', 'dpt_role', 'dpt_perfil_id', 'dpt_perfil', 'dpt_bienvenida'];
 
@@ -45,6 +47,18 @@ export class SesionVencidaService {
   }
 
   /**
+   * La sesión se cerró por inactividad (lo decide InactividadService): misma limpieza que al vencerse y el mismo control de
+   * "un solo aviso", así no pueden salir a la vez el aviso de sesión vencida y el de inactividad.
+   */
+  cerrarPorInactividad(): void {
+    if (this.avisado) return;
+    this.avisado = true;
+    this.limpiarSesion();
+    this.estadoSesion.visitante();
+    this.avisarDespues(true, AVISO_INACTIVIDAD);
+  }
+
+  /**
    * Al arrancar: si hay un dpt_token vencido, ilegible o a punto de vencer, se descarta, se arranca como visitante y se
    * avisa una vez. Además lleva al login, igual que en el caso del 401, salvo que:
    * - Google acabe de redirigir (id_token en la URL): ahí la sesión sigue "resolviéndose" y no se debe interrumpir.
@@ -79,9 +93,9 @@ export class SesionVencidaService {
    * El aviso y la navegación salen en el turno siguiente: la pantalla que hizo la petición muestra primero su propio
    * error de carga y, si el aviso saliera antes, ese error lo taparía (solo se ve un aviso a la vez).
    */
-  private avisarDespues(irAlLogin: boolean): void {
+  private avisarDespues(irAlLogin: boolean, aviso: { titulo: string; mensaje: string } = AVISO_SESION_VENCIDA): void {
     setTimeout(() => {
-      this.notificaciones.error(AVISO_SESION_VENCIDA.titulo, AVISO_SESION_VENCIDA.mensaje);
+      this.notificaciones.error(aviso.titulo, aviso.mensaje);
       if (irAlLogin) void this.router.navigate(['/login']);
     });
   }

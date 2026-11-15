@@ -6,9 +6,12 @@
   <div class="notificacion-texto">
     <p class="notificacion-titulo">{{ datos.titulo }}</p>
     <p class="notificacion-mensaje" *ngIf="datos.mensaje">{{ datos.mensaje }}</p>
+    <button type="button" class="notificacion-accion" *ngIf="datos.accion" (click)="ejecutarAccion()">
+      {{ datos.accion.texto }}
+    </button>
   </div>
 
-  <button mat-icon-button type="button" class="notificacion-cerrar" aria-label="Cerrar notificación" (click)="cerrar()">
+  <button mat-icon-button type="button" class="notificacion-cerrar" aria-label="Cerrar notificación" *ngIf="!datos.accion" (click)="cerrar()">
     <mat-icon aria-hidden="true">close</mat-icon>
   </button>
 </div>

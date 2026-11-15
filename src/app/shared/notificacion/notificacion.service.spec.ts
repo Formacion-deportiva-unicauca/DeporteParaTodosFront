@@ -61,4 +61,32 @@ describe('NotificacionService', () => {
     servicio.exito('Solo título');
     expect(config().data.mensaje).toBeUndefined();
   });
+
+  describe('conAccion()', () => {
+    const accion = { texto: 'Seguir conectado', alPulsar: () => undefined };
+
+    it('lleva la acción en los datos, con el tipo, el título y el mensaje', () => {
+      servicio.conAccion('info', 'Tu sesión se cerrará', 'En 2 minutos.', accion);
+      expect(config().data).toEqual({ tipo: 'info', titulo: 'Tu sesión se cerrará', mensaje: 'En 2 minutos.', accion });
+    });
+
+    it('es persistente: duración 0, no se cierra solo', () => {
+      servicio.conAccion('info', 'Aviso', 'Mensaje', accion);
+      expect(config().duration).toBe(0);
+    });
+
+    it('se anuncia de inmediato (assertive) y aparece arriba a la derecha, como los demás avisos', () => {
+      servicio.conAccion('info', 'Aviso', 'Mensaje', accion);
+      expect(config().politeness).toBe('assertive');
+      expect(config().verticalPosition).toBe('top');
+      expect(config().horizontalPosition).toBe('end');
+      expect(config().panelClass).toEqual(['notificacion-panel', 'notificacion-panel--info']);
+    });
+
+    it('los avisos normales no cambian: sin acción y con su duración de siempre', () => {
+      servicio.exito('Listo');
+      expect(config().data.accion).toBeUndefined();
+      expect(config().duration).toBe(5000);
+    });
+  });
 });

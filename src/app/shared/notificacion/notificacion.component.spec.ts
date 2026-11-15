@@ -62,6 +62,45 @@ describe('NotificacionComponent (diseño y accesibilidad)', () => {
     });
   });
 
+  describe('aviso con acción', () => {
+    let pulsado: jasmine.Spy;
+
+    beforeEach(() => {
+      pulsado = jasmine.createSpy('alPulsar');
+      referencia = servicio.conAccion('info', 'Tu sesión se cerrará por inactividad', 'En menos de 2 minutos.',
+        { texto: 'Seguir conectado', alPulsar: pulsado });
+      detectar();
+    });
+
+    it('muestra el botón con su texto y no la "x" de cerrar (se resuelve con el botón)', () => {
+      expect(q<HTMLButtonElement>('button.notificacion-accion').textContent?.trim()).toBe('Seguir conectado');
+      expect(panel().querySelector('button.notificacion-cerrar')).toBeNull();
+    });
+
+    it('al pulsar el botón ejecuta la acción y cierra el aviso', () => {
+      const descartar = spyOn(referencia, 'dismiss').and.callThrough();
+      q<HTMLButtonElement>('button.notificacion-accion').click();
+      expect(pulsado).toHaveBeenCalledTimes(1);
+      expect(descartar).toHaveBeenCalled();
+    });
+
+    it('el botón es una píldora de 44px de alto, en mayúsculas, con el color primario', () => {
+      const estilo = getComputedStyle(q<HTMLButtonElement>('button.notificacion-accion'));
+      expect(parseFloat(estilo.minHeight)).toBeGreaterThanOrEqual(44);
+      expect(estilo.textTransform).toBe('uppercase');
+      expect(parseFloat(estilo.borderRadius)).toBeGreaterThanOrEqual(22);
+    });
+
+    it('los avisos sin acción no llevan botón de acción y conservan la "x"', () => {
+      referencia.dismiss();
+      document.querySelector('.cdk-overlay-container')?.replaceChildren(); // el cierre anima: se quita el aviso anterior
+      referencia = servicio.exito('Listo');
+      detectar();
+      expect(panel().querySelector('button.notificacion-accion')).toBeNull();
+      expect(panel().querySelector('button.notificacion-cerrar')).not.toBeNull();
+    });
+  });
+
   describe('estilos según el lineamiento UX-UI', () => {
     it('es una tarjeta blanca con radio de 4px (Snackbars: forma "extra pequeño")', () => {
       referencia = servicio.exito('Listo');
