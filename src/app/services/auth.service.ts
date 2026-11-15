@@ -87,12 +87,6 @@ export class AuthService {
     this.descubrimiento = this.oauthService.loadDiscoveryDocumentAndTryLogin()
       .then(() => {
         this.descubrimientoCargado = true;
-        const claims: any = this.oauthService.getIdentityClaims();
-        if (claims) {
-          console.log('Usuario autenticado:', claims);
-        } else {
-          console.log('No hay usuario autenticado');
-        }
         const role = sessionStorage.getItem('dpt_role');
         if (role) {
           this.perfilService.setPerfil(role);
