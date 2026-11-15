@@ -23,6 +23,8 @@ import { InstructorServisce } from 'src/app/services/instructor.service';
 import { HorarioService } from 'src/app/services/horario.service';
 import { HorarioDTO } from 'src/app/Models/DTOs/horario-dto';
 import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { CargaLista } from 'src/app/shared/carga-lista';
+import { EsqueletoComponent } from 'src/app/shared/esqueleto/esqueleto.component';
 import { FormHorarioComponent } from '../form-horario/form-horario.component';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
@@ -43,6 +45,7 @@ import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-i
     NgIf,
     MatDatepickerModule,
     MatNativeDateModule,
+    EsqueletoComponent,
   ],
   templateUrl: './list-grupos.component.html',
   styleUrls: ['./list-grupos.component.css'],
@@ -50,7 +53,11 @@ import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-i
 export class ListGruposComponent implements OnInit {
   curso: CursoDTO | null = null;
   imagenCurso: string | null = null;
+  /** La imagen del curso está en camino: se muestra su esqueleto en lugar de la imagen genérica. */
+  imagenPendiente = false;
   public grupos: GrupoDTO[] = [];
+  /** Cargando, cargada (puede estar vacía) o con error. */
+  readonly carga = new CargaLista();
   categoria: string | null = '';
   titulo: string | null = '';
   perfil?: string;
@@ -98,9 +105,11 @@ export class ListGruposComponent implements OnInit {
       error: () => {},
     });
 
+    this.carga.iniciar();
     this.grupoService.getGrupos(categoria, nombreCurso).subscribe(
       (grupostemp) => {
         this.grupos = grupostemp;
+        this.carga.terminar();
 
         this.grupos.forEach((itemgrupo) => {
           this.cargarNombreInstructor(itemgrupo);
@@ -119,6 +128,7 @@ export class ListGruposComponent implements OnInit {
       },
       (error) => {
         console.error('Error al obtener los grupos', error);
+        this.carga.fallar();
         this.notificaciones.error('No se pudieron cargar los grupos', 'Revise su conexión e intente de nuevo.');
       }
     );
@@ -127,9 +137,18 @@ export class ListGruposComponent implements OnInit {
   /** La imagen del resumen es la del curso (los grupos ya no muestran imagen propia en su tarjeta). */
   private cargarImagenCurso(curso: CursoDTO): void {
     if (curso?.idImagen == null) return;
+    this.imagenPendiente = true;
     this.imagenService.getimagen(curso.idImagen).subscribe({
-      next: (img) => { this.imagenCurso = img?.datosBase64 ? `data:${img.tipoArchivo};base64,${img.datosBase64}` : null; },
-      error: () => { this.imagenCurso = null; },
+      next: (img) => {
+        this.imagenCurso = img?.datosBase64 ? `data:${img.tipoArchivo};base64,${img.datosBase64}` : null;
+        this.imagenPendiente = false;
+      },
+      error: () => {
+        this.imagenCurso = null;
+        this.imagenPendiente = false;
+        // Es una sola imagen: un único aviso. La imagen genérica queda como respaldo.
+        this.notificaciones.error('No se pudo cargar la imagen del curso', 'Se muestra una imagen genérica en su lugar.');
+      },
     });
   }
 

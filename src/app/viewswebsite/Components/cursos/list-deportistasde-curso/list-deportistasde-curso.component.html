@@ -119,7 +119,11 @@
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.fila-asistio]="estaMarcado(row)"></tr>
         </table>
-        <p class="sin-deportistas" *ngIf="inscritos === 0" role="status">Este grupo aún no tiene deportistas inscritos.</p>
+        <app-esqueleto *ngIf="cargaAlumnos.cargando" forma="fila" [cantidad]="4" etiqueta="Cargando deportistas…"></app-esqueleto>
+        <p class="sin-deportistas error-lista" *ngIf="cargaAlumnos.error" role="alert">
+          No se pudo cargar la lista de deportistas. Revise su conexión e intente de nuevo.
+        </p>
+        <p class="sin-deportistas" *ngIf="cargaAlumnos.cargada && inscritos === 0" role="status">Este grupo aún no tiene deportistas inscritos.</p>
       </div>
     </section>
 

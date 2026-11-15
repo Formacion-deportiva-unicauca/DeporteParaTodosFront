@@ -28,6 +28,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { CargaLista } from 'src/app/shared/carga-lista';
+import { EsqueletoComponent } from 'src/app/shared/esqueleto/esqueleto.component';
 
 @Component({
   selector: 'app-cursos-deportivos',
@@ -51,7 +53,7 @@ import { NotificacionService } from 'src/app/shared/notificacion/notificacion.se
     MatDatepickerModule,
     MatInputModule,
     MatSnackBarModule,
-
+    EsqueletoComponent,
   ],
 })
 export class CursosDeportivosComponent implements OnInit {
@@ -62,6 +64,8 @@ export class CursosDeportivosComponent implements OnInit {
   categorias: CategoriaDTO[] = [];
   public titulo: string | null = null;
   perfil?: string;
+  /** Cargando, cargada (puede estar vacía) o con error; y qué imágenes faltan por llegar. */
+  readonly carga = new CargaLista();
 
   constructor(
     private router: Router,
@@ -154,20 +158,28 @@ export class CursosDeportivosComponent implements OnInit {
       ? this.cursoService.getTodosCursosDeCategoria(categoria)
       : this.cursoService.getCursos(categoria);
 
+    this.carga.iniciar();
     request$.subscribe(
       (cursotemp) => {
         this.cursos = cursotemp;
+        this.carga.terminar();
 
         this.cursos.forEach(
           (itemCurso) => {
             if (itemCurso.idImagen != null) {
+              this.carga.esperarImagen(itemCurso.nombre);
               this.imagenServise.getimagen(itemCurso.idImagen).subscribe(
                 (imagenData) => {
                   itemCurso.imagenBase64 = imagenData.datosBase64;
                   itemCurso.tipoArchivo = imagenData.tipoArchivo;
+                  this.carga.imagenLista(itemCurso.nombre);
                 },
                 (error) => {
                   console.error(`Error al obtener la imagen del curso ${itemCurso.nombre}`, error);
+                  // Un solo aviso por carga, aunque fallen varias imágenes.
+                  if (this.carga.imagenFallida(itemCurso.nombre)) {
+                    this.notificaciones.error('No se pudieron cargar algunas imágenes', 'Se muestra una imagen genérica en su lugar.');
+                  }
                 }
               );
             }
@@ -176,6 +188,7 @@ export class CursosDeportivosComponent implements OnInit {
       },
       (error) => {
         console.error('Error al obtener los cursos', error);
+        this.carga.fallar();
         this.notificaciones.error('No se pudieron cargar los cursos', 'Revise su conexión e intente de nuevo.');
       }
     );
