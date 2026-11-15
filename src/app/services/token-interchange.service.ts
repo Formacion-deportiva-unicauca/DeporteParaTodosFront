@@ -5,6 +5,7 @@ import { EMPTY, Observable, Subject, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { PerfilDTO } from '../Models/DTOs/perfil-tdo';
 import { PerfilService } from './perfil.service';
+import { EstadoSesionService } from '../shared/estado-sesion.service';
 import { environment } from '../../environments/environment';
 
 interface TokenResponse {
@@ -25,6 +26,7 @@ export class TokenInterchangeService {
     private http: HttpClient,
     private router: Router,
     private perfilService: PerfilService,
+    private estadoSesion: EstadoSesionService,
   ) {}
 
   exchangeGoogleToken(idToken: string): Observable<void> {
@@ -36,6 +38,7 @@ export class TokenInterchangeService {
         sessionStorage.setItem('dpt_perfil_id', String(resp.perfil.id));
         sessionStorage.setItem('dpt_perfil', JSON.stringify(resp.perfil));
         this.perfilService.setPerfil(resp.perfil.role);
+        this.estadoSesion.activa();
         this.tokenSavedSource.next();
       }),
       map(() => void 0),
@@ -44,6 +47,7 @@ export class TokenInterchangeService {
           // Usuario autenticado con Google pero sin rol registrado en el sistema.
           // SCRUM-159: redirige a CompletarPerfilComponent donde elige rol
           // y completa sus datos identificativos.
+          this.estadoSesion.visitante();
           void this.router.navigate(['/completar-perfil']);
           return EMPTY;
         }

@@ -1,3 +1,11 @@
+<!-- Mientras Google redirige de vuelta y se valida la cuenta no se muestra la cabecera de visitante: el usuario ve que su sesión está en curso. -->
+<main class="iniciando-sesion" role="status" aria-live="polite" *ngIf="(estadoSesion.estado$ | async) === 'resolviendo'; else paginaInicio">
+    <span class="spinner-sesion" aria-hidden="true"></span>
+    <p class="iniciando-titulo">Iniciando sesión…</p>
+    <p class="iniciando-texto">Estamos verificando tu cuenta.</p>
+</main>
+
+<ng-template #paginaInicio>
 <!-- Coordinador (Home, Instructores, Reportes), Instructor y Alumno (Home, Mis cursos): menu lateral con el inicio dentro. Visitantes sin sesion: la cabecera de siempre. -->
 <app-sidenav *ngIf="perfil === 'Coordinador' || perfil === 'Instructor' || perfil === 'Alumno'; else conCabecera">
     <ng-container *ngTemplateOutlet="contenidoInicio"></ng-container>
@@ -6,6 +14,7 @@
 <ng-template #conCabecera>
     <app-header></app-header>
     <ng-container *ngTemplateOutlet="contenidoInicio"></ng-container>
+</ng-template>
 </ng-template>
 
 <ng-template #contenidoInicio>
@@ -25,14 +34,26 @@
         </button>
     </div>
 
-    <div class="rejilla">
+    <p class="aviso-estado aviso-error" role="alert" *ngIf="carga.error">
+        No se pudieron cargar las categorías. Revise su conexión e intente de nuevo.
+    </p>
+    <p class="aviso-estado" role="status" *ngIf="carga.cargada && listaEscenarios.length === 0">
+        No hay categorías disponibles.
+    </p>
+
+    <div class="rejilla" [attr.aria-busy]="carga.cargando">
+        <app-esqueleto *ngIf="carga.cargando" forma="tarjeta" [cantidad]="3" etiqueta="Cargando categorías…"></app-esqueleto>
         <mat-card class="tarjeta-categoria" *ngFor="let item of listaEscenarios">
             <button type="button" class="img-container" (click)="abrirCursosDeportivos(item.titulo)"
                     [attr.aria-label]="'Ver cursos de ' + item.titulo">
-                <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
-                    [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" alt="" />
-                <ng-template #imagenPorDefecto>
-                    <img src="assets/imagesSystem/deporte.jpg" alt="" />
+                <app-esqueleto *ngIf="carga.imagenPendiente(item.titulo); else imagenCategoria"
+                    forma="imagen" [cantidad]="1" etiqueta="Cargando imagen…"></app-esqueleto>
+                <ng-template #imagenCategoria>
+                    <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
+                        [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" alt="" />
+                    <ng-template #imagenPorDefecto>
+                        <img src="assets/imagesSystem/deporte.jpg" alt="" />
+                    </ng-template>
                 </ng-template>
             </button>
 

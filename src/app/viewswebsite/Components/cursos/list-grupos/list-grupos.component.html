@@ -20,7 +20,12 @@
     <!-- Resumen del curso -->
     <section class="resumen-curso" aria-label="Resumen del curso">
       <div class="resumen-cabecera">
-        <img class="resumen-imagen" [src]="imagenCurso ?? 'assets/imagesSystem/deporte.jpg'" alt="" />
+        <div class="resumen-imagen resumen-imagen-esqueleto" *ngIf="imagenPendiente; else imagenResumen">
+          <app-esqueleto forma="imagen" [cantidad]="1" etiqueta="Cargando imagen…"></app-esqueleto>
+        </div>
+        <ng-template #imagenResumen>
+          <img class="resumen-imagen" [src]="imagenCurso ?? 'assets/imagesSystem/deporte.jpg'" alt="" />
+        </ng-template>
         <div class="resumen-texto">
           <span class="eyebrow">{{ categoria }}</span>
           <h2 class="resumen-nombre">{{ titulo }}</h2>
@@ -46,12 +51,16 @@
         <h2 class="titulo-seccion">Grupos del curso</h2>
         <p class="subtitulo-seccion">Consulte la programación y administre cada grupo.</p>
       </div>
-      <span class="contador-grupos" role="status">{{ grupos.length }} {{ grupos.length === 1 ? 'grupo registrado' : 'grupos registrados' }}</span>
+      <span class="contador-grupos" role="status" *ngIf="!carga.cargando">{{ grupos.length }} {{ grupos.length === 1 ? 'grupo registrado' : 'grupos registrados' }}</span>
     </div>
 
-    <p class="aviso-vacio" role="status" *ngIf="grupos.length === 0">Este curso aún no tiene grupos.</p>
+    <p class="aviso-vacio" role="status" *ngIf="carga.cargada && grupos.length === 0">Este curso aún no tiene grupos.</p>
+    <p class="aviso-vacio aviso-error" role="alert" *ngIf="carga.error">
+      No se pudieron cargar los grupos. Revise su conexión e intente de nuevo.
+    </p>
 
-    <div class="rejilla-grupos">
+    <div class="rejilla-grupos" [attr.aria-busy]="carga.cargando">
+      <app-esqueleto *ngIf="carga.cargando" forma="tarjeta" [cantidad]="2" etiqueta="Cargando grupos…"></app-esqueleto>
       <mat-card class="tarjeta-grupo" *ngFor="let item of grupos" [class.cerrado]="!inscripcionAbierta(item)">
         <div class="cuerpo-grupo">
           <div class="cabecera-grupo">

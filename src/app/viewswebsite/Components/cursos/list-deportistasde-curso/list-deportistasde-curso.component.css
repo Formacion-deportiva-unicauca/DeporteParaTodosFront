@@ -65,6 +65,7 @@
 .celda-nombre { font-weight: 600; }
 .fila-asistio { background: #f1f8ee; }
 .sin-deportistas { margin: 0; padding: 1.25rem; text-align: center; color: var(--color-neutro-texto); }
+.sin-deportistas.error-lista { border-left: 4px solid var(--color-error-texto); background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
 
 .chip-faltas { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; border-radius: var(--radio-total); background: #efeff4; font-weight: 700; color: var(--color-neutro-texto); }
 .chip-faltas.con-faltas { background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }

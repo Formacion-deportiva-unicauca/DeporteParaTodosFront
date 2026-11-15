@@ -19,6 +19,8 @@ import { HorarioService } from 'src/app/services/horario.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { CargaLista } from 'src/app/shared/carga-lista';
+import { EsqueletoComponent } from 'src/app/shared/esqueleto/esqueleto.component';
 import { FormGruposComponent } from '../form-grupos/form-grupos.component';
 import { FormInscripcionesComponent } from '../../usuarios/form-inscripciones/form-inscripciones.component';
 import { DialogComponent } from '../../dialog/dialog.component';
@@ -51,6 +53,7 @@ export type FiltroAtenciones = 'todos' | 'asistieron' | 'faltaron';
   imports: [
     CommonModule,
     SidenavComponent,
+    EsqueletoComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -71,6 +74,8 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   anio: number | null = null;
   iterable: number | null = null;
   alumnos = new MatTableDataSource<AlumnoDTO>([]);
+  /** Carga de la lista de deportistas: cargando, cargada (puede estar vacía) o con error. */
+  readonly cargaAlumnos = new CargaLista();
   listaEspera: InscripcionEnEsperaDto[] = [];
   rol: string = '';
   clases: ClaseDTO[] = [];
@@ -230,14 +235,18 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
   /** Lista de alumnos del grupo con su total de faltas (lo calcula el backend). */
   cargarAlumnos(): void {
+    this.cargaAlumnos.iniciar();
     this.alumnoService.getAlumnosGrupo(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe(
       {
         next: (data) => {
           this.alumnos.data = Array.isArray(data) ? data : [];
+          this.cargaAlumnos.terminar();
         },
         error: (err) => {
           console.error('Error al traer alumnos:', err);
           this.alumnos.data = [];
+          this.cargaAlumnos.fallar();
+          this.notificaciones.error('No se pudo cargar la lista de deportistas', 'Revise su conexión e intente de nuevo.');
         }
       }
     );

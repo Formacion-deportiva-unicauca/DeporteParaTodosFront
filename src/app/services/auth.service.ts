@@ -3,7 +3,12 @@ import { AuthConfig, OAuthService } from 'angular-oauth2-oidc';
 import { Observable, from, filter, take } from 'rxjs';
 import { TokenInterchangeService } from './token-interchange.service';
 import { PerfilService } from './perfil.service';
+import { EstadoSesionService } from '../shared/estado-sesion.service';
+import { NotificacionService } from '../shared/notificacion/notificacion.service';
 import { environment } from '../../environments/environment';
+
+/** Marca de que ya se dio la bienvenida en esta sesión del navegador: el aviso de éxito sale una sola vez. */
+const CLAVE_BIENVENIDA = 'dpt_bienvenida';
 
 @Injectable({
   providedIn: 'root'
@@ -14,11 +19,15 @@ export class AuthService {
   private descubrimientoCargado = false;
   // Evita lanzar varios flujos de OAuth a la vez (se pisarían el state/nonce y el login fallaría).
   private loginEnCurso = false;
+  // El intercambio con /auth/token ya empezó: hasta que termine, la sesión sigue "resolviéndose".
+  private intercambioEnCurso = false;
 
   constructor(
     private oauthService: OAuthService,
     private tokenInterchangeService: TokenInterchangeService,
     private perfilService: PerfilService,
+    private estadoSesion: EstadoSesionService,
+    private notificaciones: NotificacionService,
   ) {
     this.initLogin();
   }
@@ -48,8 +57,25 @@ export class AuthService {
     ).subscribe(() => {
       const idToken = this.oauthService.getIdToken();
       if (idToken) {
+        this.intercambioEnCurso = true;
         this.tokenInterchangeService.exchangeGoogleToken(idToken).subscribe({
-          error: err => console.error('Error en intercambio de token con el backend:', err),
+          next: () => this.avisarSesionIniciada(),
+          error: err => {
+            console.error('Error en intercambio de token con el backend:', err);
+            this.intercambioEnCurso = false;
+            this.estadoSesion.visitante();
+            this.notificaciones.error(
+              'No se pudo iniciar la sesión',
+              'No pudimos validar tu cuenta con el servidor. Intenta ingresar de nuevo.',
+            );
+          },
+          // Termina sin sesión cuando el usuario no existe (404): el servicio lo envía a completar su perfil.
+          complete: () => {
+            this.intercambioEnCurso = false;
+            if (this.estadoSesion.actual === 'resolviendo') {
+              this.estadoSesion.visitante();
+            }
+          },
         });
       }
     });
@@ -67,8 +93,30 @@ export class AuthService {
         if (role) {
           this.perfilService.setPerfil(role);
         }
+        this.cerrarResolucionSinIntercambio();
       })
-      .catch(err => console.error('Error al iniciar la sesión de OAuth:', err));
+      .catch(err => {
+        console.error('Error al iniciar la sesión de OAuth:', err);
+        this.cerrarResolucionSinIntercambio();
+      });
+  }
+
+  /** Si Google no devolvió un login válido y no hay intercambio en marcha, no hay nada que esperar: es un visitante. */
+  private cerrarResolucionSinIntercambio(): void {
+    if (this.estadoSesion.actual === 'resolviendo' && !this.intercambioEnCurso) {
+      this.estadoSesion.visitante();
+    }
+  }
+
+  /** Aviso breve de inicio de sesión; solo una vez por sesión del navegador. */
+  private avisarSesionIniciada(): void {
+    try {
+      if (sessionStorage.getItem(CLAVE_BIENVENIDA)) return;
+      sessionStorage.setItem(CLAVE_BIENVENIDA, '1');
+    } catch {
+      // Sin almacenamiento no se puede recordar: se avisa igualmente.
+    }
+    this.notificaciones.exito('Sesión iniciada', 'Bienvenido/a a Deporte para Todos.', 3500);
   }
 
   /**
@@ -105,6 +153,8 @@ export class AuthService {
     sessionStorage.removeItem('dpt_role');
     sessionStorage.removeItem('dpt_perfil_id');
     sessionStorage.removeItem('dpt_perfil');
+    sessionStorage.removeItem(CLAVE_BIENVENIDA);
+    this.estadoSesion.visitante();
   }
 
   getProfile() {

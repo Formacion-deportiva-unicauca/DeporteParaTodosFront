@@ -56,25 +56,33 @@
 
     <div class="encabezado-lista">
       <h2 class="titulo-seccion">Cursos disponibles</h2>
-      <span class="contador-visibles" role="status">{{ cursosVisibles.length }} de {{ cursos.length }} cursos visibles</span>
+      <span class="contador-visibles" role="status" *ngIf="!carga.cargando">{{ cursosVisibles.length }} de {{ cursos.length }} cursos visibles</span>
     </div>
 
     <p class="aviso-vacio" role="status" *ngIf="cursos.length > 0 && cursosVisibles.length === 0">
       Ningún curso coincide con el filtro.
     </p>
-    <p class="aviso-vacio" role="status" *ngIf="cursos.length === 0">
+    <p class="aviso-vacio" role="status" *ngIf="carga.cargada && cursos.length === 0">
       Esta categoría aún no tiene cursos.
     </p>
+    <p class="aviso-vacio aviso-error" role="alert" *ngIf="carga.error">
+      No se pudieron cargar los cursos. Revise su conexión e intente de nuevo.
+    </p>
 
-    <div class="rejilla-cursos">
+    <div class="rejilla-cursos" [attr.aria-busy]="carga.cargando">
+      <app-esqueleto *ngIf="carga.cargando" forma="tarjeta" [cantidad]="3" etiqueta="Cargando cursos…"></app-esqueleto>
       <mat-card class="tarjeta-curso" *ngFor="let item of cursosVisibles">
         <div class="imagen-curso">
           <button type="button" class="abrir-grupos" (click)="gruposCurso(item.categoriaCurso, item.nombre)"
             [attr.aria-label]="'Ver los grupos del curso ' + item.nombre">
-            <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
-              [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" alt="" />
-            <ng-template #imagenPorDefecto>
-              <img src="assets/imagesSystem/deporte.jpg" alt="" />
+            <app-esqueleto *ngIf="carga.imagenPendiente(item.nombre); else imagenCurso"
+              forma="imagen" [cantidad]="1" etiqueta="Cargando imagen…"></app-esqueleto>
+            <ng-template #imagenCurso>
+              <img *ngIf="!!item.imagenBase64; else imagenPorDefecto"
+                [src]="'data:' + item.tipoArchivo + ';base64,' + item.imagenBase64" alt="" />
+              <ng-template #imagenPorDefecto>
+                <img src="assets/imagesSystem/deporte.jpg" alt="" />
+              </ng-template>
             </ng-template>
           </button>
           <span class="chip-estado" [attr.data-estado]="item.estadoCurso"><span class="punto" aria-hidden="true"></span>{{ textoEstadoCurso(item.estadoCurso) }}</span>

@@ -1,6 +1,8 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { Subject, of, throwError } from 'rxjs';
+import { EMPTY, Subject, of, throwError } from 'rxjs';
+import { EstadoSesionService } from '../shared/estado-sesion.service';
+import { NotificacionService } from '../shared/notificacion/notificacion.service';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { TokenInterchangeService } from './token-interchange.service';
 import { PerfilService } from './perfil.service';
@@ -12,6 +14,8 @@ describe('AuthService', () => {
   let tokenSpy: jasmine.SpyObj<TokenInterchangeService>;
   let perfilSpy: jasmine.SpyObj<PerfilService>;
   let eventsSubject: Subject<any>;
+  let avisos: jasmine.SpyObj<NotificacionService>;
+  let estado: EstadoSesionService;
 
   beforeEach(() => {
     eventsSubject = new Subject<any>();
@@ -37,6 +41,7 @@ describe('AuthService', () => {
     tokenSpy.exchangeGoogleToken.and.returnValue(of(void 0));
 
     perfilSpy = jasmine.createSpyObj('PerfilService', ['setPerfil']);
+    avisos = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -45,8 +50,10 @@ describe('AuthService', () => {
         { provide: OAuthService, useValue: oauthSpy },
         { provide: TokenInterchangeService, useValue: tokenSpy },
         { provide: PerfilService, useValue: perfilSpy },
+        { provide: NotificacionService, useValue: avisos },
       ],
     });
+    estado = TestBed.inject(EstadoSesionService);
     service = TestBed.inject(AuthService);
     sessionStorage.removeItem('dpt_token');
     sessionStorage.removeItem('dpt_role');
@@ -325,5 +332,121 @@ describe('AuthService', () => {
     expect(console.error).toHaveBeenCalledWith(
       'Error en intercambio de token con el backend:', err
     );
+  });
+
+  // ── estado de la sesión y avisos ─────────────────────────────────────────
+
+  describe('estado de la sesión y avisos', () => {
+    const lanzarIntercambio = (): void => {
+      oauthSpy.getIdToken.and.returnValue('id-tok-xyz');
+      eventsSubject.next({ type: 'token_received' });
+    };
+
+    beforeEach(() => sessionStorage.removeItem('dpt_bienvenida'));
+    afterEach(() => sessionStorage.removeItem('dpt_bienvenida'));
+
+    it('fallo del intercambio: avisa con un error claro y vuelve al estado de visitante', () => {
+      estado.resolviendo();
+      tokenSpy.exchangeGoogleToken.and.returnValue(throwError(() => ({ status: 500 })));
+      spyOn(console, 'error');
+      lanzarIntercambio();
+      expect(avisos.error).toHaveBeenCalledOnceWith(
+        'No se pudo iniciar la sesión',
+        'No pudimos validar tu cuenta con el servidor. Intenta ingresar de nuevo.',
+      );
+      expect(avisos.exito).not.toHaveBeenCalled();
+      expect(estado.actual).toBe('visitante');
+    });
+
+    it('intercambio correcto: avisa que la sesión se inició', () => {
+      lanzarIntercambio();
+      expect(avisos.exito).toHaveBeenCalledOnceWith('Sesión iniciada', 'Bienvenido/a a Deporte para Todos.', 3500);
+      expect(avisos.error).not.toHaveBeenCalled();
+    });
+
+    it('el aviso de éxito sale una sola vez por sesión del navegador', () => {
+      lanzarIntercambio();
+      // Otra carga de la aplicación en la misma pestaña (la marca sigue en sessionStorage).
+      TestBed.resetTestingModule();
+      const eventos = new Subject<any>();
+      const nuevosAvisos = jasmine.createSpyObj('NotificacionService', ['exito', 'error', 'info']);
+      TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
+        providers: [
+          AuthService,
+          { provide: OAuthService, useValue: { ...oauthSpy, events: eventos.asObservable() } },
+          { provide: TokenInterchangeService, useValue: tokenSpy },
+          { provide: PerfilService, useValue: perfilSpy },
+          { provide: NotificacionService, useValue: nuevosAvisos },
+        ],
+      });
+      TestBed.inject(AuthService);
+      eventos.next({ type: 'token_received' });
+      expect(nuevosAvisos.exito).not.toHaveBeenCalled();
+    });
+
+    it('logout() permite volver a dar la bienvenida y deja el estado en visitante', () => {
+      lanzarIntercambio();
+      expect(sessionStorage.getItem('dpt_bienvenida')).toBe('1');
+      estado.activa();
+      service.logout();
+      expect(sessionStorage.getItem('dpt_bienvenida')).toBeNull();
+      expect(estado.actual).toBe('visitante');
+    });
+
+    it('el intercambio termina sin sesión (usuario sin perfil): pasa a visitante sin avisos', () => {
+      estado.resolviendo();
+      tokenSpy.exchangeGoogleToken.and.returnValue(EMPTY);
+      lanzarIntercambio();
+      expect(estado.actual).toBe('visitante');
+      expect(avisos.error).not.toHaveBeenCalled();
+      expect(avisos.exito).not.toHaveBeenCalled();
+    });
+
+    it('Google no devolvió un login válido y no hay intercambio: deja de "resolver" y es visitante', fakeAsync(() => {
+      TestBed.resetTestingModule();
+      const nuevoEstado = new EstadoSesionService();
+      nuevoEstado.resolviendo();
+      TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
+        providers: [
+          AuthService,
+          { provide: OAuthService, useValue: oauthSpy },
+          { provide: TokenInterchangeService, useValue: tokenSpy },
+          { provide: PerfilService, useValue: perfilSpy },
+          { provide: NotificacionService, useValue: avisos },
+          { provide: EstadoSesionService, useValue: nuevoEstado },
+        ],
+      });
+      TestBed.inject(AuthService);
+      tick();
+      expect(nuevoEstado.actual).toBe('visitante');
+    }));
+
+    it('mientras el intercambio sigue en curso, la sesión sigue "resolviéndose"', fakeAsync(() => {
+      TestBed.resetTestingModule();
+      const nuevoEstado = new EstadoSesionService();
+      nuevoEstado.resolviendo();
+      const eventos = new Subject<any>();
+      const pendiente = new Subject<void>();
+      tokenSpy.exchangeGoogleToken.and.returnValue(pendiente.asObservable());
+      TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
+        providers: [
+          AuthService,
+          { provide: OAuthService, useValue: { ...oauthSpy, events: eventos.asObservable() } },
+          { provide: TokenInterchangeService, useValue: tokenSpy },
+          { provide: PerfilService, useValue: perfilSpy },
+          { provide: NotificacionService, useValue: avisos },
+          { provide: EstadoSesionService, useValue: nuevoEstado },
+        ],
+      });
+      TestBed.inject(AuthService);
+      oauthSpy.getIdToken.and.returnValue('id-tok-xyz');
+      eventos.next({ type: 'token_received' });
+      tick();
+      expect(tokenSpy.exchangeGoogleToken).toHaveBeenCalled();
+      expect(nuevoEstado.actual).toBe('resolviendo');
+    }));
   });
 });

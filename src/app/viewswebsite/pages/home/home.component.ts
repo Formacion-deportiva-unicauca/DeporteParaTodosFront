@@ -22,6 +22,9 @@ import { ImagenService } from 'src/app/services/imagen.service';
 import { TokenInterchangeService } from 'src/app/services/token-interchange.service';
 import { descripcionInicio, etiquetaRol, leerTipoVinculoGuardado } from 'src/app/shared/rol-usuario';
 import { NotificacionService } from 'src/app/shared/notificacion/notificacion.service';
+import { EstadoSesionService } from 'src/app/shared/estado-sesion.service';
+import { CargaLista } from 'src/app/shared/carga-lista';
+import { EsqueletoComponent } from 'src/app/shared/esqueleto/esqueleto.component';
 import { InformacionDialogComponent } from '../../Components/dialog/informacion-dialog.component';
 
 import { IconoEngranajeComponent } from 'src/app/shared/icono-engranaje/icono-engranaje.component';
@@ -41,6 +44,7 @@ import { IconoEngranajeComponent } from 'src/app/shared/icono-engranaje/icono-en
     HeaderComponent,
     SidenavComponent,
     IconoEngranajeComponent,
+    EsqueletoComponent,
   ],
 
   templateUrl: './home.component.html',
@@ -50,8 +54,11 @@ import { IconoEngranajeComponent } from 'src/app/shared/icono-engranaje/icono-en
 export class HomeComponent {
   public listaEscenarios: CategoriaDTO[] = [];
   perfil?: string;
+  /** Cargando, cargada (puede estar vacía) o con error; y qué imágenes faltan por llegar. */
+  readonly carga = new CargaLista();
 
   constructor(
+    public estadoSesion: EstadoSesionService,
     private router: Router,
     private categoriaService: CategoriaService,
     private imagenService: ImagenService,
@@ -84,19 +91,27 @@ export class HomeComponent {
   }
 
   loadCategorias(): void {
+    this.carga.iniciar();
     this.categoriaService.getCategorias().subscribe(
       (data) => {
         this.listaEscenarios = data;
+        this.carga.terminar();
 
         this.listaEscenarios.forEach((categoria) => {
           if (categoria.imagenId != null) {
+            this.carga.esperarImagen(categoria.titulo);
             this.imagenService.getimagen(categoria.imagenId).subscribe(
               (imagenData) => {
                 categoria.imagenBase64 = imagenData.datosBase64;
                 categoria.tipoArchivo = imagenData.tipoArchivo;
+                this.carga.imagenLista(categoria.titulo);
               },
               (error) => {
                 console.error(`Error al obtener la imagen de la categoría  ${categoria.titulo}`, error);
+                // Un solo aviso por carga, aunque fallen varias imágenes; las demás tarjetas siguen con su imagen genérica.
+                if (this.carga.imagenFallida(categoria.titulo)) {
+                  this.notificaciones.error('No se pudieron cargar algunas imágenes', 'Se muestra una imagen genérica en su lugar.');
+                }
               }
             );
           }
@@ -104,6 +119,7 @@ export class HomeComponent {
       },
       (error) => {
         console.error('Error al cargar las categorías', error);
+        this.carga.fallar();
         this.notificaciones.error('No se pudieron cargar las categorías', 'Revise su conexión e intente de nuevo.');
       }
     );
