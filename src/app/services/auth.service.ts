@@ -5,6 +5,7 @@ import { TokenInterchangeService } from './token-interchange.service';
 import { PerfilService } from './perfil.service';
 import { EstadoSesionService } from '../shared/estado-sesion.service';
 import { NotificacionService } from '../shared/notificacion/notificacion.service';
+import { SesionVencidaService } from '../shared/sesion-vencida.service';
 import { environment } from '../../environments/environment';
 
 /** Marca de que ya se dio la bienvenida en esta sesión del navegador: el aviso de éxito sale una sola vez. */
@@ -28,7 +29,10 @@ export class AuthService {
     private perfilService: PerfilService,
     private estadoSesion: EstadoSesionService,
     private notificaciones: NotificacionService,
+    private sesionVencida: SesionVencidaService,
   ) {
+    // Antes de arrancar el login: si quedó un dpt_token vencido en la pestaña, se descarta y se avisa una vez.
+    this.sesionVencida.revisarAlArrancar();
     this.initLogin();
   }
 
