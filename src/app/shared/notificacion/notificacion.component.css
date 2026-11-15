@@ -57,3 +57,22 @@
 
 .notificacion--info { border-left-color: var(--color-terciario); background: #f2f6ff; }
 .notificacion--info .notificacion-icono { background: #d8e3ff; color: var(--color-primario); }
+
+/* Botón de acción (aviso que pide decidir): píldora en mayúsculas de 44px de alto, como los botones principales */
+.notificacion-accion {
+  min-height: 44px;
+  margin-top: 0.75rem;
+  padding: 0 1.25rem;
+  border: 2px solid var(--color-primario);
+  border-radius: var(--radio-total);
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  font-family: var(--fuente-titulos);
+  font-size: var(--texto-boton-1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.notificacion-accion:hover { background: var(--color-primario-light); border-color: var(--color-primario-light); }
+.notificacion-accion:focus-visible { outline: 3px solid var(--color-terciario); outline-offset: 2px; }

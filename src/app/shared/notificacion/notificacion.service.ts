@@ -1,6 +1,6 @@
 import { Injectable, Injector } from '@angular/core';
 import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
-import { NotificacionComponent, TipoNotificacion } from './notificacion.component';
+import { AccionNotificacion, DatosNotificacion, NotificacionComponent, TipoNotificacion } from './notificacion.component';
 
 /**
  * Avisos al usuario con el diseño del lineamiento UX-UI: aparecen arriba a la derecha, con icono, título y mensaje.
@@ -25,11 +25,28 @@ export class NotificacionService {
     return this.mostrar('info', titulo, mensaje, duracionMs);
   }
 
+  /**
+   * Aviso que se queda en pantalla hasta que la persona pulse el botón (o hasta que se cierre por código): no se cierra
+   * solo, se anuncia de inmediato y no lleva la "x", para que la respuesta sea la acción. Para avisos que piden decidir.
+   */
+  conAccion(tipo: TipoNotificacion, titulo: string, mensaje: string, accion: AccionNotificacion): MatSnackBarRef<NotificacionComponent> {
+    return this.abrir({ tipo, titulo, mensaje, accion }, 0, 'assertive');
+  }
+
   private mostrar(tipo: TipoNotificacion, titulo: string, mensaje?: string, duracionMs?: number): MatSnackBarRef<NotificacionComponent> {
+    return this.abrir(
+      { tipo, titulo, mensaje },
+      duracionMs ?? (tipo === 'error' ? 8000 : 5000),
+      tipo === 'error' ? 'assertive' : 'polite',
+    );
+  }
+
+  private abrir(datos: DatosNotificacion, duration: number, politeness: 'polite' | 'assertive'): MatSnackBarRef<NotificacionComponent> {
+    const tipo = datos.tipo;
     return this.injector.get(MatSnackBar).openFromComponent(NotificacionComponent, {
-      data: { tipo, titulo, mensaje },
-      duration: duracionMs ?? (tipo === 'error' ? 8000 : 5000),
-      politeness: tipo === 'error' ? 'assertive' : 'polite',
+      data: datos,
+      duration,
+      politeness,
       horizontalPosition: 'end',
       verticalPosition: 'top',
       panelClass: ['notificacion-panel', `notificacion-panel--${tipo}`],

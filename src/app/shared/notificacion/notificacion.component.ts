@@ -6,10 +6,18 @@ import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from '@angular/material/snack-bar'
 
 export type TipoNotificacion = 'exito' | 'error' | 'info';
 
+/** Botón del aviso: al pulsarlo se ejecuta `alPulsar` y el aviso se cierra. */
+export interface AccionNotificacion {
+  texto: string;
+  alPulsar: () => void;
+}
+
 export interface DatosNotificacion {
   tipo: TipoNotificacion;
   titulo: string;
   mensaje?: string;
+  /** Si lleva acción, el aviso no muestra la "x": se resuelve con el botón. */
+  accion?: AccionNotificacion;
 }
 
 const ICONOS: Record<TipoNotificacion, string> = {
@@ -37,6 +45,11 @@ export class NotificacionComponent {
   }
 
   cerrar(): void {
+    this.referencia.dismiss();
+  }
+
+  ejecutarAccion(): void {
+    this.datos.accion?.alPulsar();
     this.referencia.dismiss();
   }
 }
