@@ -86,7 +86,7 @@ describe('AuthService', () => {
     expect(oauthSpy.loadDiscoveryDocumentAndTryLogin).toHaveBeenCalledTimes(1);
   });
 
-  it('initLogin() then(): registra el usuario en consola cuando hay claims', fakeAsync(() => {
+  it('initLogin() then(): no escribe en consola los datos del usuario (claims) aunque haya sesión', fakeAsync(() => {
     const claims = { name: 'Ana', email: 'ana@u.co' };
     oauthSpy.getIdentityClaims.and.returnValue(claims);
     spyOn(console, 'log');
@@ -103,7 +103,8 @@ describe('AuthService', () => {
     });
     TestBed.inject(AuthService);
     tick(); // flush Promise.resolve() del loadDiscoveryDocumentAndTryLogin
-    expect(console.log).toHaveBeenCalledWith('Usuario autenticado:', claims);
+    expect(oauthSpy.getIdentityClaims).not.toHaveBeenCalled();
+    expect(console.log).not.toHaveBeenCalled();
   }));
 
   // ── Suscripción a token_received ─────────────────────────────────────────
