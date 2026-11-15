@@ -2,6 +2,9 @@ import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { EMPTY, Subject, of, throwError } from 'rxjs';
 import { EstadoSesionService } from '../shared/estado-sesion.service';
+import { crearJwtQueVenceEn } from '../testing/jwt-prueba';
+import { Location } from '@angular/common';
+import { Router } from '@angular/router';
 import { NotificacionService } from '../shared/notificacion/notificacion.service';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { TokenInterchangeService } from './token-interchange.service';
@@ -332,6 +335,108 @@ describe('AuthService', () => {
     expect(console.error).toHaveBeenCalledWith(
       'Error en intercambio de token con el backend:', err
     );
+  });
+
+  // ── revisión del dpt_token al arrancar ───────────────────────────────────
+
+  describe('dpt_token al arrancar', () => {
+    let router: jasmine.SpyObj<Router>;
+    let ruta: string;
+
+    const arrancarConToken = (token: string | null): { estado: EstadoSesionService } => {
+      TestBed.resetTestingModule();
+      if (token) {
+        sessionStorage.setItem('dpt_token', token);
+        sessionStorage.setItem('dpt_role', 'Alumno');
+      }
+      TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
+        providers: [
+          AuthService,
+          { provide: OAuthService, useValue: oauthSpy },
+          { provide: TokenInterchangeService, useValue: tokenSpy },
+          { provide: PerfilService, useValue: perfilSpy },
+          { provide: NotificacionService, useValue: avisos },
+          { provide: Router, useValue: router },
+          { provide: Location, useValue: { path: () => ruta } },
+        ],
+      });
+      const estadoNuevo = TestBed.inject(EstadoSesionService);
+      TestBed.inject(AuthService);
+      return { estado: estadoNuevo };
+    };
+
+    beforeEach(() => {
+      router = jasmine.createSpyObj('Router', ['navigate']);
+      ruta = '/home';
+    });
+
+    afterEach(() => {
+      ['dpt_token', 'dpt_role', 'dpt_perfil_id', 'dpt_perfil'].forEach(k => sessionStorage.removeItem(k));
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    });
+
+    it('token vencido: limpia la sesión, arranca como visitante, avisa una vez y navega al login', fakeAsync(() => {
+      const { estado: e } = arrancarConToken(crearJwtQueVenceEn(-3600));
+      tick();
+      expect(sessionStorage.getItem('dpt_token')).toBeNull();
+      expect(sessionStorage.getItem('dpt_role')).toBeNull();
+      expect(e.actual).toBe('visitante');
+      expect(avisos.error).toHaveBeenCalledOnceWith('Tu sesión venció', 'Inicia sesión de nuevo.');
+      expect(router.navigate).toHaveBeenCalledOnceWith(['/login']);
+    }));
+
+    it('token malformado: lo descarta, avisa y navega al login', fakeAsync(() => {
+      arrancarConToken('esto-no-es-un-jwt');
+      tick();
+      expect(sessionStorage.getItem('dpt_token')).toBeNull();
+      expect(avisos.error).toHaveBeenCalledTimes(1);
+      expect(router.navigate).toHaveBeenCalledOnceWith(['/login']);
+    }));
+
+    it('token a punto de vencer (menos de 30 s): se descarta y navega al login', fakeAsync(() => {
+      arrancarConToken(crearJwtQueVenceEn(10));
+      tick();
+      expect(sessionStorage.getItem('dpt_token')).toBeNull();
+      expect(router.navigate).toHaveBeenCalledOnceWith(['/login']);
+    }));
+
+    it('visitante sin token: no navega ni avisa', fakeAsync(() => {
+      arrancarConToken(null);
+      tick();
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(avisos.error).not.toHaveBeenCalled();
+    }));
+
+    it('redirect de Google en curso (id_token en la URL): no navega y se mantiene "resolviendo"', fakeAsync(() => {
+      history.replaceState(null, '', '#id_token=abc&state=1');
+      const { estado: e } = arrancarConToken(crearJwtQueVenceEn(-3600));
+      // Recién arrancado, con Google redirigiendo: el token viejo se descartó pero la sesión sigue "resolviéndose".
+      expect(sessionStorage.getItem('dpt_token')).toBeNull();
+      expect(e.actual).toBe('resolviendo');
+      tick();
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(avisos.error).toHaveBeenCalledTimes(1);
+    }));
+
+    it('ya se está en el login: no vuelve a navegar', fakeAsync(() => {
+      ruta = '/login';
+      arrancarConToken(crearJwtQueVenceEn(-3600));
+      tick();
+      expect(avisos.error).toHaveBeenCalledTimes(1);
+      expect(router.navigate).not.toHaveBeenCalled();
+    }));
+
+    it('token vigente: conserva la sesión (token, rol y estado) sin avisar ni navegar', fakeAsync(() => {
+      const token = crearJwtQueVenceEn(3600);
+      const { estado: e } = arrancarConToken(token);
+      tick();
+      expect(sessionStorage.getItem('dpt_token')).toBe(token);
+      expect(e.actual).toBe('activa');
+      expect(perfilSpy.setPerfil).toHaveBeenCalledWith('Alumno');
+      expect(avisos.error).not.toHaveBeenCalled();
+      expect(router.navigate).not.toHaveBeenCalled();
+    }));
   });
 
   // ── estado de la sesión y avisos ─────────────────────────────────────────

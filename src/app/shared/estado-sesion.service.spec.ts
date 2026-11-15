@@ -1,4 +1,5 @@
 import { EstadoSesionService, estadoSesionInicial } from './estado-sesion.service';
+import { crearJwtQueVenceEn } from '../testing/jwt-prueba';
 
 describe('EstadoSesionService', () => {
   const limpiarUrl = (): void => history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -18,9 +19,30 @@ describe('EstadoSesionService', () => {
       expect(estadoSesionInicial()).toBe('visitante');
     });
 
-    it('con dpt_token: sesión activa', () => {
-      sessionStorage.setItem('dpt_token', 'x');
+    it('con un dpt_token vigente: sesión activa', () => {
+      sessionStorage.setItem('dpt_token', crearJwtQueVenceEn(3600));
       expect(estadoSesionInicial()).toBe('activa');
+    });
+
+    it('con un dpt_token vencido: visitante (no es sesión)', () => {
+      sessionStorage.setItem('dpt_token', crearJwtQueVenceEn(-3600));
+      expect(estadoSesionInicial()).toBe('visitante');
+    });
+
+    it('con un dpt_token que vence en menos de 30 s: visitante', () => {
+      sessionStorage.setItem('dpt_token', crearJwtQueVenceEn(10));
+      expect(estadoSesionInicial()).toBe('visitante');
+    });
+
+    it('con un dpt_token malformado: visitante', () => {
+      sessionStorage.setItem('dpt_token', 'x');
+      expect(estadoSesionInicial()).toBe('visitante');
+    });
+
+    it('con un dpt_token vencido y Google acaba de redirigir: resolviendo (el token viejo no cuenta)', () => {
+      sessionStorage.setItem('dpt_token', crearJwtQueVenceEn(-3600));
+      history.replaceState(null, '', '#id_token=abc');
+      expect(estadoSesionInicial()).toBe('resolviendo');
     });
 
     it('Google acaba de redirigir con un id_token en la URL: resolviendo', () => {
@@ -38,8 +60,8 @@ describe('EstadoSesionService', () => {
       expect(estadoSesionInicial()).toBe('visitante');
     });
 
-    it('si ya hay dpt_token gana sobre la redirección (la sesión ya está resuelta)', () => {
-      sessionStorage.setItem('dpt_token', 'x');
+    it('si ya hay un dpt_token vigente gana sobre la redirección (la sesión ya está resuelta)', () => {
+      sessionStorage.setItem('dpt_token', crearJwtQueVenceEn(3600));
       history.replaceState(null, '', '#id_token=abc');
       expect(estadoSesionInicial()).toBe('activa');
     });
