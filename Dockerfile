@@ -11,6 +11,7 @@ RUN test -f dist/deporte-para-todos/index.html
 # Etapa 2: servir con Nginx sin privilegios
 FROM nginxinc/nginx-unprivileged:stable-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-cabeceras.inc /etc/nginx/snippets/nginx-cabeceras.inc
 COPY --from=build /app/dist/deporte-para-todos /usr/share/nginx/html
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1
