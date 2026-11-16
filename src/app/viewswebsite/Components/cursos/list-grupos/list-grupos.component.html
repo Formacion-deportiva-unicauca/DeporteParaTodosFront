@@ -150,11 +150,31 @@
           </div>
 
           <div class="pie-grupo">
-            <button type="button" class="btn-principal btn-inscribirme" *ngIf="perfil === 'Alumno'; else verGrupo"
-              [disabled]="!inscripcionAbierta(item)"
-              (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
-              Inscribirme
-            </button>
+            <ng-container *ngIf="perfil === 'Alumno'; else verGrupo">
+              <!-- Mientras se piden sus inscripciones no se ofrece inscribirse: podría estar ya inscrito en este grupo. -->
+              <button type="button" class="btn-principal btn-inscribirme" *ngIf="estadoMisCursos === 'cargando'; else yaCargado"
+                disabled aria-busy="true">
+                Inscribirme
+              </button>
+              <ng-template #yaCargado>
+                <ng-container *ngIf="estadoInscripcionDe(item) as miEstado; else inscribirme">
+                  <span class="chip-inscripcion" role="status" [attr.data-estado]="miEstado">
+                    <mat-icon aria-hidden="true">{{ miEstado === 'INSCRITO' ? 'check_circle' : 'hourglass_empty' }}</mat-icon>
+                    {{ miEstado === 'INSCRITO' ? 'Inscrito' : 'En lista de espera' }}
+                  </span>
+                  <button type="button" class="ver-grupo" (click)="verMiGrupo(item)">
+                    Ver grupo <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                  </button>
+                </ng-container>
+                <ng-template #inscribirme>
+                  <button type="button" class="btn-principal btn-inscribirme"
+                    [disabled]="!inscripcionAbierta(item)"
+                    (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
+                    Inscribirme
+                  </button>
+                </ng-template>
+              </ng-template>
+            </ng-container>
             <ng-template #verGrupo>
               <button type="button" class="ver-grupo"
                 (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">

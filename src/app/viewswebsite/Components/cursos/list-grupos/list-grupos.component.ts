@@ -28,6 +28,7 @@ import { EsqueletoComponent } from 'src/app/shared/esqueleto/esqueleto.component
 import { FormHorarioComponent } from '../form-horario/form-horario.component';
 import { InscripcionesService } from 'src/app/services/inscripciones.service';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
+import { MiCursoDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-inscribirse';
 
@@ -62,6 +63,12 @@ export class ListGruposComponent implements OnInit {
   titulo: string | null = '';
   perfil?: string;
   disponibilidad: Record<string, DisponibilidadDTO> = {};
+  /**
+   * Solo para el Alumno: 'cargando' mientras se piden sus inscripciones, 'listo' o 'error'. Con cualquier otro rol (o
+   * mientras no se conoce el perfil) queda en 'no-aplica' y no se pide nada.
+   */
+  estadoMisCursos: 'no-aplica' | 'cargando' | 'listo' | 'error' = 'no-aplica';
+  private misCursos: MiCursoDTO[] = [];
 
   constructor(
     private router: Router,
@@ -93,7 +100,42 @@ export class ListGruposComponent implements OnInit {
 
     this.perfilService.perfil$.subscribe(perfil => {
       this.perfil = perfil;
+      // Se espera a conocer el perfil: misCursos solo existe para el Alumno (a los demás roles les respondería 403).
+      if (perfil === 'Alumno') this.cargarMisCursos();
     });
+  }
+
+  /** Inscripciones vigentes del Alumno, para no ofrecerle "Inscribirme" en un grupo donde ya está. */
+  private cargarMisCursos(): void {
+    if (this.estadoMisCursos === 'cargando' || this.estadoMisCursos === 'listo') return;
+    this.estadoMisCursos = 'cargando';
+    this.inscripcionesService.getMisCursos().subscribe({
+      next: cursos => {
+        this.misCursos = cursos ?? [];
+        this.estadoMisCursos = 'listo';
+      },
+      // Si falla, la pantalla queda como siempre (con "Inscribirme"): el backend rechaza igualmente un duplicado.
+      error: () => {
+        this.misCursos = [];
+        this.estadoMisCursos = 'error';
+      },
+    });
+  }
+
+  /** Estado del Alumno en este grupo según sus inscripciones vigentes; null si no está inscrito ni en espera. */
+  estadoInscripcionDe(grupo: GrupoDTO): 'INSCRITO' | 'EN_ESPERA' | null {
+    if (this.perfil !== 'Alumno') return null;
+    const categoria = grupo.categoria ?? this.categoria;
+    const curso = grupo.curso ?? this.titulo;
+    const fila = this.misCursos.find(c =>
+      c.grupoActivo !== false && c.categoria === categoria && c.curso === curso
+      && c.anio === grupo.anio && c.iterable === grupo.iterable);
+    return fila?.estado ?? null;
+  }
+
+  /** Detalle del grupo en el que el Alumno ya está: no se bloquea por inscripciones cerradas (puede ver o cancelar). */
+  verMiGrupo(grupo: GrupoDTO): void {
+    void this.router.navigate(['/inscripcion-grupo', grupo.categoria ?? this.categoria, grupo.curso ?? this.titulo, grupo.anio, grupo.iterable]);
   }
 
   private loadGrupos(categoria: any, nombreCurso: any): void {
