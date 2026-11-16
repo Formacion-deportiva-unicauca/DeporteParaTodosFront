@@ -59,7 +59,7 @@ describe('ListGruposComponent › estados de carga', () => {
         { provide: ImagenService, useValue: imagenes },
         { provide: InstructorServisce, useValue: { getInstructor: () => of({}) } },
         { provide: HorarioService, useValue: { getHorarios: () => of([]) } },
-        { provide: InscripcionesService, useValue: { getDisponibilidad: () => of({ cuposTotales: 10, cuposDisponibles: 4, tamanoListaEspera: 0 }) } },
+        { provide: InscripcionesService, useValue: { getDisponibilidad: () => of({ cuposTotales: 10, cuposDisponibles: 4, tamanoListaEspera: 0 }), getMisCursos: () => of([]) } },
         { provide: NotificacionService, useValue: avisos },
         { provide: MatDialog, useValue: { open: jasmine.createSpy() } },
         { provide: BreakpointObserver, useValue: { observe: () => of({ matches: false }) } },

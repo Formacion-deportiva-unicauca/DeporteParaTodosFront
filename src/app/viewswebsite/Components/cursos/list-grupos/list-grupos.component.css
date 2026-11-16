@@ -115,6 +115,12 @@
 .ver-grupo:hover { color: var(--color-primario-light); text-decoration: underline; }
 .ver-grupo mat-icon { width: 18px; height: 18px; font-size: 18px; }
 .btn-inscribirme { width: 100%; }
+/* Estado propio del Alumno en el grupo (mismos colores que en "Mis cursos matriculados"). */
+.pie-grupo { justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.chip-inscripcion { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.7rem; border-radius: var(--radio-total); background: #ececec; color: var(--color-neutro-texto); font-size: var(--texto-caption); font-weight: 600; }
+.chip-inscripcion mat-icon { width: 18px; height: 18px; font-size: 18px; }
+.chip-inscripcion[data-estado="INSCRITO"] { background: #d4efcb; color: #17520a; }
+.chip-inscripcion[data-estado="EN_ESPERA"] { background: #ffe9a6; color: #4d3800; }
 
 @media (max-width: 575.98px) {
   .titulo-pagina { font-size: var(--texto-h5); }
