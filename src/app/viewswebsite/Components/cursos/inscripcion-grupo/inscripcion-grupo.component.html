@@ -116,7 +116,7 @@
 
         <!-- Aún sin inscripción: ofrece inscribirse o unirse a la lista de espera -->
         <ng-container *ngIf="!yaInscrito">
-          <div class="aviso aviso-espera" *ngIf="grupoLleno && puedeInscribirseEnGrupo()" role="status">
+          <div class="aviso aviso-espera" *ngIf="grupoLleno && puedeInscribirseEnGrupo() && !resolviendoEstado" role="status">
             <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
             <p>
               <strong>El grupo está completo.</strong>
@@ -125,11 +125,13 @@
           </div>
 
           <button type="button" class="btn-principal btn-inscribirse"
-                  [disabled]="inscribiendo || !puedeInscribirseEnGrupo()"
+                  [disabled]="inscribiendo || resolviendoEstado || !puedeInscribirseEnGrupo()"
+                  [attr.aria-busy]="resolviendoEstado"
                   [class.btn-espera]="grupoLleno"
                   (click)="inscribirse()">
             <mat-icon aria-hidden="true">{{ grupoLleno ? 'hourglass_empty' : 'how_to_reg' }}</mat-icon>
-            {{ inscribiendo ? 'Procesando...'
+            {{ resolviendoEstado ? 'Verificando tu inscripción...'
+               : inscribiendo ? 'Procesando...'
                : grupoLleno ? 'Unirme a la lista de espera'
                : 'Inscribirme en este grupo' }}
           </button>

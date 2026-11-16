@@ -2,7 +2,7 @@ import { SidenavComponent } from 'src/app/viewswebsite/pages/sidenav/sidenav.com
 import { SidenavStub } from 'src/app/testing/sidenav-stub';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -411,13 +411,24 @@ describe('InscripcionGrupoComponent › diseño y estados de la inscripción', (
   const q = <T extends HTMLElement>(sel: string): T => el().querySelector(sel) as T;
   const detectar = (): void => fixture.detectChanges();
 
-  async function montar(opciones: { inscrito?: boolean; enEspera?: boolean; disp?: any; cursos?: any[] } = {}): Promise<void> {
+  const filaMisCursos = (estado: 'INSCRITO' | 'EN_ESPERA', extra: object = {}): any =>
+    ({ categoria: 'Recreativo', curso: 'baloncesto masculino', anio: 2026, iterable: 1, estado, grupoActivo: true, ...extra });
+
+  /**
+   * Monta la pantalla como la vería cada rol. `validarInscripcion` responde como el backend real: true solo para
+   * INSCRITO (nunca para EN_ESPERA); el estado completo viene de misCursos, que solo puede pedir el Alumno.
+   * `misCursos` y `validar` permiten simular una carga pendiente (Subject) o un error.
+   */
+  async function montar(opciones: {
+    inscrito?: boolean; enEspera?: boolean; disp?: any; cursos?: any[]; rol?: string; misCursos?: any; validar?: any;
+  } = {}): Promise<void> {
     sessionStorage.setItem('dpt_perfil_id', '12345');
+    sessionStorage.setItem('dpt_role', opciones.rol ?? 'Alumno');
     inscripciones = jasmine.createSpyObj('InscripcionesService', ['postInscripcion', 'getDisponibilidad', 'validarInscripcion', 'eliminarInscripcion', 'getMisCursos']);
     inscripciones.getDisponibilidad.and.returnValue(of(opciones.disp ?? { cuposTotales: 7, cuposDisponibles: 5, tamanoListaEspera: 0 }));
-    inscripciones.validarInscripcion.and.returnValue(of(!!opciones.inscrito));
-    inscripciones.getMisCursos.and.returnValue(of(opciones.cursos ?? (opciones.enEspera
-      ? [{ categoria: 'Recreativo', curso: 'baloncesto masculino', anio: 2026, iterable: 1, estado: 'EN_ESPERA' }] : [])));
+    inscripciones.validarInscripcion.and.returnValue(opciones.validar ?? of(!!opciones.inscrito));
+    inscripciones.getMisCursos.and.returnValue(opciones.misCursos ?? of(opciones.cursos ?? (
+      opciones.enEspera ? [filaMisCursos('EN_ESPERA')] : opciones.inscrito ? [filaMisCursos('INSCRITO')] : [])));
     router = jasmine.createSpyObj('Router', ['navigate']);
     const grupo = jasmine.createSpyObj('GrupoService', ['getGrupo']);
     grupo.getGrupo.and.returnValue(of({ anio: 2026, periodo: 2, iterable: 1, idInstructor: 'I1', cupos: 7 } as any));
@@ -455,7 +466,10 @@ describe('InscripcionGrupoComponent › diseño y estados de la inscripción', (
     };
   }
 
-  afterEach(() => sessionStorage.removeItem('dpt_perfil_id'));
+  afterEach(() => {
+    sessionStorage.removeItem('dpt_perfil_id');
+    sessionStorage.removeItem('dpt_role');
+  });
 
   it('muestra migas "Inicio › Grupos · curso › Inscripción", el título con línea secundaria y "Volver a grupos"', async () => {
     await montar();
@@ -538,11 +552,19 @@ describe('InscripcionGrupoComponent › diseño y estados de la inscripción', (
     expect(q('.panel-accion').classList).toContain('con-estado');
   });
 
-  it('al volver a la pantalla estando en lista de espera lo reconoce (antes aparecía como inscrito)', async () => {
-    await montar({ inscrito: true, enEspera: true });
+  // validarInscripcion solo responde "sí" para INSCRITO: quien está en espera llega con validarInscripcion = false y el
+  // estado lo da misCursos (antes esta pantalla lo trataba como "sin inscripción" y le ofrecía unirse otra vez).
+  it('al volver a la pantalla estando en lista de espera (validarInscripcion=false, misCursos=EN_ESPERA) lo reconoce', async () => {
+    await montar({ enEspera: true });
+    expect(inscripciones.validarInscripcion).not.toHaveBeenCalled();
+    expect(component.yaInscrito).toBeTrue();
     expect(component.yaEnEspera).toBeTrue();
-    expect(el().querySelector('.resultado-espera')).not.toBeNull();
+    const panel = q('.resultado-espera');
+    expect(panel.textContent).toContain('Estás en la lista de espera');
+    expect(panel.textContent).not.toContain('Tu posición'); // al volver no se conoce: no se inventa
+    expect(q('.btn-cancelar-inscripcion').textContent).toContain('Salir de la lista de espera');
     expect(el().querySelector('.resultado-exito')).toBeNull();
+    expect(el().querySelector('button.btn-inscribirse')).toBeNull(); // ni "Inscribirme" ni "Unirme"
   });
 
   it('al volver estando inscrito (no en espera) muestra el panel verde', async () => {
@@ -579,7 +601,7 @@ describe('InscripcionGrupoComponent › diseño y estados de la inscripción', (
   });
 
   it('en lista de espera la confirmación habla de la posición y el resultado dice que salió de la lista', async () => {
-    await montar({ inscrito: true, enEspera: true });
+    await montar({ enEspera: true });
     inscripciones.eliminarInscripcion.and.returnValue(of({} as any));
     q<HTMLButtonElement>('.btn-cancelar-inscripcion').click();
     detectar();
@@ -587,6 +609,103 @@ describe('InscripcionGrupoComponent › diseño y estados de la inscripción', (
     q<HTMLButtonElement>('.btn-confirmar-cancelar').click();
     detectar();
     expect(q('.resultado-info').textContent).toContain('Saliste de la lista de espera');
+  });
+
+  it('al salir de la lista de espera la pantalla queda "sin inscripción": sin panel de espera y con "Inscribirme" habilitado', async () => {
+    await montar({ enEspera: true });
+    inscripciones.eliminarInscripcion.and.returnValue(of({} as any));
+    q<HTMLButtonElement>('.btn-cancelar-inscripcion').click();
+    detectar();
+    q<HTMLButtonElement>('.btn-confirmar-cancelar').click();
+    detectar();
+
+    expect(component.yaInscrito).toBeFalse();
+    expect(component.yaEnEspera).toBeFalse();
+    expect(component.posicionEspera).toBeNull();
+    expect(component.resolviendoEstado).toBeFalse();
+    expect(el().querySelector('.resultado-espera')).toBeNull();
+    expect(el().querySelector('.btn-cancelar-inscripcion')).toBeNull();
+    expect(q('.resultado-info').textContent).toContain('Saliste de la lista de espera');
+    expect(q<HTMLButtonElement>('button.btn-inscribirse').disabled).toBeFalse();
+    expect(inscripciones.getDisponibilidad).toHaveBeenCalledTimes(2); // se refrescan los cupos tras salir
+  });
+
+  // ── Estado de la inscripción al entrar: INSCRITO, EN_ESPERA, ninguna, error y rol ──────────
+
+  it('INSCRITO: panel verde con "Cancelar inscripción", sin "Inscribirme"', async () => {
+    await montar({ inscrito: true });
+    expect(inscripciones.getMisCursos).toHaveBeenCalledTimes(1);
+    expect(component.yaEnEspera).toBeFalse();
+    expect(el().querySelector('.resultado-exito')).not.toBeNull();
+    expect(el().querySelector('.resultado-espera')).toBeNull();
+    expect(q('.btn-cancelar-inscripcion').textContent).toContain('Cancelar inscripción');
+    expect(el().querySelector('button.btn-inscribirse')).toBeNull();
+  });
+
+  it('sin fila en misCursos: "Inscribirme en este grupo" habilitado, sin paneles de estado', async () => {
+    await montar();
+    expect(component.yaInscrito).toBeFalse();
+    expect(el().querySelector('.resultado-exito')).toBeNull();
+    expect(el().querySelector('.resultado-espera')).toBeNull();
+    const boton = q<HTMLButtonElement>('button.btn-inscribirse');
+    expect(boton.textContent).toContain('Inscribirme en este grupo');
+    expect(boton.disabled).toBeFalse();
+  });
+
+  it('se ignoran las filas de grupos eliminados y las de otros grupos del curso', async () => {
+    await montar({ cursos: [filaMisCursos('EN_ESPERA', { grupoActivo: false }), filaMisCursos('INSCRITO', { iterable: 2 })] });
+    expect(component.yaInscrito).toBeFalse();
+    expect(q<HTMLButtonElement>('button.btn-inscribirse').disabled).toBeFalse();
+  });
+
+  it('mientras se resuelve el estado "Inscribirme" va deshabilitado y no ofrece unirse; al llegar muestra el estado real', async () => {
+    const respuesta$ = new Subject<any[]>();
+    await montar({ misCursos: respuesta$, disp: { cuposTotales: 5, cuposDisponibles: 0, tamanoListaEspera: 2 } });
+
+    const boton = q<HTMLButtonElement>('button.btn-inscribirse');
+    expect(boton.disabled).toBeTrue();
+    expect(boton.textContent).toContain('Verificando tu inscripción');
+    expect(boton.textContent).not.toContain('Unirme');
+    expect(el().querySelector('.aviso-espera')).toBeNull();
+
+    respuesta$.next([filaMisCursos('EN_ESPERA')]);
+    respuesta$.complete();
+    detectar();
+
+    expect(el().querySelector('button.btn-inscribirse')).toBeNull();
+    expect(q('.resultado-espera').textContent).toContain('Estás en la lista de espera');
+  });
+
+  it('si misCursos falla cae en validarInscripcion, como antes: inscrito', async () => {
+    await montar({ inscrito: true, misCursos: throwError(() => ({ status: 500 })) });
+    expect(inscripciones.validarInscripcion).toHaveBeenCalledTimes(1);
+    expect(el().querySelector('.resultado-exito')).not.toBeNull();
+    expect(el().querySelector('button.btn-inscribirse')).toBeNull();
+  });
+
+  it('si misCursos falla cae en validarInscripcion, como antes: sin inscripción', async () => {
+    await montar({ misCursos: throwError(() => ({ status: 500 })) });
+    expect(inscripciones.validarInscripcion).toHaveBeenCalledTimes(1);
+    expect(q<HTMLButtonElement>('button.btn-inscribirse').disabled).toBeFalse();
+    expect(component.resolviendoEstado).toBeFalse();
+  });
+
+  it('mientras responde validarInscripcion (respaldo) tampoco se ofrece inscribirse', async () => {
+    const validar$ = new Subject<boolean>();
+    await montar({ misCursos: throwError(() => ({ status: 500 })), validar: validar$ });
+    expect(q<HTMLButtonElement>('button.btn-inscribirse').disabled).toBeTrue();
+    validar$.next(false);
+    validar$.complete();
+    detectar();
+    expect(q<HTMLButtonElement>('button.btn-inscribirse').disabled).toBeFalse();
+  });
+
+  it('Coordinador: no pide misCursos (daría 403) y sigue usando validarInscripcion como siempre', async () => {
+    await montar({ rol: 'Coordinador', inscrito: true });
+    expect(inscripciones.getMisCursos).not.toHaveBeenCalled();
+    expect(inscripciones.validarInscripcion).toHaveBeenCalledTimes(1);
+    expect(component.yaInscrito).toBeTrue();
+    expect(component.yaEnEspera).toBeFalse();
   });
 
   it('"Cancelar" usa el naranja del rol de error, nunca rojo', async () => {

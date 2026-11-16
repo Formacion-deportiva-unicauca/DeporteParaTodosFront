@@ -47,6 +47,8 @@ export class InscripcionGrupoComponent implements OnInit {
   cancelando = false;
   yaInscrito = false;
   yaEnEspera = false;
+  /** Se está averiguando si ya está inscrita o en espera: mientras tanto no se ofrece inscribirse. */
+  resolviendoEstado = false;
   /** Posición en la lista de espera: se conoce al unirse (al volver a entrar solo se sabe que está en espera). */
   posicionEspera: number | null = null;
   /** Pregunta "¿seguro?" antes de cancelar: cancelar la inscripción o salir de la lista de espera pierde el cupo o la posición. */
@@ -108,15 +110,7 @@ export class InscripcionGrupoComponent implements OnInit {
         });
 
         const alumnoId = sessionStorage.getItem('dpt_perfil_id');
-        if (alumnoId) {
-          this.inscripcionesService.validarInscripcion(alumnoId, this.categoria, this.curso, this.anio, this.iterable).subscribe({
-            next: (inscrito) => {
-              this.yaInscrito = inscrito;
-              if (inscrito) this.resolverSiEstaEnEspera();
-            },
-            error: () => {},
-          });
-        }
+        if (alumnoId) this.resolverEstadoInscripcion(alumnoId);
       },
       error: () => {
         this.notificaciones.error('No se pudo cargar el grupo', 'Revise su conexión e intente de nuevo.');
@@ -266,15 +260,39 @@ export class InscripcionGrupoComponent implements OnInit {
     return partes.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || '?';
   }
 
-  /** Si ya hay inscripción, consulta si es en lista de espera (al volver a la pantalla el servidor solo dice "inscrito"). */
-  private resolverSiEstaEnEspera(): void {
+  /**
+   * Averigua si la persona ya está inscrita (INSCRITO), en lista de espera (EN_ESPERA) o sin inscripción en este grupo.
+   * Para el Alumno se usa misCursos, que trae el estado; validarInscripcion solo responde "sí" para INSCRITO, así que no
+   * distingue la lista de espera. Si misCursos falla se cae en validarInscripcion, como antes. El Coordinador no puede
+   * pedir misCursos (403): para él no cambia nada y no se hace esa llamada.
+   */
+  private resolverEstadoInscripcion(alumnoId: string): void {
+    this.resolviendoEstado = true;
+    if (sessionStorage.getItem('dpt_role') !== 'Alumno') {
+      this.resolverConValidarInscripcion(alumnoId);
+      return;
+    }
     this.inscripcionesService.getMisCursos().subscribe({
       next: (cursos) => {
-        const mio = (cursos ?? []).find(c => c.categoria === this.categoria && c.curso === this.curso
-          && c.anio === this.anio && c.iterable === this.iterable);
+        const mio = (cursos ?? []).find(c => c.grupoActivo !== false && c.categoria === this.categoria
+          && c.curso === this.curso && c.anio === this.anio && c.iterable === this.iterable);
+        this.yaInscrito = !!mio;
         this.yaEnEspera = mio?.estado === 'EN_ESPERA';
+        // La posición solo se conoce al unirse; al volver a entrar no se inventa.
+        this.posicionEspera = null;
+        this.resolviendoEstado = false;
       },
-      error: () => {},
+      error: () => this.resolverConValidarInscripcion(alumnoId),
+    });
+  }
+
+  private resolverConValidarInscripcion(alumnoId: string): void {
+    this.inscripcionesService.validarInscripcion(alumnoId, this.categoria, this.curso, this.anio, this.iterable).subscribe({
+      next: (inscrito) => {
+        this.yaInscrito = inscrito;
+        this.resolviendoEstado = false;
+      },
+      error: () => { this.resolviendoEstado = false; },
     });
   }
 
