@@ -139,7 +139,7 @@ describe('InscripcionGrupoComponent', () => {
     component.disponibilidad = { cuposTotales: 15, cuposDisponibles: 0, tamanoListaEspera: 2 } as any;
     component.inscribirse();
     expect(component.yaEnEspera).toBeTrue();
-    expect(avisoInfo).toHaveBeenCalledOnceWith('Quedaste en lista de espera', jasmine.stringContaining('posición es la 3'), 8000);
+    expect(avisoInfo).toHaveBeenCalledOnceWith('Quedaste en la lista de espera de este grupo', jasmine.stringContaining('posición es la 3'), 8000);
     expect(avisoExito).not.toHaveBeenCalled();
   });
 
@@ -540,7 +540,7 @@ describe('InscripcionGrupoComponent › diseño y estados de la inscripción', (
     expect(panel.textContent).toContain('Estás en la lista de espera');
     expect(panel.textContent).toContain('Tu posición es la 2');
     expect(q('.btn-cancelar-inscripcion').textContent).toContain('Salir de la lista de espera');
-    expect(avisos.info).toHaveBeenCalledWith('Quedaste en lista de espera', jasmine.any(String), 8000);
+    expect(avisos.info).toHaveBeenCalledWith('Quedaste en la lista de espera de este grupo', jasmine.any(String), 8000);
   });
 
   it('con un estado que mostrar el panel se marca para ir primero en móvil; sin estado no', async () => {

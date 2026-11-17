@@ -341,7 +341,13 @@ export class ListDeportistasdeCursoComponent implements OnInit {
           this.inscripcionService.postInscripcion(inscripcion).subscribe({
             next: (response) => {
               if (response != null) {
-                this.notificaciones.exito('Deportista inscrito', 'Ya aparece en la lista del grupo.');
+                if (response.estado === 'EN_ESPERA') {
+                  // Con cola de espera el backend no lo inscribe directo (aunque haya cupo): queda al final de la lista.
+                  this.notificaciones.info('Deportista en lista de espera',
+                    'Quedó al final de la lista de espera de este grupo, no entre los inscritos. Puede promoverlo desde «Lista de espera».');
+                } else {
+                  this.notificaciones.exito('Deportista inscrito', 'Ya aparece en la lista del grupo.');
+                }
                 this.ngOnInit();
               }
             },

@@ -158,6 +158,16 @@
             </div>
           </div>
 
+          <!-- Cupo libre pero con cola: quien llega queda al final de la lista de espera. Solo para quien aún puede inscribirse. -->
+          <div class="aviso-cierre aviso-cola" role="status"
+               *ngIf="perfil === 'Alumno' && estadoMisCursos === 'listo' && estadoInscripcionDe(item) === null && inscripcionAbierta(item) && !textoCruce(item) && colaConCupoLibre(item)">
+            <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+            <div>
+              <strong>Este grupo tiene lista de espera</strong>
+              <p class="pista-reabrir" [id]="'cola-' + item.anio + '-' + item.iterable">Si te unes, quedarás al final de la lista, por orden de llegada.</p>
+            </div>
+          </div>
+
           <div class="pie-grupo">
             <ng-container *ngIf="perfil === 'Alumno'; else verGrupo">
               <!-- Mientras se piden sus inscripciones no se ofrece inscribirse: podría estar ya inscrito en este grupo. -->
@@ -178,9 +188,9 @@
                 <ng-template #inscribirme>
                   <button type="button" class="btn-principal btn-inscribirme"
                     [disabled]="!inscripcionAbierta(item) || !!textoCruce(item)"
-                    [attr.aria-describedby]="textoCruce(item) ? 'cruce-' + item.anio + '-' + item.iterable : null"
+                    [attr.aria-describedby]="textoCruce(item) ? 'cruce-' + item.anio + '-' + item.iterable : colaConCupoLibre(item) ? 'cola-' + item.anio + '-' + item.iterable : null"
                     (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
-                    Inscribirme
+                    {{ colaConCupoLibre(item) ? 'Unirme a la lista de espera' : 'Inscribirme' }}
                   </button>
                 </ng-template>
               </ng-template>

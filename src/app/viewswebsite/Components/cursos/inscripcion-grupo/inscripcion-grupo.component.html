@@ -103,7 +103,8 @@
           <mat-icon class="resultado-icono" aria-hidden="true">hourglass_empty</mat-icon>
           <h2 class="resultado-titulo">Estás en la lista de espera</h2>
           <p class="resultado-texto">
-            <ng-container *ngIf="posicionEspera">Tu posición es la {{ posicionEspera }}. </ng-container>Te avisaremos si se libera un cupo.
+            <ng-container *ngIf="posicionEspera; else sinPosicion">Tu posición es la {{ posicionEspera }}.</ng-container>
+            <ng-template #sinPosicion>Quedaste en la lista de espera de este grupo.</ng-template>
           </p>
         </div>
 
@@ -124,16 +125,25 @@
             </p>
           </div>
 
+          <!-- Cupo libre pero con cola: no se entra directo, se queda al final de la lista (orden de llegada). -->
+          <div class="aviso aviso-espera aviso-cola" *ngIf="colaConCupoLibre && puedeInscribirseEnGrupo() && !resolviendoEstado && !textoCruce" role="status">
+            <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+            <p id="aviso-cola">
+              <strong>Este grupo tiene lista de espera.</strong>
+              Si te unes, quedarás al final de la lista, en la posición {{ disponibilidad!.tamanoListaEspera + 1 }}, por orden de llegada.
+            </p>
+          </div>
+
           <button type="button" class="btn-principal btn-inscribirse"
                   [disabled]="inscribiendo || resolviendoEstado || !puedeInscribirseEnGrupo() || !!textoCruce"
-                  [attr.aria-describedby]="textoCruce ? 'aviso-cruce' : null"
+                  [attr.aria-describedby]="textoCruce ? 'aviso-cruce' : colaConCupoLibre ? 'aviso-cola' : null"
                   [attr.aria-busy]="resolviendoEstado"
-                  [class.btn-espera]="grupoLleno"
+                  [class.btn-espera]="iraAListaDeEspera"
                   (click)="inscribirse()">
-            <mat-icon aria-hidden="true">{{ grupoLleno ? 'hourglass_empty' : 'how_to_reg' }}</mat-icon>
+            <mat-icon aria-hidden="true">{{ iraAListaDeEspera ? 'hourglass_empty' : 'how_to_reg' }}</mat-icon>
             {{ resolviendoEstado ? 'Verificando tu inscripción...'
                : inscribiendo ? 'Procesando...'
-               : grupoLleno ? 'Unirme a la lista de espera'
+               : iraAListaDeEspera ? 'Unirme a la lista de espera'
                : 'Inscribirme en este grupo' }}
           </button>
 
