@@ -125,7 +125,8 @@
           </div>
 
           <button type="button" class="btn-principal btn-inscribirse"
-                  [disabled]="inscribiendo || resolviendoEstado || !puedeInscribirseEnGrupo()"
+                  [disabled]="inscribiendo || resolviendoEstado || !puedeInscribirseEnGrupo() || !!textoCruce"
+                  [attr.aria-describedby]="textoCruce ? 'aviso-cruce' : null"
                   [attr.aria-busy]="resolviendoEstado"
                   [class.btn-espera]="grupoLleno"
                   (click)="inscribirse()">
@@ -135,6 +136,14 @@
                : grupoLleno ? 'Unirme a la lista de espera'
                : 'Inscribirme en este grupo' }}
           </button>
+
+          <div class="aviso aviso-cerrado aviso-cruce" *ngIf="textoCruce as cruce" role="status">
+            <mat-icon aria-hidden="true">event_busy</mat-icon>
+            <p id="aviso-cruce">
+              <strong>No puedes inscribirte: cruce de horario.</strong>
+              {{ cruce }}
+            </p>
+          </div>
 
           <div class="aviso aviso-cerrado" *ngIf="avisoGrupo" role="status">
             <mat-icon aria-hidden="true">lock</mat-icon>

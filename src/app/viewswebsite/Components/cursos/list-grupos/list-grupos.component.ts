@@ -31,6 +31,7 @@ import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
 import { MiCursoDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
 import { CursodeportivoService } from 'src/app/services/cursodeportivo.service';
 import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-inscribirse';
+import { primerCruce } from 'src/app/shared/cruce-horarios.util';
 
 @Component({
   selector: 'app-list-grupos',
@@ -131,6 +132,19 @@ export class ListGruposComponent implements OnInit {
       c.grupoActivo !== false && c.categoria === categoria && c.curso === curso
       && c.anio === grupo.anio && c.iterable === grupo.iterable);
     return fila?.estado ?? null;
+  }
+
+  /**
+   * Aviso de cruce de horarios para el Alumno (ej. "Se cruza con Natación, grupo A, lunes 18:00-19:30"), o null. Solo informa: el
+   * backend decide. No hay aviso mientras cargan sus cursos o los horarios del grupo, si misCursos falló, ni si ya está
+   * inscrito o en espera en este grupo. Devuelve texto (no un objeto) para que la plantilla no cambie en cada revisión.
+   */
+  textoCruce(grupo: GrupoDTO): string | null {
+    if (this.perfil !== 'Alumno' || this.estadoMisCursos !== 'listo' || this.estadoInscripcionDe(grupo) !== null) return null;
+    return primerCruce({
+      categoria: grupo.categoria ?? this.categoria, curso: grupo.curso ?? this.titulo,
+      anio: grupo.anio, iterable: grupo.iterable, periodo: grupo.periodo, horarios: grupo.horarios,
+    }, this.misCursos)?.texto ?? null;
   }
 
   /** Detalle del grupo en el que el Alumno ya está: no se bloquea por inscripciones cerradas (puede ver o cancelar). */
