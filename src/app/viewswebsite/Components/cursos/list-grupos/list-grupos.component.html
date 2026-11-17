@@ -149,6 +149,15 @@
             </div>
           </div>
 
+          <!-- Cruce con un grupo en el que el Alumno ya está inscrito: se avisa antes de pulsar (el backend sigue decidiendo). -->
+          <div class="aviso-cierre aviso-cruce" role="status" *ngIf="textoCruce(item) as cruce">
+            <mat-icon aria-hidden="true">event_busy</mat-icon>
+            <div>
+              <strong>No puedes inscribirte: cruce de horario</strong>
+              <p class="pista-reabrir" [id]="'cruce-' + item.anio + '-' + item.iterable">{{ cruce }}</p>
+            </div>
+          </div>
+
           <div class="pie-grupo">
             <ng-container *ngIf="perfil === 'Alumno'; else verGrupo">
               <!-- Mientras se piden sus inscripciones no se ofrece inscribirse: podría estar ya inscrito en este grupo. -->
@@ -168,7 +177,8 @@
                 </ng-container>
                 <ng-template #inscribirme>
                   <button type="button" class="btn-principal btn-inscribirme"
-                    [disabled]="!inscripcionAbierta(item)"
+                    [disabled]="!inscripcionAbierta(item) || !!textoCruce(item)"
+                    [attr.aria-describedby]="textoCruce(item) ? 'cruce-' + item.anio + '-' + item.iterable : null"
                     (click)="alumnosGrupo(categoria!, titulo!, item.anio!, item.iterable!, item)">
                     Inscribirme
                   </button>

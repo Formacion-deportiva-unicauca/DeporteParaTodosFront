@@ -20,6 +20,8 @@ export interface MiCursoDTO {
   nombreInstructor: string | null;
   grupoActivo: boolean;
   horarios: MisCursosHorarioDTO[];
+  /** Fecha de finalización del grupo (yyyy-MM-dd); null o ausente si no tiene: se trata como vigente. */
+  fechaFinalizacion?: string | null;
 }
 
 export interface MiGrupoInstructorDTO {

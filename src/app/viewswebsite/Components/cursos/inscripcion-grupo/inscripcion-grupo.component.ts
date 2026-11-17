@@ -20,6 +20,8 @@ import { puedeInscribirse as puedeInscribirseUtil } from 'src/app/shared/puede-i
 import { avisoInscripcionGrupo, inscripcionesAbiertasDeGrupo, textoVentanaInscripcion } from 'src/app/shared/fecha-grupo.util';
 import { nombreDia, nombrePropio } from 'src/app/shared/texto-nombre.util';
 import { formatoHora12 } from 'src/app/shared/ventana-registro.util';
+import { MiCursoDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
+import { primerCruce } from 'src/app/shared/cruce-horarios.util';
 
 /** Las notificaciones que confirman una inscripción duran más que las comunes: son el resultado de lo que la persona vino a hacer. */
 const DURACION_RESULTADO_MS = 8000;
@@ -49,6 +51,8 @@ export class InscripcionGrupoComponent implements OnInit {
   yaEnEspera = false;
   /** Se está averiguando si ya está inscrita o en espera: mientras tanto no se ofrece inscribirse. */
   resolviendoEstado = false;
+  /** Inscripciones del Alumno, para avisar de un cruce de horarios antes de inscribirse; vacío si no se pudieron pedir. */
+  private misCursos: MiCursoDTO[] = [];
   /** Posición en la lista de espera: se conoce al unirse (al volver a entrar solo se sabe que está en espera). */
   posicionEspera: number | null = null;
   /** Pregunta "¿seguro?" antes de cancelar: cancelar la inscripción o salir de la lista de espera pierde el cupo o la posición. */
@@ -136,6 +140,19 @@ export class InscripcionGrupoComponent implements OnInit {
   /** Se puede inscribir solo si AMBOS lo permiten: el curso y la ventana de fechas del grupo. */
   puedeInscribirseEnGrupo(): boolean {
     return this.puedeInscribirse() && this.grupoAbierto();
+  }
+
+  /**
+   * Aviso de cruce de horarios ("Se cruza con Natación, grupo A, lunes 18:00-19:30") o null. Solo informa: el backend decide y
+   * su 422 se sigue mostrando. Solo para el Alumno, y no si ya está inscrito o en espera en este grupo ni mientras se averigua.
+   * Si misCursos falló la lista está vacía y no hay aviso.
+   */
+  get textoCruce(): string | null {
+    if (sessionStorage.getItem('dpt_role') !== 'Alumno' || this.yaInscrito || this.resolviendoEstado || !this.grupo) return null;
+    return primerCruce({
+      categoria: this.categoria, curso: this.curso, anio: this.anio, iterable: this.iterable,
+      periodo: this.grupo.periodo, horarios: this.horarios,
+    }, this.misCursos)?.texto ?? null;
   }
 
   get avisoGrupo(): string | null {
@@ -268,6 +285,7 @@ export class InscripcionGrupoComponent implements OnInit {
    */
   private resolverEstadoInscripcion(alumnoId: string): void {
     this.resolviendoEstado = true;
+    this.misCursos = [];
     if (sessionStorage.getItem('dpt_role') !== 'Alumno') {
       this.resolverConValidarInscripcion(alumnoId);
       return;
@@ -276,6 +294,7 @@ export class InscripcionGrupoComponent implements OnInit {
       next: (cursos) => {
         const mio = (cursos ?? []).find(c => c.grupoActivo !== false && c.categoria === this.categoria
           && c.curso === this.curso && c.anio === this.anio && c.iterable === this.iterable);
+        this.misCursos = cursos ?? [];
         this.yaInscrito = !!mio;
         this.yaEnEspera = mio?.estado === 'EN_ESPERA';
         // La posición solo se conoce al unirse; al volver a entrar no se inventa.
