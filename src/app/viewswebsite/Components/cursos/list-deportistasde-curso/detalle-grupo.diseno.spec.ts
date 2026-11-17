@@ -236,5 +236,14 @@ describe('ListDeportistasdeCursoComponent › diseño y historial', () => {
       component.inscribirAlumno();
       expect(component['notificaciones'].exito).toHaveBeenCalledWith('Deportista inscrito', jasmine.any(String));
     });
+
+    it('si el backend lo deja en la lista de espera (hay cola aunque haya cupo), lo dice y no afirma que quedó inscrito', () => {
+      spyOn(component['dialog'], 'open').and.returnValue({ afterClosed: () => of({ confirmacionCreacion: true, idAlumno: 9 }) } as any);
+      spyOn(component['notificaciones'], 'info').and.returnValue(null as any);
+      spyOn(component['inscripcionService'], 'postInscripcion').and.returnValue(of({ id: 1, estado: 'EN_ESPERA' } as any));
+      component.inscribirAlumno();
+      expect(component['notificaciones'].info).toHaveBeenCalledWith('Deportista en lista de espera', jasmine.stringContaining('lista de espera'));
+      expect(component['notificaciones'].exito).not.toHaveBeenCalledWith('Deportista inscrito', jasmine.any(String));
+    });
   });
 });

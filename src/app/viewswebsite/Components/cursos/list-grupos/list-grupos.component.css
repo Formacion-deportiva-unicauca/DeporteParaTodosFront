@@ -107,6 +107,8 @@
 
 .aviso-cierre { display: flex; gap: 0.75rem; padding: 0.75rem 1rem; border-left: 4px solid var(--color-error); border-radius: var(--radio-pequeno); background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); }
 .aviso-cierre mat-icon { flex-shrink: 0; width: 22px; height: 22px; font-size: 22px; }
+/* Cola de espera con cupo libre: es un aviso, no un error (mismo ámbar que la pantalla de inscripción). */
+.aviso-cierre.aviso-cola { border-left-color: #c98a00; background: #fff1c2; color: #4d3800; }
 .aviso-cierre strong { display: block; font-size: var(--texto-cuerpo-3); }
 .pista-reabrir { margin: 0.15rem 0 0; font-size: var(--texto-caption); }
 

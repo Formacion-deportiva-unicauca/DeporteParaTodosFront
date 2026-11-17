@@ -193,8 +193,9 @@ export class InscripcionGrupoComponent implements OnInit {
         if (this.yaEnEspera) {
           const posicion = (this.disponibilidad?.tamanoListaEspera ?? 0) + 1;
           this.posicionEspera = posicion;
-          this.notificaciones.info('Quedaste en lista de espera',
-            `Tu posición es la ${posicion}. Te avisaremos si se libera un cupo.`, DURACION_RESULTADO_MS);
+          // Texto neutro: el backend manda a la lista de espera también con cupo libre (si ya había cola), así que no se habla de cupos.
+          this.notificaciones.info('Quedaste en la lista de espera de este grupo',
+            `Tu posición es la ${posicion}.`, DURACION_RESULTADO_MS);
           this.inscripcionesService.getDisponibilidad(this.categoria, this.curso, this.anio, this.iterable).subscribe({
             next: (d) => { this.disponibilidad = d; }, error: () => {},
           });
@@ -259,6 +260,19 @@ export class InscripcionGrupoComponent implements OnInit {
   /** El grupo no tiene cupos libres (quien se inscriba queda en lista de espera). */
   get grupoLleno(): boolean {
     return !!this.disponibilidad && this.disponibilidad.cuposDisponibles === 0;
+  }
+
+  /**
+   * Hay cupo libre pero también gente esperando: quien llega NO entra directo, queda al final de la lista (el backend respeta
+   * el orden de llegada). Solo se sabe con la disponibilidad cargada; si no, no se afirma nada.
+   */
+  get colaConCupoLibre(): boolean {
+    return !!this.disponibilidad && this.disponibilidad.cuposDisponibles > 0 && this.disponibilidad.tamanoListaEspera > 0;
+  }
+
+  /** Quien se inscriba hoy quedará en la lista de espera: porque el grupo está lleno o porque ya hay cola. */
+  get iraAListaDeEspera(): boolean {
+    return this.grupoLleno || this.colaConCupoLibre;
   }
 
   /** Porcentaje de cupos ocupados para la barra. */

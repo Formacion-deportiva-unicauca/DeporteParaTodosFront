@@ -147,6 +147,15 @@ export class ListGruposComponent implements OnInit {
     }, this.misCursos)?.texto ?? null;
   }
 
+  /**
+   * El grupo tiene cupo libre pero también gente en lista de espera: quien llega NO entra directo, queda al final de la lista.
+   * Solo se afirma con la disponibilidad del grupo ya cargada (tamanoListaEspera viene de GET /inscripcion/disponibilidad).
+   */
+  colaConCupoLibre(grupo: GrupoDTO): boolean {
+    const disp = this.disponibilidad[this.dispKey(grupo.anio, grupo.iterable)];
+    return !!disp && disp.cuposDisponibles > 0 && disp.tamanoListaEspera > 0;
+  }
+
   /** Detalle del grupo en el que el Alumno ya está: no se bloquea por inscripciones cerradas (puede ver o cancelar). */
   verMiGrupo(grupo: GrupoDTO): void {
     void this.router.navigate(['/inscripcion-grupo', grupo.categoria ?? this.categoria, grupo.curso ?? this.titulo, grupo.anio, grupo.iterable]);
