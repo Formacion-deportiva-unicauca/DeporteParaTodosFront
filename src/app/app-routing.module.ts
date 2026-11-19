@@ -12,6 +12,7 @@ import { ListGruposComponent } from './viewswebsite/Components/cursos/list-grupo
 import { InformacinInstructorComponent } from './viewswebsite/Components/usuarios/informacion-instructor/informacion-instructor.component';
 import { ListaInstructoresComponent } from './viewswebsite/Components/usuarios/lista-instructores/lista-instructores.component';
 import { ReportesComponent } from './viewswebsite/Components/estadisticas/reportes/reportes.component';
+import { ReporteMensualComponent } from './viewswebsite/Components/estadisticas/reporte-mensual/reporte-mensual.component';
 import { GestionInscripcionesCoordinadorComponent } from './viewswebsite/Components/cursos/gestion-inscripciones-coordinador/gestion-inscripciones-coordinador.component';
 import { InformacionEstudianteComponent } from './viewswebsite/Components/usuarios/informacion-estudiante/informacion-estudiante.component';
 import { FormAlertaComponent } from './viewswebsite/Components/usuarios/form-alerta/form-alerta.component';
@@ -33,7 +34,9 @@ const routes: Routes = [
   {path: 'info-instructor', component: InformacinInstructorComponent},
   {path: 'lista-instructores', component: ListaInstructoresComponent},
   {path: 'lista-instructores/:id', component: DetalleInstructorComponent},
-  {path: 'reportes', component:ReportesComponent},
+  {path: 'reportes', redirectTo: 'reportes/mensual', pathMatch: 'full'},
+  {path: 'reportes/mensual', component: ReporteMensualComponent},
+  {path: 'reportes/clases', component: ReportesComponent},
   {path: 'gestion-inscripciones', component: GestionInscripcionesCoordinadorComponent},
   {path: 'info-estudiante', component: InformacionEstudianteComponent},
   {path: 'notificacion', component: FormAlertaComponent},
