@@ -1,9 +1,16 @@
+/* pestañas entre el reporte mensual y este reporte */
+.pestanas { display: flex; gap: 0.25rem; margin: 0 16px; border-bottom: 2px solid #e3e3e8; }
+.pestana { display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.1rem; border-bottom: 4px solid transparent; margin-bottom: -2px;
+  font-family: var(--fuente-titulos); font-weight: 600; color: var(--color-neutro-texto); text-decoration: none; }
+.pestana:hover { color: var(--color-primario-light); }
+.pestana.activa { border-bottom-color: var(--color-secundario-light); color: var(--color-primario); }
+
 /* layout principal: izquierda 80% - derecha 20% */
 .report-layout {
   display: grid;
   grid-template-columns: 1fr 280px; 
   gap: 16px;
-  height: calc(100vh - 64px); 
+  height: calc(100vh - 64px - 46px); 
   padding: 16px;
   box-sizing: border-box;
 }

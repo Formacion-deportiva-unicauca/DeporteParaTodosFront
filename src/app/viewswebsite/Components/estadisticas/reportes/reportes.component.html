@@ -1,4 +1,8 @@
 <app-sidenav>
+    <nav class="pestanas" aria-label="Tipo de reporte">
+        <a class="pestana" routerLink="/reportes/mensual">Reporte mensual</a>
+        <a class="pestana activa" routerLink="/reportes/clases" aria-current="page">Clases y horas</a>
+    </nav>
     <div class="report-layout">
         <section class="report-content">
             <mat-tab-group [(selectedIndex)]="selectedTabIndex" class="report-tabs">

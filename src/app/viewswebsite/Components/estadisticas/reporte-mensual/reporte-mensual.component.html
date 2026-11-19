@@ -1,0 +1,296 @@
+<app-sidenav>
+  <div class="pagina-reporte" *ngIf="estado !== 'sinPermiso'; else sinAcceso">
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a href="/home" (click)="irAInicio($event)">Inicio</a>
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">Reportes</span>
+    </nav>
+
+    <h1 class="titulo-pagina">Reportes</h1>
+
+    <nav class="pestanas" aria-label="Tipo de reporte">
+      <a class="pestana activa" routerLink="/reportes/mensual" aria-current="page">Reporte mensual</a>
+      <a class="pestana" routerLink="/reportes/clases">Clases y horas</a>
+    </nav>
+
+    <!-- Filtros: se aplican con el botón; los gráficos y la tabla se actualizan al aplicar -->
+    <form class="filtros" [formGroup]="formulario" (ngSubmit)="aplicar()" aria-labelledby="titulo-filtros">
+      <div class="filtros-cabecera">
+        <h2 id="titulo-filtros" class="titulo-seccion">Filtros</h2>
+      </div>
+      <div class="filtros-campos">
+        <div class="campo">
+          <label for="f-mes">Mes</label>
+          <select id="f-mes" class="control" formControlName="mes">
+            <option *ngFor="let m of meses" [value]="m.valor">{{ m.etiqueta }}</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="f-disciplina">Disciplina</label>
+          <select id="f-disciplina" class="control" formControlName="disciplina">
+            <option value="">Todas</option>
+            <option *ngFor="let d of opciones?.disciplinas" [value]="d">{{ d }}</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="f-modalidad">Modalidad</label>
+          <select id="f-modalidad" class="control" formControlName="modalidad">
+            <option value="">Todas</option>
+            <option *ngFor="let m of opciones?.modalidades" [value]="m">{{ m }}</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="f-publico">Público del curso</label>
+          <select id="f-publico" class="control" formControlName="publico">
+            <option value="">Todos</option>
+            <option *ngFor="let p of opciones?.publicos" [value]="p">{{ nombrePublico(p) }}</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="f-genero">Género</label>
+          <select id="f-genero" class="control" formControlName="genero">
+            <option value="">Todos</option>
+            <option value="M">Hombres</option>
+            <option value="F">Mujeres</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="f-facultad">Facultad</label>
+          <select id="f-facultad" class="control" formControlName="facultad" [attr.aria-describedby]="facultadSeleccionada ? 'ayuda-facultad' : null">
+            <option value="">Todas</option>
+            <option *ngFor="let f of opciones?.facultades" [value]="f">{{ f }}</option>
+          </select>
+          <p id="ayuda-facultad" class="ayuda" role="status" *ngIf="facultadSeleccionada">{{ avisoFacultad }}</p>
+        </div>
+        <fieldset class="campo grupo-vinculo">
+          <legend>Vínculo</legend>
+          <div class="casillas">
+            <label class="casilla-etiqueta" *ngFor="let v of vinculos">
+              <input type="checkbox" class="casilla" [checked]="vinculoMarcado(v)" (change)="alternarVinculo(v, $any($event.target).checked)" />
+              {{ v }}
+            </label>
+          </div>
+          <label class="casilla-etiqueta agrupar">
+            <input type="checkbox" class="casilla" formControlName="agruparFuncionarios" />
+            Agrupar como Funcionarios
+          </label>
+        </fieldset>
+      </div>
+      <div class="filtros-acciones">
+        <button type="submit" class="btn-principal" [disabled]="estado === 'cargando'">
+          <mat-icon aria-hidden="true">filter_alt</mat-icon> Aplicar
+        </button>
+        <button type="button" class="btn-secundario" (click)="limpiar()" [disabled]="estado === 'cargando'">Limpiar filtros</button>
+        <button type="button" class="btn-secundario" (click)="exportarPDF()" [disabled]="estado !== 'listo' || exportando">
+          <mat-icon aria-hidden="true">picture_as_pdf</mat-icon> {{ exportando ? 'Generando PDF…' : 'Exportar PDF' }}
+        </button>
+      </div>
+      <p class="ayuda">La exportación a Excel está pendiente.</p>
+    </form>
+
+    <!-- Filtros activos: etiquetas que se pueden quitar -->
+    <ul class="etiquetas" *ngIf="reporte && hayFiltrosAplicados" aria-label="Filtros aplicados">
+      <li *ngFor="let f of filtrosAplicadosTexto"><span class="etiqueta-filtro">{{ f.nombre }}: <strong>{{ f.valor }}</strong></span></li>
+    </ul>
+
+    <!-- Cargando -->
+    <div *ngIf="estado === 'cargando'" class="estado-carga" aria-busy="true">
+      <app-esqueleto forma="fila" [cantidad]="4" etiqueta="Cargando el reporte…"></app-esqueleto>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="estado === 'error'" class="banner banner-error" role="alert">
+      <mat-icon aria-hidden="true" fontSet="material-icons-outlined">error_outline</mat-icon>
+      <p>No se pudo cargar el reporte. Revise su conexión e intente de nuevo.</p>
+      <button type="button" class="btn-secundario" (click)="reintentar()">Reintentar</button>
+    </div>
+
+    <!-- Sin datos del mes -->
+    <div *ngIf="estado === 'sinDatosDelMes'" class="vacio" role="status">
+      <mat-icon aria-hidden="true" fontSet="material-icons-outlined">event_busy</mat-icon>
+      <p><strong>No hay datos de este mes.</strong> Elija otro mes en el selector.</p>
+    </div>
+
+    <!-- Vacío por filtros -->
+    <div *ngIf="estado === 'vacioPorFiltros'" class="vacio" role="status">
+      <mat-icon aria-hidden="true" fontSet="material-icons-outlined">filter_alt_off</mat-icon>
+      <p><strong>Ningún resultado con estos filtros.</strong> Quite alguno para ver más datos.</p>
+      <button type="button" class="btn-secundario" (click)="limpiar()">Limpiar filtros</button>
+    </div>
+
+    <ng-container *ngIf="estado === 'listo' && reporte && reporte.totales as t">
+      <!-- Aviso de facultad -->
+      <div class="banner banner-info" role="status" *ngIf="aplicados.facultad">
+        <mat-icon aria-hidden="true" fontSet="material-icons-outlined">info</mat-icon>
+        <p>{{ avisoFacultad }}</p>
+      </div>
+
+      <!-- Tarjetas -->
+      <dl class="cifras" aria-label="Resumen del mes">
+        <div class="cifra">
+          <dt>Inscritos del mes</dt>
+          <dd>{{ numero(t.inscritosTotal) }}</dd>
+          <dd class="detalle">{{ numero(t.inscritosHombres) }} hombres · {{ numero(t.inscritosMujeres) }} mujeres</dd>
+        </div>
+        <div class="cifra">
+          <dt>Atenciones</dt>
+          <dd>{{ numero(t.atencionesTotal) }}</dd>
+          <dd class="detalle">{{ numero(t.atencionesHombres) }} hombres · {{ numero(t.atencionesMujeres) }} mujeres</dd>
+        </div>
+        <div class="cifra">
+          <dt>Personas atendidas</dt>
+          <dd>{{ numero(t.personasDistintasAtendidas) }}</dd>
+          <dd class="detalle">Personas distintas; no se suman entre cursos</dd>
+        </div>
+        <div class="cifra">
+          <dt>Personas inscritas</dt>
+          <dd>{{ numero(t.personasDistintasInscritas) }}</dd>
+          <dd class="detalle">Personas distintas; no se suman entre cursos</dd>
+        </div>
+      </dl>
+
+      <!-- Calidad de datos -->
+      <section class="calidad" [class.con-alertas]="hayCalidad" aria-label="Calidad de los datos del mes" role="status">
+        <mat-icon aria-hidden="true" fontSet="material-icons-outlined">{{ hayCalidad ? 'warning_amber' : 'check_circle' }}</mat-icon>
+        <div>
+          <strong>Calidad de los datos</strong>
+          <ul>
+            <li *ngIf="reporte.calidad?.clasesSinConfirmar">
+              {{ numero(reporte.calidad?.clasesSinConfirmar) }} {{ reporte.calidad?.clasesSinConfirmar === 1 ? 'clase' : 'clases' }} sin confirmar la asistencia.
+            </li>
+            <li *ngIf="reporte.calidad?.atencionesSinInscripcion">
+              {{ numero(reporte.calidad?.atencionesSinInscripcion) }} {{ reporte.calidad?.atencionesSinInscripcion === 1 ? 'atención' : 'atenciones' }}
+              de personas sin inscripción en el grupo (se cuentan en el reporte).
+            </li>
+            <li *ngIf="!hayCalidad">Sin alertas: todas las clases del mes están confirmadas y toda atención tiene su inscripción.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Gráficas y su tabla equivalente -->
+      <section class="graficas" aria-labelledby="titulo-graficas">
+        <div class="graficas-cabecera">
+          <h2 id="titulo-graficas" class="titulo-seccion">{{ medida === 'atenciones' ? 'Atenciones' : 'Inscritos' }} del mes</h2>
+          <fieldset class="medida">
+            <legend class="solo-lectores">Medida</legend>
+            <label class="casilla-etiqueta"><input type="radio" name="medida" class="casilla" [checked]="medida === 'atenciones'" (change)="cambiarMedida('atenciones')" /> Atenciones</label>
+            <label class="casilla-etiqueta"><input type="radio" name="medida" class="casilla" [checked]="medida === 'inscritos'" (change)="cambiarMedida('inscritos')" /> Inscritos</label>
+          </fieldset>
+          <button type="button" class="btn-secundario" (click)="alternarTabla()" [attr.aria-pressed]="verTabla">
+            <mat-icon aria-hidden="true">{{ verTabla ? 'bar_chart' : 'table_chart' }}</mat-icon>
+            {{ verTabla ? 'Ver gráficos' : 'Ver tabla equivalente' }}
+          </button>
+        </div>
+
+        <ul class="leyenda" *ngIf="!verTabla" aria-label="Colores de las gráficas por género">
+          <li><span class="muestra hombres" aria-hidden="true"></span>Hombres</li>
+          <li><span class="muestra mujeres" aria-hidden="true"></span>Mujeres</li>
+        </ul>
+
+        <div class="rejilla-graficas" *ngIf="!verTabla">
+          <figure class="grafica grafica-ancha">
+            <figcaption>Por curso, hombres y mujeres</figcaption>
+            <div class="lienzo" [style.height.px]="alturaGraficaCursos" role="img" [attr.aria-label]="'Gráfica de ' + textoMedida + ' por curso. Los mismos datos están en la tabla de detalle.'">
+              <ngx-charts-bar-horizontal-2d [results]="datosCurso" [scheme]="esquemaGenero" [xAxis]="true" [yAxis]="true"
+                [legend]="false" [trimYAxisTicks]="false" [showDataLabel]="true" [animations]="false" [roundEdges]="false">
+              </ngx-charts-bar-horizontal-2d>
+            </div>
+          </figure>
+          <figure class="grafica">
+            <figcaption>Por género</figcaption>
+            <div class="lienzo" [style.height.px]="280" role="img" [attr.aria-label]="'Gráfica por género. ' + resumen(datosGenero)">
+              <ngx-charts-pie-chart [results]="datosGenero" [scheme]="esquemaGenero" [doughnut]="true" [labels]="true" [legend]="false" [animations]="false">
+              </ngx-charts-pie-chart>
+            </div>
+            <p class="resumen-dona">
+              <ng-container *ngFor="let g of datosGenero; let ultimo = last">{{ g.name }}: {{ numero(g.value) }} ({{ porcentaje(g.value, medida === 'atenciones' ? t.atencionesTotal : t.inscritosTotal) }}){{ ultimo ? '' : ' · ' }}</ng-container>
+            </p>
+          </figure>
+          <figure class="grafica">
+            <figcaption>Por vínculo</figcaption>
+            <div class="lienzo" [style.height.px]="280" role="img" [attr.aria-label]="'Gráfica por vínculo. ' + resumen(datosVinculo)">
+              <ngx-charts-bar-horizontal [results]="datosVinculo" [scheme]="esquemaVinculo" [xAxis]="true" [yAxis]="true" [showDataLabel]="true"
+                [animations]="false" [roundEdges]="false">
+              </ngx-charts-bar-horizontal>
+            </div>
+          </figure>
+        </div>
+
+        <!-- Tabla equivalente de las gráficas de género y vínculo -->
+        <div class="rejilla-tablas" *ngIf="verTabla">
+          <div class="tabla-container">
+            <table class="tabla-reporte">
+              <caption>{{ medida === 'atenciones' ? 'Atenciones' : 'Inscritos' }} por género</caption>
+              <thead><tr><th scope="col">Género</th><th scope="col" class="num">Cantidad</th><th scope="col" class="num">Porcentaje</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let g of datosGenero">
+                  <th scope="row">{{ g.name }}</th><td class="num">{{ numero(g.value) }}</td>
+                  <td class="num">{{ porcentaje(g.value, medida === 'atenciones' ? t.atencionesTotal : t.inscritosTotal) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tabla-container">
+            <table class="tabla-reporte">
+              <caption>{{ medida === 'atenciones' ? 'Atenciones' : 'Inscritos' }} por vínculo</caption>
+              <thead><tr><th scope="col">Vínculo</th><th scope="col" class="num">Cantidad</th><th scope="col" class="num">Porcentaje</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let v of datosVinculo">
+                  <th scope="row">{{ v.name }}</th><td class="num">{{ numero(v.value) }}</td>
+                  <td class="num">{{ porcentaje(v.value, medida === 'atenciones' ? t.atencionesTotal : t.inscritosTotal) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Detalle por curso -->
+      <section aria-labelledby="titulo-detalle">
+        <h2 id="titulo-detalle" class="titulo-seccion">Detalle por curso</h2>
+        <div class="tabla-container" tabindex="0" role="region" aria-label="Tabla de detalle por curso">
+          <table class="tabla-reporte tabla-detalle">
+            <thead>
+              <tr>
+                <th scope="col" rowspan="2">Modalidad</th>
+                <th scope="col" rowspan="2">Curso</th>
+                <th scope="col" rowspan="2">Público</th>
+                <th scope="colgroup" colspan="3" class="grupo">Inscritos</th>
+                <th scope="colgroup" colspan="3" class="grupo">Atenciones</th>
+              </tr>
+              <tr>
+                <th scope="col" class="num">Hombres</th><th scope="col" class="num">Mujeres</th><th scope="col" class="num">Total</th>
+                <th scope="col" class="num">Hombres</th><th scope="col" class="num">Mujeres</th><th scope="col" class="num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let f of reporte.filas">
+                <td>{{ f.modalidad }}</td>
+                <th scope="row" class="curso">{{ f.curso }}</th>
+                <td>{{ nombrePublico(f.publico) }}</td>
+                <td class="num">{{ numero(f.inscritosHombres) }}</td><td class="num">{{ numero(f.inscritosMujeres) }}</td><td class="num total">{{ numero(f.inscritosTotal) }}</td>
+                <td class="num">{{ numero(f.atencionesHombres) }}</td><td class="num">{{ numero(f.atencionesMujeres) }}</td><td class="num total">{{ numero(f.atencionesTotal) }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" colspan="3">Total</th>
+                <td class="num">{{ numero(t.inscritosHombres) }}</td><td class="num">{{ numero(t.inscritosMujeres) }}</td><td class="num total">{{ numero(t.inscritosTotal) }}</td>
+                <td class="num">{{ numero(t.atencionesHombres) }}</td><td class="num">{{ numero(t.atencionesMujeres) }}</td><td class="num total">{{ numero(t.atencionesTotal) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p class="nota">Atención = una asistencia presente de una persona a una sesión de un grupo (quien asiste a dos cursos suma una atención en cada uno).
+          Inscritos = inscritos en algún momento del mes, sin lista de espera.</p>
+      </section>
+    </ng-container>
+  </div>
+
+  <ng-template #sinAcceso>
+    <div class="aviso-acceso" role="alert">
+      <mat-icon aria-hidden="true" fontSet="material-icons-outlined">lock</mat-icon>
+      <p><strong>No tiene permiso para ver los reportes.</strong> Solo el Coordinador puede consultarlos y exportarlos.</p>
+    </div>
+  </ng-template>
+</app-sidenav>

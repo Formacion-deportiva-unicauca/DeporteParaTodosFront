@@ -5,7 +5,7 @@ import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { Observable } from 'rxjs';
 import { SidenavComponent } from "../../../pages/sidenav/sidenav.component";
 import { ReportesService } from 'src/app/services/reportes.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CategoriaService } from 'src/app/services/categoria.service';
 import { CategoriaDTO } from 'src/app/Models/DTOs/categoria-dto';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -49,7 +49,8 @@ import html2canvas from 'html2canvas';
     ReactiveFormsModule,
     MatTabsModule,
     MatTableModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    RouterLink
   ],
 
   providers: [
