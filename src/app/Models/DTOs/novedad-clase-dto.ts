@@ -44,7 +44,7 @@ export const MENSAJE_CLASE_NO_REALIZADA = 'Esta clase fue marcada como no realiz
 /** Qué decirle al usuario ante un 409 al registrar una novedad: ya hay novedad (duplicada) o ya hay asistencia ese día. */
 export function mensajeConflictoNovedad(codigoError: string | null | undefined): string {
   return codigoError === CODIGO_NOVEDAD_ASISTENCIA
-    ? 'Ya hay asistencia registrada para esta fecha. Corrige primero la asistencia antes de marcar la clase como no realizada.'
+    ? 'No se puede marcar como no realizada: ya hay personas con asistencia en esta fecha.'
     : 'Ya existe una novedad registrada para este grupo en esta fecha.';
 }
 

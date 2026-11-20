@@ -1331,7 +1331,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
         spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(throwError(() => err(409, { codigoError: 'GC-0032', mensaje: 'x' })));
         guardarNovedad();
         expect(notiError).toHaveBeenCalledWith('No se pudo registrar la novedad',
-          'Ya hay asistencia registrada para esta fecha. Corrige primero la asistencia antes de marcar la clase como no realizada.');
+          'No se puede marcar como no realizada: ya hay personas con asistencia en esta fecha.');
       });
 
       it('409 sin cuerpo reconocible: cae en el mensaje de novedad ya existente y relee las novedades', async () => {
