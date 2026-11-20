@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MiGrupoInstructorDTO, MisCursosHorarioDTO } from 'src/app/Models/DTOs/mis-cursos-dto';
+import { motivoNombre } from 'src/app/Models/DTOs/novedad-clase-dto';
 import { letraDeIterable } from 'src/app/shared/iterable-letra.util';
 import { horariosDeHoy, normalizarDia } from 'src/app/shared/clases-hoy.util';
 import { formatoHora12 } from 'src/app/shared/ventana-registro.util';
@@ -26,11 +27,35 @@ export class TarjetasGruposInstructorComponent {
   @Input() hoy: Date = new Date();
   @Output() verGrupo = new EventEmitter<MiGrupoInstructorDTO>();
 
+  /** Fecha de hoy como yyyy-MM-dd (la misma `hoy` con la que se decide qué grupos tienen clase). */
+  private get fechaHoy(): string {
+    const d = this.hoy;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  /** La clase de hoy fue marcada como no realizada: la novedad activa es de hoy. */
+  claseNoRealizadaHoy(g: MiGrupoInstructorDTO): boolean {
+    return !!g.novedadHoy && String(g.novedadHoy.fecha).substring(0, 10) === this.fechaHoy;
+  }
+
+  /** "Motivo: Condiciones climáticas" (con la descripción si la hay). */
+  textoNovedad(g: MiGrupoInstructorDTO): string {
+    const n = g.novedadHoy;
+    if (!n) return '';
+    const descripcion = n.descripcion?.trim();
+    return `Motivo: ${motivoNombre(n.motivo)}${descripcion ? ` · ${descripcion}` : ''}`;
+  }
+
+  /** Hay clase hoy y se va a dictar: es la única que invita a registrar asistencia. */
+  claseHoyActiva(g: MiGrupoInstructorDTO): boolean {
+    return this.clasesHoy(g).length > 0 && !this.claseNoRealizadaHoy(g);
+  }
+
   /** Primero los grupos con clase hoy; el resto conserva el orden alfabético por curso. */
   get gruposOrdenados(): MiGrupoInstructorDTO[] {
     return [...this.grupos].sort((a, b) => {
-      const ha = this.clasesHoy(a).length > 0 ? 0 : 1;
-      const hb = this.clasesHoy(b).length > 0 ? 0 : 1;
+      const ha = this.claseHoyActiva(a) ? 0 : 1;
+      const hb = this.claseHoyActiva(b) ? 0 : 1;
       return ha - hb || a.curso.localeCompare(b.curso, 'es') || a.iterable - b.iterable;
     });
   }
@@ -76,7 +101,8 @@ export class TarjetasGruposInstructorComponent {
 
   /** Nombre accesible del botón: dice a qué grupo lleva. */
   etiquetaBoton(g: MiGrupoInstructorDTO): string {
-    const accion = this.clasesHoy(g).length ? 'Registrar asistencia de hoy' : 'Ver grupo';
-    return `${accion}: ${g.curso}, ${this.periodo(g)} ${this.nombreGrupo(g)}`;
+    const accion = this.claseHoyActiva(g) ? 'Registrar asistencia de hoy' : 'Ver grupo';
+    const aviso = this.claseNoRealizadaHoy(g) ? ' (clase de hoy no realizada)' : '';
+    return `${accion}: ${g.curso}, ${this.periodo(g)} ${this.nombreGrupo(g)}${aviso}`;
   }
 }

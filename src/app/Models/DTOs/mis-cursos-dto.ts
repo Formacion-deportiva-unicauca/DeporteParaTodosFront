@@ -36,6 +36,16 @@ export interface MiGrupoInstructorDTO {
   inscritos: number;
   enEspera: number;
   horarios: MisCursosHorarioDTO[];
+  /** La clase de hoy fue marcada como no realizada (novedad activa); null o ausente si se dicta normalmente. */
+  novedadHoy?: NovedadHoyDTO | null;
+}
+
+/** Novedad activa de hoy de un grupo, tal como la devuelve "Cursos a mi cargo". */
+export interface NovedadHoyDTO {
+  codigo: number;
+  fecha: string; // yyyy-MM-dd
+  motivo: string;
+  descripcion: string | null;
 }
 
 /** Curso del alumno con el nombre del instructor ya normalizado y su código (resuelto por nombre; null si no se encuentra). */

@@ -15,6 +15,7 @@ import { AtencionDTO } from 'src/app/Models/DTOs/atencion-dto';
 import { ClaseDTO } from 'src/app/Models/DTOs/clase-dto';
 import { GrupoDTO } from 'src/app/Models/DTOs/grupo-dto';
 import { HorarioDTO } from 'src/app/Models/DTOs/horario-dto';
+import { NovedadClaseDto } from 'src/app/Models/DTOs/novedad-clase-dto';
 import { formatoLocal } from 'src/app/shared/fecha-grupo.util';
 
 const DIAS = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
@@ -40,6 +41,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
   let notiError: jasmine.Spy;
   let abrirDialogo: jasmine.Spy;
   let ahoraFijo: Date = JUEVES;
+  let novedadesServidor: NovedadClaseDto[] = [];
 
   const franja = (dia: string, ini = '14:00', fin = '16:00'): HorarioDTO => ({
     id: 1, categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1, dia, horaInicio: ini, horaFin: fin, escenario: 'Coliseo', eliminado: 0,
@@ -69,6 +71,8 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     horarios?: HorarioDTO[] | 'error' | Subject<HorarioDTO[]>;
     clases?: ClaseDTO[] | 'error';
     atenciones?: AtencionDTO[] | 'error' | Subject<AtencionDTO[]>;
+    /** Novedades de clase no realizada que el servidor devuelve para el grupo. */
+    novedades?: NovedadClaseDto[];
   }
 
   const montar = async (o: Opciones = {}): Promise<void> => {
@@ -76,6 +80,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
     // El Instructor de estas pruebas es el titular del grupo ('inst-1'); el caso de otro grupo está en gestion-alumnos-grupo.
     sessionStorage.setItem('dpt_perfil_id', 'inst-1');
     ahoraFijo = o.ahora ?? JUEVES;
+    novedadesServidor = o.novedades ?? [];
     // Hora de la interfaz inyectable: el componente la toma de ahora() (sin mockear el reloj global).
     const proto = ListDeportistasdeCursoComponent.prototype as any;
     if (!jasmine.isSpy(proto.ahora)) spyOn(proto, 'ahora').and.callFake(() => ahoraFijo);
@@ -110,7 +115,7 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       .and.returnValue(of({ codigoClase: 50, confirmadaEn: '2026-10-15T12:00:00', presentes: 0, ausentes: 0 }));
     const atenciones$ = o.atenciones === 'error' ? throwError(() => err(500)) : o.atenciones instanceof Subject ? o.atenciones : of(o.atenciones === undefined ? [] : o.atenciones);
     getAtencionesClase = spyOn(component['asistenciaService'], 'getAtencionesClase').and.returnValue(atenciones$);
-    spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.returnValue(of([]));
+    spyOn(component['novedadClaseService'], 'obtenerNovedadesGrupo').and.callFake(() => of(novedadesServidor));
     fixture.detectChanges();
   };
 
@@ -1247,6 +1252,113 @@ describe('ListDeportistasdeCursoComponent › registrar asistencia de HOY (SCRUM
       expect('seleccionados' in component).toBeFalse();
       expect('toggleSelection' in component).toBeFalse();
       expect('isSelected' in component).toBeFalse();
+    });
+  });
+
+  // ── Clase de hoy no realizada (novedad activa): la pantalla del grupo lo muestra y no deja registrar asistencia ──
+  describe('con una novedad activa para hoy', () => {
+    const HOY = formatoLocal(JUEVES);
+    const novedad = (over: Partial<NovedadClaseDto> = {}): NovedadClaseDto => ({
+      codigo: 9, categoria: 'Futbol', curso: 'Avanzado', anio: 2024, iterable: 1, fecha: HOY, motivo: 'CLIMA', descripcion: null,
+      estado: 'NO_REALIZADA', idUsuarioCreador: 'inst-1', fechaCreacion: '2026-10-15T09:00:00', idUsuarioModificador: null,
+      fechaModificacion: null, version: 0, ...over,
+    });
+    const novedadBtn = (): HTMLButtonElement => q<HTMLButtonElement>('button.btn-novedad')!;
+
+    for (const rol of ['Instructor', 'Coordinador']) {
+      it(`${rol}: avisa "Clase de hoy no realizada" con el motivo y bloquea el registro de asistencia y la novedad`, async () => {
+        await montar({ rol, novedades: [novedad()] });
+        expect(textoQ('#aviso-novedad-hoy')).toContain('Clase de hoy no realizada · Motivo: Condiciones climáticas');
+        expect(q('#aviso-novedad-hoy')?.getAttribute('role')).toBe('status');
+        expect(guardarBtn().disabled).toBeTrue();
+        expect(novedadBtn().disabled).toBeTrue();
+        expect(casilla('Ana').disabled).toBeTrue();
+        expect(q('.ayuda-asistencia')).toBeNull();
+        expect(guardarBtn().getAttribute('aria-describedby')).toBe('aviso-novedad-hoy');
+      });
+    }
+
+    it('muestra la descripción cuando el motivo la trae', async () => {
+      await montar({ novedades: [novedad({ motivo: 'OTRO', descripcion: 'Falla del transporte' })] });
+      expect(textoQ('#aviso-novedad-hoy')).toContain('Motivo: Otro motivo · Falla del transporte');
+    });
+
+    it('el Coordinador sin franja hoy tampoco ve la sección "fuera de horario" (no hay clase que justificar)', async () => {
+      await montar({ rol: 'Coordinador', horarios: [], novedades: [novedad()] });
+      expect(q('.fuera-de-horario')).toBeNull();
+      expect(guardarBtn().disabled).toBeTrue();
+    });
+
+    it('una novedad de OTRO día no afecta a hoy', async () => {
+      await montar({ novedades: [novedad({ fecha: '2026-10-14' })] });
+      expect(q('#aviso-novedad-hoy')).toBeNull();
+      marcar('Ana');
+      expect(guardarBtn().disabled).toBeFalse();
+      expect(novedadBtn().disabled).toBeFalse();
+    });
+
+    it('si el servidor responde 409 al guardar la asistencia, muestra que la clase no se realizó y relee la novedad', async () => {
+      await montar({ rol: 'Instructor' });
+      const lecturas = component['novedadClaseService'].obtenerNovedadesGrupo as jasmine.Spy;
+      lecturas.calls.reset();
+      novedadesServidor = [novedad()];
+      confirmarAsistencia.and.returnValue(throwError(() => err(409, { codigoError: 'GC-0032', mensaje: 'x' })));
+      marcar('Ana');
+      guardar();
+      expect(textoQ('.error-registro')).toBe('Esta clase fue marcada como no realizada. No se puede registrar asistencia para esa fecha.');
+      expect(lecturas.calls.count()).toBe(1);              // tras el 409 vuelve a leer la novedad
+      expect(textoQ('#aviso-novedad-hoy')).toContain('Clase de hoy no realizada');
+      expect(guardarBtn().disabled).toBeTrue();
+    });
+
+    describe('formulario de la novedad', () => {
+      const guardarNovedad = (): void => {
+        component.abrirFormNovedad();
+        component.motivoCtrl.setValue('CLIMA');
+        component.registrarNovedad();
+        fixture.detectChanges();
+      };
+
+      it('409 por novedad duplicada: "Ya existe una novedad registrada para este grupo en esta fecha."', async () => {
+        await montar({ rol: 'Instructor' });
+        spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(throwError(() => err(409, { codigoError: 'GC-0007', mensaje: 'x' })));
+        guardarNovedad();
+        expect(notiError).toHaveBeenCalledWith('No se pudo registrar la novedad', 'Ya existe una novedad registrada para este grupo en esta fecha.');
+      });
+
+      it('409 por asistencia ya registrada: pide corregir primero la asistencia', async () => {
+        await montar({ rol: 'Instructor' });
+        spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(throwError(() => err(409, { codigoError: 'GC-0032', mensaje: 'x' })));
+        guardarNovedad();
+        expect(notiError).toHaveBeenCalledWith('No se pudo registrar la novedad',
+          'Ya hay asistencia registrada para esta fecha. Corrige primero la asistencia antes de marcar la clase como no realizada.');
+      });
+
+      it('409 sin cuerpo reconocible: cae en el mensaje de novedad ya existente y relee las novedades', async () => {
+        await montar({ rol: 'Instructor' });
+        spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(throwError(() => err(409)));
+        const lecturas = component['novedadClaseService'].obtenerNovedadesGrupo as jasmine.Spy;
+        lecturas.calls.reset();
+        guardarNovedad();
+        expect(notiError.calls.mostRecent().args[1]).toBe('Ya existe una novedad registrada para este grupo en esta fecha.');
+        expect(lecturas.calls.count()).toBe(1);
+      });
+
+      it('al guardar bien: avisa, cierra el formulario y refresca las novedades y el historial (se ve la clase no realizada)', async () => {
+        await montar({ rol: 'Instructor', clases: [] });
+        spyOn(component['novedadClaseService'], 'registrarNovedad').and.returnValue(of(novedad()));
+        const lecturas = component['novedadClaseService'].obtenerNovedadesGrupo as jasmine.Spy;
+        component.historialVisible = true;
+        lecturas.calls.reset();
+        getClase.calls.reset();
+        novedadesServidor = [novedad()];
+        guardarNovedad();
+        expect(notiExito).toHaveBeenCalledWith('Novedad registrada', jasmine.stringContaining('quedó como no realizada'));
+        expect(component.mostrarFormNovedad).toBeFalse();
+        expect(lecturas).toHaveBeenCalled();                  // novedades releídas tras guardar
+        expect(getClase).toHaveBeenCalled();                  // historial recargado
+        expect(textoQ('#aviso-novedad-hoy')).toContain('Clase de hoy no realizada');
+      });
     });
   });
 });

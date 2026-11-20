@@ -36,6 +36,18 @@ export const MOTIVOS_NOVEDAD: { codigo: string; nombre: string; requiereDescripc
   { codigo: 'OTRO', nombre: 'Otro motivo', requiereDescripcion: true },
 ];
 
+/** Código de error del backend cuando una clase no puede tener a la vez novedad y asistencia (HTTP 409). */
+export const CODIGO_NOVEDAD_ASISTENCIA = 'GC-0032';
+
+export const MENSAJE_CLASE_NO_REALIZADA = 'Esta clase fue marcada como no realizada. No se puede registrar asistencia para esa fecha.';
+
+/** Qué decirle al usuario ante un 409 al registrar una novedad: ya hay novedad (duplicada) o ya hay asistencia ese día. */
+export function mensajeConflictoNovedad(codigoError: string | null | undefined): string {
+  return codigoError === CODIGO_NOVEDAD_ASISTENCIA
+    ? 'Ya hay asistencia registrada para esta fecha. Corrige primero la asistencia antes de marcar la clase como no realizada.'
+    : 'Ya existe una novedad registrada para este grupo en esta fecha.';
+}
+
 export function motivoRequiereDescripcion(motivo: string): boolean {
   const m = MOTIVOS_NOVEDAD.find(mot => mot.codigo === motivo);
   return m ? m.requiereDescripcion : false;
