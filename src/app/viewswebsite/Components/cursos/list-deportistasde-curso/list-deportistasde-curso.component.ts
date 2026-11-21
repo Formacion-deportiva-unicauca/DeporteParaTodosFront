@@ -42,7 +42,7 @@ import {
 } from 'src/app/shared/ventana-registro.util';
 import { ConfirmarSinAsistentesComponent } from './confirmar-sin-asistentes.component';
 import { NovedadClaseService } from 'src/app/services/novedad-clase.service';
-import { NovedadClaseDto, NovedadClaseRequestDto, MOTIVOS_NOVEDAD, motivoRequiereDescripcion, motivoNombre } from 'src/app/Models/DTOs/novedad-clase-dto';
+import { NovedadClaseDto, NovedadClaseRequestDto, MOTIVOS_NOVEDAD, motivoRequiereDescripcion, motivoNombre, CODIGO_NOVEDAD_ASISTENCIA, MENSAJE_CLASE_NO_REALIZADA, mensajeConflictoNovedad } from 'src/app/Models/DTOs/novedad-clase-dto';
 import { DisponibilidadDTO } from 'src/app/Models/DTOs/disponibilidad-dto';
 
 export type FiltroAtenciones = 'todos' | 'asistieron' | 'faltaron';
@@ -224,6 +224,8 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     );
 
     this.cargarAlumnos();
+    // La novedad de hoy decide si se puede registrar asistencia: se lee al abrir, no solo con el historial.
+    this.cargarNovedades();
 
     if (this.rol === 'Coordinador') {
       this.inscripcionService.getListaEspera(this.categoria!, this.titulo!, this.anio!, this.iterable!).subscribe({
@@ -674,8 +676,14 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     return this.diasDeClase.length === 0 ? 'sin-horario' : 'hoy-sin-clase';
   }
 
-  /** Hoy no se puede registrar nada: no hay horario del grupo o hoy no es día de clase (no aplica al Coordinador). */
+  /** La novedad activa de hoy (la clase de hoy fue marcada como no realizada), o null. */
+  get novedadHoy(): NovedadClaseDto | null {
+    return this.getNovedadParaFecha(this.hoy);
+  }
+
+  /** Hoy no se puede registrar nada: la clase quedó como no realizada, no hay horario del grupo o hoy no es día de clase (no aplica al Coordinador). */
   get bloqueado(): boolean {
+    if (this.novedadHoy) return true;
     const s = this.situacionHoy;
     return s === 'sin-horario' || s === 'hoy-sin-clase';
   }
@@ -688,7 +696,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
 
   /** Fuera de horario (solo Coordinador): hoy no hay franja, o el servidor exigió justificación. */
   get mostrarFueraDeHorario(): boolean {
-    return !this.restringeDias && !this.claseDeHoyExistente && (this.situacionHoy === 'fuera-de-horario' || this.exigirFueraDeHorario);
+    return !this.novedadHoy && !this.restringeDias && !this.claseDeHoyExistente && (this.situacionHoy === 'fuera-de-horario' || this.exigirFueraDeHorario);
   }
 
   /** Franja a mostrar como "Horario de hoy" (solo si no se pide justificación). */
@@ -909,6 +917,12 @@ export class ListDeportistasdeCursoComponent implements OnInit {
     this.guardando = false;
     this.errorRegistro = null;
     const mensaje: string | undefined = err?.error?.mensaje;
+    // 409 y GC-0032: la clase de ese día fue marcada como no realizada; se vuelve a leer la novedad para que la pantalla lo muestre.
+    if (err?.status === 409 && err.error?.codigoError === CODIGO_NOVEDAD_ASISTENCIA) {
+      this.errorRegistro = MENSAJE_CLASE_NO_REALIZADA;
+      this.cargarNovedades();
+      return;
+    }
     // 422 reglas de negocio, 403 grupo ajeno, 404 clase inexistente: el servidor explica el motivo.
     if (mensaje && (err.status === 422 || err.status === 403 || err.status === 404)) {
       this.errorRegistro = mensaje;
@@ -925,7 +939,7 @@ export class ListDeportistasdeCursoComponent implements OnInit {
   // ── Novedad de clase no realizada ─────────────────────────────────────────
 
   get puedeRegistrarNovedad(): boolean {
-    if (this.soloConsulta || this.asistenciaDeHoyRegistrada || this.cargandoNovedades || this.mostrarFormNovedad) return false;
+    if (this.soloConsulta || this.asistenciaDeHoyRegistrada || this.novedadHoy || this.cargandoNovedades || this.mostrarFormNovedad) return false;
 
     // El Instructor solo puede registrar novedades en días con horario asignado
     if (this.rol === 'Instructor') {
@@ -1012,11 +1026,13 @@ export class ListDeportistasdeCursoComponent implements OnInit {
       next: () => {
         this.notificaciones.exito('Novedad registrada', `La clase del ${formatearFecha(datos.fecha)} quedó como no realizada.`);
         this.cerrarFormNovedad();
-        if (this.historialVisible) this.cargarNovedades();
+        this.cargarNovedades();
+        if (this.historialVisible) this.cargarHistorial();
       },
       error: (err) => {
+        if (err?.status === 409) this.cargarNovedades(); // lo que se ve ya no coincide con el servidor
         const msg = err?.status === 409
-          ? 'Ya existe una novedad activa para este grupo y fecha'
+          ? mensajeConflictoNovedad(err?.error?.codigoError)
           : err?.status === 422
             ? 'Fecha no permitida o fuera de la ventana de registro'
             : 'No se pudo registrar la novedad. Intenta de nuevo.';

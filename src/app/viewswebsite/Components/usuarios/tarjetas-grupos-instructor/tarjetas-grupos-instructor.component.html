@@ -9,15 +9,18 @@
 </div>
 
 <ul class="rejilla" *ngIf="!cargando && grupos.length > 0" aria-label="Grupos a cargo">
-  <li class="tarjeta" *ngFor="let g of gruposOrdenados" [class.con-clase-hoy]="clasesHoy(g).length > 0">
+  <li class="tarjeta" *ngFor="let g of gruposOrdenados" [class.con-clase-hoy]="claseHoyActiva(g)" [class.no-realizada]="claseNoRealizadaHoy(g)">
     <div class="cabecera">
       <div class="titulos">
         <span class="eyebrow">{{ g.categoria }}</span>
         <h3 class="curso">{{ g.curso }}</h3>
         <span class="grupo">{{ periodo(g) }} · {{ nombreGrupo(g) }}</span>
       </div>
-      <span class="insignia-hoy" *ngIf="clasesHoy(g).length > 0">
+      <span class="insignia-hoy" *ngIf="claseHoyActiva(g)">
         <mat-icon aria-hidden="true">today</mat-icon> Hoy · {{ textoHoy(g) }}
+      </span>
+      <span class="insignia-no-realizada" *ngIf="claseNoRealizadaHoy(g)" role="status">
+        <mat-icon aria-hidden="true">event_busy</mat-icon> Clase de hoy no realizada · {{ textoNovedad(g) }}
       </span>
     </div>
 
@@ -56,9 +59,9 @@
       <span class="en-espera" *ngIf="g.enEspera > 0">{{ g.enEspera }} en lista de espera</span>
     </div>
 
-    <button type="button" class="btn-grupo" [class.btn-hoy]="clasesHoy(g).length > 0"
+    <button type="button" class="btn-grupo" [class.btn-hoy]="claseHoyActiva(g)"
             [attr.aria-label]="etiquetaBoton(g)" (click)="verGrupo.emit(g)">
-      {{ clasesHoy(g).length > 0 ? 'Registrar asistencia de hoy' : 'Ver grupo' }}
+      {{ claseHoyActiva(g) ? 'Registrar asistencia de hoy' : 'Ver grupo' }}
       <mat-icon aria-hidden="true">arrow_forward</mat-icon>
     </button>
   </li>

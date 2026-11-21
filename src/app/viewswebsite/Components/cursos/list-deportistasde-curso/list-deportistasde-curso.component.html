@@ -164,6 +164,12 @@
         <span>{{ textoHoySinClase }}</span>
       </div>
 
+      <div id="aviso-novedad-hoy" class="aviso-novedad" *ngIf="novedadHoy as novedad" role="status">
+        <mat-icon aria-hidden="true">event_busy</mat-icon>
+        <span><strong>Clase de hoy no realizada</strong> · Motivo: {{ motivoNombre(novedad.motivo) }}<ng-container *ngIf="novedad.descripcion?.trim()"> · {{ novedad.descripcion?.trim() }}</ng-container>.
+          No se puede registrar asistencia para hoy.</span>
+      </div>
+
       <section class="fuera-de-horario" *ngIf="mostrarFueraDeHorario" aria-labelledby="titulo-fuera-horario" role="group">
         <h3 id="titulo-fuera-horario">Clase fuera de horario</h3>
         <p>Este grupo no tiene una franja de horario asignada para hoy. Indica por qué se registra hoy y cuánto duró la clase.</p>
@@ -214,14 +220,14 @@
 
       <div class="btnAsistencias">
         <button type="button" class="btn-principal btn-registrar"
-                [disabled]="!puedeRegistrar" [attr.aria-describedby]="bloqueado ? 'aviso-horario' : (asistenciaDeHoyRegistrada ? 'aviso-registrada' : null)"
+                [disabled]="!puedeRegistrar" [attr.aria-describedby]="novedadHoy ? 'aviso-novedad-hoy' : (bloqueado ? 'aviso-horario' : (asistenciaDeHoyRegistrada ? 'aviso-registrada' : null))"
                 (click)="registrarAsistencia()">
           <mat-icon aria-hidden="true" fontIcon="check_circle_outline"></mat-icon>
           {{ textoBotonRegistrar }}
         </button>
         <!-- Fuera de horario (Coordinador) solo se registra la asistencia: una novedad de "clase no realizada" no aplica a un día sin clase. -->
         <button *ngIf="!mostrarFueraDeHorario" type="button" class="btn-secundario btn-novedad"
-                [disabled]="!puedeRegistrarNovedad" [attr.aria-describedby]="asistenciaDeHoyRegistrada ? 'aviso-registrada' : null" (click)="abrirFormNovedad()">
+                [disabled]="!puedeRegistrarNovedad" [attr.aria-describedby]="novedadHoy ? 'aviso-novedad-hoy' : (asistenciaDeHoyRegistrada ? 'aviso-registrada' : null)" (click)="abrirFormNovedad()">
           <mat-icon aria-hidden="true">event_busy</mat-icon> Registrar novedad de clase no realizada
         </button>
       </div>

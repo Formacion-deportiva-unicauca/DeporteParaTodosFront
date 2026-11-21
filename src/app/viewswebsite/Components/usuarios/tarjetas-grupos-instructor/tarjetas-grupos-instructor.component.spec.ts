@@ -131,4 +131,52 @@ describe('TarjetasGruposInstructorComponent', () => {
     poner([grupo()]);
     expect(q('ul.rejilla').getAttribute('aria-label')).toBe('Grupos a cargo');
   });
+
+  describe('clase de hoy no realizada (novedad activa)', () => {
+    const conNovedad = (over: Partial<MiGrupoInstructorDTO> = {}): MiGrupoInstructorDTO =>
+      grupo({ horarios: [horario(2, 'Miércoles', '18:00:00', '20:00:00')], novedadHoy: { codigo: 1, fecha: '2026-11-04', motivo: 'CLIMA', descripcion: null }, ...over });
+
+    it('muestra "Clase de hoy no realizada · Motivo: ..." en lugar de "Hoy · horario" y el botón no invita a registrar asistencia', () => {
+      poner([conNovedad()]);
+      expect(q('.insignia-no-realizada').textContent).toContain('Clase de hoy no realizada · Motivo: Condiciones climáticas');
+      expect(q('.insignia-no-realizada').getAttribute('role')).toBe('status');
+      expect(el().querySelector('.insignia-hoy')).toBeNull();
+      expect(el().textContent).not.toContain('Hoy · 6:00 p. m.');
+      expect(q('.tarjeta').classList).not.toContain('con-clase-hoy');
+      expect(q('.btn-grupo').textContent).toContain('Ver grupo');
+      expect(q('.btn-grupo').textContent).not.toContain('Registrar asistencia de hoy');
+      expect(q('.btn-grupo').getAttribute('aria-label')).toContain('(clase de hoy no realizada)');
+    });
+
+    it('incluye la descripción cuando la hay', () => {
+      poner([conNovedad({ novedadHoy: { codigo: 1, fecha: '2026-11-04', motivo: 'OTRO', descripcion: ' Falla del transporte ' } })]);
+      expect(q('.insignia-no-realizada').textContent).toContain('Motivo: Otro motivo · Falla del transporte');
+    });
+
+    it('aparece aunque el horario de hoy no esté cargado: la novedad es de hoy y eso es lo que importa', () => {
+      poner([conNovedad({ horarios: [] })]);
+      expect(q('.insignia-no-realizada')).not.toBeNull();
+    });
+
+    it('una novedad de otra fecha (p. ej. si el servidor y el navegador no coinciden en el día) se ignora', () => {
+      poner([conNovedad({ novedadHoy: { codigo: 1, fecha: '2026-11-03', motivo: 'CLIMA', descripcion: null } })]);
+      expect(el().querySelector('.insignia-no-realizada')).toBeNull();
+      expect(q('.insignia-hoy')).not.toBeNull();
+      expect(q('.btn-grupo').textContent).toContain('Registrar asistencia de hoy');
+    });
+
+    it('sin novedad (null o ausente) todo sigue igual', () => {
+      poner([grupo({ horarios: [horario(2, 'Miércoles', '08:00:00', '10:00:00')], novedadHoy: null })]);
+      expect(el().querySelector('.insignia-no-realizada')).toBeNull();
+      expect(q('.insignia-hoy')).not.toBeNull();
+    });
+
+    it('el grupo con clase hoy que SÍ se dicta va antes que el de la clase no realizada', () => {
+      poner([
+        conNovedad({ curso: 'Ajedrez' }),
+        grupo({ curso: 'Natación', horarios: [horario(3, 'Miércoles', '07:00:00', '08:00:00')] }),
+      ]);
+      expect(qa('.curso').map(c => c.textContent?.trim())).toEqual(['Natación', 'Ajedrez']);
+    });
+  });
 });

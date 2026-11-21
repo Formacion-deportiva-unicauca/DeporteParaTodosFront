@@ -26,6 +26,11 @@
   background: var(--color-primario); color: var(--color-sobre-primario); font-size: var(--texto-caption); font-weight: 600; white-space: nowrap;
 }
 .insignia-hoy mat-icon { width: 18px; height: 18px; font-size: 18px; }
+.insignia-no-realizada {
+  display: inline-flex; align-items: center; gap: 0.35rem; align-self: flex-start; padding: 0.3rem 0.7rem; border-radius: var(--radio-total);
+  background: var(--color-error-contenedor); color: var(--color-sobre-error-contenedor); font-size: var(--texto-caption); font-weight: 600;
+}
+.insignia-no-realizada mat-icon { width: 18px; height: 18px; font-size: 18px; flex-shrink: 0; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.7rem; border-radius: var(--radio-total); font-size: var(--texto-caption); font-weight: 600; background: #ececec; color: var(--color-neutro-texto); }

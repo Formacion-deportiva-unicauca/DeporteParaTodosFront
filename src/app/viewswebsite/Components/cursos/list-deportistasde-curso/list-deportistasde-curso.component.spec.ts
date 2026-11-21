@@ -218,6 +218,8 @@ describe('ListDeportistasdeCursoComponent', () => {
       for (const [nombre, cuerpo] of inesperados) {
         it(`${nombre}: avisa del error, no lo toma por historial vacío y no deja datos incorrectos`, () => {
           spyOn(component['claseService'], 'getClase').and.returnValue(of(cuerpo));
+          // Al abrir la pantalla ya se leyeron las novedades (decide si hoy se puede registrar asistencia): solo importa lo que hace la recarga.
+          (component['novedadClaseService'].obtenerNovedadesGrupo as jasmine.Spy).calls.reset();
           expect(() => { component.cargarHistorial(); fixture.detectChanges(); }).not.toThrow();
           expect(component['notificaciones'].error).toHaveBeenCalledWith(jasmine.any(String), jasmine.stringContaining(errorHistorial));
           expect(component.historialVisible).toBeFalse();
